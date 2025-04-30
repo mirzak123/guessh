@@ -7,7 +7,7 @@
 
 #define WORD_LENGTH 5
 #define WORDS_COUNT 2315
-#define WORDS_FILE "words.txt"
+#define WORDS_FILE "../server/words.txt"
 #define MAX_INPUT 1000
 
 #define ANSI_COLOR_RED "\x1b[31m"
@@ -48,7 +48,7 @@ char *rand_squirdle() {
 
   fd = open(WORDS_FILE, O_RDONLY);
   if (fd == -1) {
-    perror("perror");
+    perror("open");
     exit(EXIT_FAILURE);
   }
 
