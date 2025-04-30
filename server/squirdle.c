@@ -14,10 +14,14 @@
 #define ANSI_COLOR_GREEN "\x1b[32m"
 #define ANSI_COLOR_YELLOW "\x1b[33m"
 #define ANSI_COLOR_RESET "\x1b[0m"
+#define ANSI_MOVE_UP_LINE "\033[A"
+#define ANSI_CLEAR_LINE "\033[K"
 
 char *rand_squirdle();
 int rand_word_index();
 int guess(char *);
+int guess_results(char *, char *, int);
+void draw_guess_prompt(int);
 
 int main() {
   srand(time(NULL));
@@ -71,13 +75,21 @@ int guess(char *squirdle) {
   int guessed = 0;
 
   for (int i = 0; i < WORD_LENGTH + 1; i++) {
-    printf("guess %d/%d: ", i + 1, WORD_LENGTH + 1);
-    if (getline(&line, &size, stdin) == -1) {
+    draw_guess_prompt(i);
+    int read_bytes;
+    // FIX: read_bytes should be used somehow to prevent a newline if user
+    // inputs a shorter word
+    if ((read_bytes = getline(&line, &size, stdin)) == -1) {
       perror("getline");
       exit(EXIT_FAILURE);
     }
 
-    if (strncmp(squirdle, line, WORD_LENGTH) == 0) {
+    printf(ANSI_MOVE_UP_LINE "\r" ANSI_CLEAR_LINE);
+    draw_guess_prompt(i);
+
+    int correct = guess_results(squirdle, line, WORD_LENGTH);
+
+    if (correct) {
       guessed = 1;
       break;
     }
@@ -85,4 +97,23 @@ int guess(char *squirdle) {
 
   free(line);
   return guessed;
+}
+
+int guess_results(char *squirdle, char *guess, int len) {
+  int total_correct = 0;
+
+  for (int i = 0; i < len; i++) {
+    if (squirdle[i] == guess[i]) {
+      printf(ANSI_COLOR_GREEN "%c" ANSI_COLOR_RESET, guess[i]);
+      total_correct++;
+    } else {
+      printf("%c", guess[i]);
+    }
+  }
+  printf("\n");
+  return total_correct == len;
+}
+
+void draw_guess_prompt(int i) {
+  printf("guess %d/%d: ", i + 1, WORD_LENGTH + 1);
 }
