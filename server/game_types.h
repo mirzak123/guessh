@@ -1,7 +1,7 @@
 #ifndef GAME_TYPES_H
 #define GAME_TYPES_H
 
-typedef enum { NOT_GUESSED, PLAYER1_WINS, PLAYER2_WINS } Outcome;
+typedef enum { TIE, PLAYER1_WINS, PLAYER2_WINS } Outcome;
 
 typedef enum {
   SINGLE,
