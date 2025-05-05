@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/fcntl.h>
+#include <unistd.h>
 
 int evaluate_guess(const char *guess_word, const char *target_word, LetterFeedback *feedback, int len) {
   int alphabet[26] = {0};
@@ -33,9 +34,9 @@ int evaluate_guess(const char *guess_word, const char *target_word, LetterFeedba
   return 0;
 }
 
-void get_random_word(char *str) {
+char *get_random_word() {
   int fd, offset;
-  char *squirdle;
+  char *word;
 
   fd = open(WORDS_FILE, O_RDONLY);
   if (fd == -1) {
@@ -43,13 +44,19 @@ void get_random_word(char *str) {
     exit(EXIT_FAILURE); // TODO: Maybe shouldn't kill program entirely
   }
 
-  squirdle = malloc(WORD_LENGTH * sizeof(char));
+  word = malloc(WORD_LENGTH * sizeof(char));
   offset = rand_word_index();
 
-  if ((pread(fd, squirdle, 5, offset)) == -1) {
+  if ((pread(fd, word, 5, offset)) == -1) {
     perror("pread");
     exit(EXIT_FAILURE);
   }
 
-  return squirdle;
+  return word;
+}
+
+int rand_word_index() {
+  int word_index = rand() % (WORD_COUNT + 1);
+  int byte_offset = (WORD_LENGTH + 1) * word_index;
+  return byte_offset;
 }

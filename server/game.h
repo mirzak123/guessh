@@ -2,6 +2,8 @@
 #define GAME_H
 
 #define WORDS_FILE "../server/words.txt"
+#define WORD_LENGTH 5
+#define WORD_COUNT 1168
 
 typedef enum {
   LETTER_ABSENT,
@@ -10,6 +12,7 @@ typedef enum {
 } LetterFeedback;
 
 int evaluate_guess(const char *guess_word, const char *target_word, LetterFeedback *feedback, int len);
-void get_random_word(char *str);
+char *get_random_word();
+int rand_word_index();
 
 #endif // !GAME_H
