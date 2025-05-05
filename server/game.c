@@ -1,4 +1,7 @@
 #include "game.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/fcntl.h>
 
 int evaluate_guess(const char *guess_word, const char *target_word, LetterFeedback *feedback, int len) {
   int alphabet[26] = {0};
@@ -28,4 +31,25 @@ int evaluate_guess(const char *guess_word, const char *target_word, LetterFeedba
   }
 
   return 0;
+}
+
+void get_random_word(char *str) {
+  int fd, offset;
+  char *squirdle;
+
+  fd = open(WORDS_FILE, O_RDONLY);
+  if (fd == -1) {
+    perror("open");
+    exit(EXIT_FAILURE); // TODO: Maybe shouldn't kill program entirely
+  }
+
+  squirdle = malloc(WORD_LENGTH * sizeof(char));
+  offset = rand_word_index();
+
+  if ((pread(fd, squirdle, 5, offset)) == -1) {
+    perror("pread");
+    exit(EXIT_FAILURE);
+  }
+
+  return squirdle;
 }
