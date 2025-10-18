@@ -1,4 +1,6 @@
-# Welcome to GueSSH
+# GueSSH
+
+Welcome to GueSSH, a wordle-like head-to-head multiplayer game, available over SSH.
 
 ## Server
 
