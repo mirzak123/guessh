@@ -1,4 +1,4 @@
-#include "game.h"
+#include "game_logic.h"
 #include <assert.h>
 #include <stdio.h>
 

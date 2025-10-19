@@ -1,5 +1,5 @@
-#ifndef GAME_H
-#define GAME_H
+#ifndef GAME_LOGIC_H
+#define GAME_LOGIC_H
 
 #define WORDS_FILE "./words/five-letter.txt"
 #define WORD_LENGTH 5
@@ -13,6 +13,6 @@ typedef enum {
 
 int evaluate_guess(const char *guess_word, const char *target_word, LetterFeedback *feedback, int len);
 char *get_random_word();
-int rand_word_index(); // TODO:  Remove from game.h -- should be private
+int rand_word_index(); // TODO:  Remove from game_logic.h -- should be private
 
-#endif // !GAME_H
+#endif // !GAME_LOGIC_H

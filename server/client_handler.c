@@ -1,5 +1,5 @@
 #include "client_handler.h"
-#include "game.h"
+#include "game_logic.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,27 +17,26 @@ void handle_client(int client_fd) {
 
   strcpy(server_msg, "Hello there! Would you like to begin?\n");
   if ((rv = send(client_fd, server_msg, strlen(server_msg), 0)) == -1) {
-    perror("send:");
+    perror("send");
     return;
   }
 
   if ((rv = recv(client_fd, client_msg, BUFSIZE, 0)) == -1) {
-    perror("recv:");
+    perror("recv");
     return;
   } else if (!rv) {
     return;
   }
-  printf("rv: %d\n", rv);
   client_msg[rv] = '\0';
 
   strcpy(server_msg, "Guess...\n");
   if ((rv = send(client_fd, server_msg, strlen(server_msg), 0)) == -1) {
-    perror("send:");
+    perror("send");
     return;
   }
 
   if ((rv = recv(client_fd, client_msg, BUFSIZE, 0)) == -1) {
-    perror("recv:");
+    perror("recv");
     return;
   } else if (!rv) {
     return;
@@ -49,10 +48,9 @@ void handle_client(int client_fd) {
   } else {
     sprintf(server_msg, "Sorry, your word was: %s\n", target_word);
   }
-  printf("msg: %s\n", server_msg);
 
   if ((rv = send(client_fd, server_msg, strlen(server_msg), 0)) == -1) {
-    perror("send:");
+    perror("send");
     return;
   }
 }

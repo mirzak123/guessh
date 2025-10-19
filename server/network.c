@@ -1,18 +1,36 @@
+#include "network.h"
+#include "client_handler.h"
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/_types/_socklen_t.h>
 #include <sys/errno.h>
+#include <sys/poll.h>
+#include <sys/signal.h>
 #include <sys/socket.h>
+#include <unistd.h>
 
 #define BACKLOG 10
+
+void sigchld_handler(int s) {
+  // waitpid() might overwrite errno, so we save and restore it:
+  int saved_errno = errno;
+
+  while (waitpid(-1, NULL, WNOHANG) > 0)
+    ;
+
+  errno = saved_errno;
+}
 
 int start_listening(char *port) {
   int status, sock_fd;
   struct addrinfo hints, *servinfo, *p;
+  struct sigaction sa;
+  int yes = 1;
 
   memset(&hints, 0, sizeof hints);
   hints.ai_family = AF_UNSPEC;
@@ -39,43 +57,117 @@ int start_listening(char *port) {
   }
 
   if ((sock_fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
-    perror("socket:");
+    perror("socket");
     exit(errno);
   }
 
   // Prevents "Address already in use" error
-  int yes = 1;
   setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof yes);
 
   if (bind(sock_fd, p->ai_addr, p->ai_addrlen) == -1) {
-    perror("bind:");
+    perror("bind");
     exit(errno);
   }
 
   if (listen(sock_fd, BACKLOG) == -1) {
-    perror("listen:");
+    perror("listen");
     exit(errno);
   }
+
+  // NOTE: No clue how this code block works
+  // ???
+  sa.sa_handler = sigchld_handler; // reap all dead processes
+  sigemptyset(&sa.sa_mask);
+  sa.sa_flags = SA_RESTART;
+  if (sigaction(SIGCHLD, &sa, NULL) == -1) {
+    perror("sigaction");
+    exit(1);
+  }
+  // ???
 
   freeaddrinfo(servinfo);
 
   return sock_fd;
 }
 
-int get_client_conn(int fd) {
+void add_to_pfds(struct pollfd **pfds, int new_fd, int *fd_size, int *fd_count) {
+  if (*fd_size == *fd_count) {
+    *fd_size *= 2;
+    *pfds = realloc(*pfds, sizeof(**pfds) * (*fd_size));
+  }
+
+  (*pfds)[*fd_count].fd = new_fd;
+  (*pfds)[*fd_count].events = POLLIN;
+  (*pfds)[*fd_count].revents = 0;
+
+  (*fd_count)++;
+}
+
+/*
+ * Something wrong.
+ */
+void del_from_pfds(struct pollfd pfds[], int i, int *fd_count) {
+  pfds[i] = pfds[*fd_count - 1];
+  (*fd_count)--;
+}
+
+/*
+ * Handle incomming connections.
+ */
+void handle_new_connection(int listen_fd, int *fd_size, int *fd_count, struct pollfd **pfds) {
   struct sockaddr_storage client_addr;
   socklen_t addr_size = sizeof client_addr;
 
-  int client_fd = accept(fd, (struct sockaddr *)&client_addr, &addr_size);
-  return client_fd;
+  int client_fd = accept(listen_fd, (struct sockaddr *)&client_addr, &addr_size);
+
+  if (client_fd == -1) {
+    perror("accept");
+    return;
+  }
+
+  add_to_pfds(pfds, client_fd, fd_size, fd_count);
 }
 
-void sigchld_handler(int s) {
-  // waitpid() might overwrite errno, so we save and restore it:
-  int saved_errno = errno;
+/*
+ * Handle client data or client hangup.
+ */
+void handle_client_data(int listen_fd, int *fd_count, struct pollfd pfds[], int *pfd_i) {
+  char buf[BUFSIZE];
 
-  while (waitpid(-1, NULL, WNOHANG) > 0)
-    ;
+  int client_fd = pfds[*pfd_i].fd;
 
-  errno = saved_errno;
+  int nbytes = recv(client_fd, buf, BUFSIZE, 0);
+
+  if (nbytes <= 0) {
+    if (nbytes == 0) { // client hang up
+      printf("socket %d hangup\n", client_fd);
+    } else { // error
+      perror("recv");
+    }
+
+    close(client_fd);
+    del_from_pfds(pfds, *pfd_i, fd_count);
+
+    // reexamine slot as it contains a new fd after deletion
+    (*pfd_i)--;
+
+    return;
+  }
+
+  printf("received data from fd %d: %.*s", client_fd, nbytes, buf);
+
+  // TODO: Handle game logic
+  GS_request(int client_fd);
+}
+
+void process_connections(int listen_fd, int *fd_size, int *fd_count, struct pollfd **pfds) {
+  for (int i = 0; i < *fd_count; i++) {
+    if ((*pfds)[i].revents & (POLLIN | POLLHUP)) {
+      if ((*pfds)[i].fd == listen_fd) {
+        handle_new_connection(listen_fd, fd_size, fd_count, pfds);
+      } else {
+        handle_client_data(listen_fd, fd_count, *pfds, &i);
+      }
+    }
+  }
 }
