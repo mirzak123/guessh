@@ -1,5 +1,5 @@
 #include "network.h"
-#include "client_handler.h"
+#include "game_server.h"
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -13,8 +13,6 @@
 #include <sys/signal.h>
 #include <sys/socket.h>
 #include <unistd.h>
-
-#define BACKLOG 10
 
 void sigchld_handler(int s) {
   // waitpid() might overwrite errno, so we save and restore it:
@@ -157,7 +155,7 @@ void handle_client_data(int listen_fd, int *fd_count, struct pollfd pfds[], int 
   printf("received data from fd %d: %.*s", client_fd, nbytes, buf);
 
   // TODO: Handle game logic
-  GS_request(int client_fd);
+  GS_request(client_fd, buf, nbytes);
 }
 
 void process_connections(int listen_fd, int *fd_size, int *fd_count, struct pollfd **pfds) {
