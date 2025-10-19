@@ -6,8 +6,8 @@
 #include <unistd.h>
 
 #define WORD_LENGTH 5
-#define WORDS_COUNT 2315
-#define WORDS_FILE "../server/words.txt"
+#define WORDS_COUNT 1168
+#define WORDS_FILE "./words/five-letter.txt"
 #define MAX_INPUT 1000
 
 #define ANSI_COLOR_RED "\x1b[31m"
@@ -65,6 +65,7 @@ char *rand_squirdle() {
 
 int rand_word_index() {
   int word_index = rand() % (WORDS_COUNT + 1);
+  printf("word index: %d\n", word_index);
   int byte_offset = (WORD_LENGTH + 1) * word_index;
   return byte_offset;
 }

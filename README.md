@@ -1,4 +1,6 @@
-# Welcome to GueSSH
+# GueSSH
+
+Welcome to GueSSH, a wordle-like head-to-head multiplayer game, available over SSH.
 
 ## Server
 
@@ -44,22 +46,25 @@ Find a better way to represent flow below 🙏🙏🙏
 
 ## Client-Server Protocol
 
-| #   | Name                      | Sent by: C or S | Description                                                                    |
-| --- | ------------------------- | --------------- | ------------------------------------------------------------------------------ |
-| 0   | CONNECTED                 | S               |                                                                                |
-| 1   | ROOM_CREATE               | C               |                                                                                |
-| 2   | START_SINGLE_PLAYER_MATCH | C               | Client tells server to start a match without creating room                     |
-| 3   | ROOM_CREATED              | S               |                                                                                |
-| 4   | ROOM_JOIN                 | C               |                                                                                |
-| 5   | ROOM_JOINED               | S               |                                                                                |
-| 6   | WAIT_OPPONENT_JOIN        | S               | One player created a room and is waiting for the other player to join the room |
-| 7   | MATCH_STARTED             | S               |                                                                                |
-| 8   | ROUND_STARTED             | S               |                                                                                |
-| 9   | WAIT_GUESS                | S               |                                                                                |
-| 10  | WAIT_OPPONENT_GUESS       | S               |                                                                                |
-| 11  | MAKE_GUESS                | C               |                                                                                |
-| 12  | GUESS_OUTCOME             | S               |                                                                                |
-| 13  | ROUND_FINISHED            | S               |                                                                                |
-| 14  | REQUEST_REMATCH           | C               |                                                                                |
-| 15  | MATCH_FINISHED            | S               |                                                                                |
-| 16  | DISCONNECTING             | S               |                                                                                |
+| #   | Name                | Sent by: C or S | Description                                                                    |
+| --- | ------------------- | --------------- | ------------------------------------------------------------------------------ |
+| 0   | CREATE_ROOM         | C               |                                                                                |
+|     | CONNECTED           | S               |                                                                                |
+|     | CREATE_MATCH        | C               | Client tells server to start a match                                           |
+|     | ROOM_CREATED        | S               |                                                                                |
+|     | ROOM_JOIN           | C               |                                                                                |
+|     | ROOM_JOINED         | S               |                                                                                |
+|     | ROOM_JOIN_FAILED    | S               | Room full                                                                      |
+|     | EXIT_ROOM           | S/C             | Potentially triggers server to kick other participant if match is over         |
+|     | WAIT_OPPONENT_JOIN  | S               | One player created a room and is waiting for the other player to join the room |
+|     | MATCH_STARTED       | S               |                                                                                |
+|     | ROUND_STARTED       | S               |                                                                                |
+|     | WAIT_GUESS          | S               |                                                                                |
+|     | WAIT_OPPONENT_GUESS | S               |                                                                                |
+|     | MAKE_GUESS          | C               |                                                                                |
+|     | ACCEPTED_GUESS      | C               |                                                                                |
+|     | INVALID_GUESS       | C               |                                                                                |
+|     | ROUND_FINISHED      | S               |                                                                                |
+|     | REQUEST_REMATCH     | C               |                                                                                |
+|     | MATCH_FINISHED      | S               |                                                                                |
+|     | DISCONNECTING       | S/C             |                                                                                |
