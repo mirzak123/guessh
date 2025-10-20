@@ -37,14 +37,16 @@ RequestType parse_request_type(char *request, int size) {
 void GS_request(GameServer *gs, int client_fd, char *data, int size) {
   RequestType rt = parse_request_type(data, size);
 
-  int status;
+  long status;
   char buf[BUFSIZE];
   sprintf(buf, "Request type: %d\n", rt);
 
   switch (rt) {
   case CREATE_MATCH:
-    status = GS_create_match(gs, client_fd, 1, buf);
+    if ((status = GS_create_match(gs, client_fd, 1, buf)) != -1)
+      sprintf(buf, "Match ID: %ld", status);
     break;
+
   case UNSUPPORTED_REQUEST:
   default:
     status = -1;
