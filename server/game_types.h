@@ -10,7 +10,7 @@ typedef enum {
 } GameMode;
 
 typedef struct {
-  int id;
+  int fd;
   /* additional fields like name, socket_id, etc. */
 } Player;
 
@@ -33,12 +33,13 @@ typedef struct {
 } Round;
 
 typedef struct {
-  int round_count;    /* how many rounds have been played */
+  long id;
+  int round_current;    /* how many rounds have been played */
   int round_capacity; /* total amount of rounds */
   Round **rounds;
   GameMode mode;
   Outcome outcome;
-  Player players[];
+  Player player; // TODO: Replace with players[]. Currently only single player is supported.
 } Match;
 
 #endif // !GAME_TYPES_H

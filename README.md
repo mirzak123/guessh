@@ -62,8 +62,8 @@ Find a better way to represent flow below 🙏🙏🙏
 |     | WAIT_GUESS          | S               |                                                                                |
 |     | WAIT_OPPONENT_GUESS | S               |                                                                                |
 |     | MAKE_GUESS          | C               |                                                                                |
-|     | ACCEPTED_GUESS      | C               |                                                                                |
-|     | INVALID_GUESS       | C               |                                                                                |
+|     | ACCEPTED_GUESS      | S               |                                                                                |
+|     | INVALID_GUESS       | S               |                                                                                |
 |     | ROUND_FINISHED      | S               |                                                                                |
 |     | REQUEST_REMATCH     | C               |                                                                                |
 |     | MATCH_FINISHED      | S               |                                                                                |

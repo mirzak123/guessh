@@ -129,7 +129,7 @@ void handle_new_connection(int listen_fd, int *fd_size, int *fd_count, struct po
 /*
  * Handle client data or client hangup.
  */
-void handle_client_data(int listen_fd, int *fd_count, struct pollfd pfds[], int *pfd_i) {
+void handle_client_data(GameServer *gs, int listen_fd, int *fd_count, struct pollfd pfds[], int *pfd_i) {
   char buf[BUFSIZE];
 
   int client_fd = pfds[*pfd_i].fd;
@@ -154,17 +154,16 @@ void handle_client_data(int listen_fd, int *fd_count, struct pollfd pfds[], int 
 
   printf("received data from fd %d: %.*s", client_fd, nbytes, buf);
 
-  // TODO: Handle game logic
-  GS_request(client_fd, buf, nbytes);
+  GS_request(gs, client_fd, buf, nbytes);
 }
 
-void process_connections(int listen_fd, int *fd_size, int *fd_count, struct pollfd **pfds) {
+void process_connections(GameServer *gs, int listen_fd, int *fd_size, int *fd_count, struct pollfd **pfds) {
   for (int i = 0; i < *fd_count; i++) {
     if ((*pfds)[i].revents & (POLLIN | POLLHUP)) {
       if ((*pfds)[i].fd == listen_fd) {
         handle_new_connection(listen_fd, fd_size, fd_count, pfds);
       } else {
-        handle_client_data(listen_fd, fd_count, *pfds, &i);
+        handle_client_data(gs, listen_fd, fd_count, *pfds, &i);
       }
     }
   }

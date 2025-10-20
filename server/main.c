@@ -7,12 +7,14 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include "game_server.h"
 #include "network.h"
 
 #define PORT "2480"
 #define BUFF_LEN 1000
 
 int main() {
+  GameServer *gs;
   int listen_fd, client_fd;
   int fd_size = 5; // room for connections
   int fd_count;    // current connections
@@ -26,6 +28,7 @@ int main() {
   pfds[0].events = POLLIN;
   fd_count = 1;
 
+  gs = GS_create();
   for (;;) {
     int poll_count = poll(pfds, fd_count, -1);
 
@@ -34,9 +37,10 @@ int main() {
       exit(1);
     }
 
-    process_connections(listen_fd, &fd_size, &fd_count, &pfds);
+    process_connections(gs, listen_fd, &fd_size, &fd_count, &pfds);
   }
 
+  GS_destroy(gs);
   free(pfds);
 
   return 0;
