@@ -13,9 +13,9 @@
 #define PORT "2480"
 #define BUFF_LEN 1000
 
-int main() {
+int main(void) {
   GameServer *gs;
-  int listen_fd, client_fd;
+  int listen_fd;
   int fd_size = 5; // room for connections
   int fd_count;    // current connections
   struct pollfd *pfds = malloc(sizeof *pfds * fd_size);

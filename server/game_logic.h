@@ -12,7 +12,7 @@ typedef enum {
 } LetterFeedback;
 
 int evaluate_guess(const char *guess_word, const char *target_word, LetterFeedback *feedback, int len);
-char *get_random_word();
-int rand_word_index(); // TODO:  Remove from game_logic.h -- should be private
+char *get_random_word(void);
+int rand_word_index(void); // TODO:  Remove from game_logic.h -- should be private
 
 #endif // !GAME_LOGIC_H

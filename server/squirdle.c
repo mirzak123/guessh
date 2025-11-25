@@ -17,13 +17,13 @@
 #define ANSI_MOVE_UP_LINE "\033[A"
 #define ANSI_CLEAR_LINE "\033[K"
 
-char *rand_squirdle();
-int rand_word_index();
+char *rand_squirdle(void);
+int rand_word_index(void);
 int guess(char *);
 int guess_results(char *, char *, int);
 void draw_guess_prompt(int);
 
-int main() {
+int main(void) {
   srand(time(NULL));
   char *squirdle = rand_squirdle();
 
@@ -42,7 +42,7 @@ int main() {
   return 0;
 }
 
-char *rand_squirdle() {
+char *rand_squirdle(void) {
   int fd, offset;
   char *squirdle;
 
@@ -63,7 +63,7 @@ char *rand_squirdle() {
   return squirdle;
 }
 
-int rand_word_index() {
+int rand_word_index(void) {
   int word_index = rand() % (WORDS_COUNT + 1);
   printf("word index: %d\n", word_index);
   int byte_offset = (WORD_LENGTH + 1) * word_index;

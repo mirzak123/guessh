@@ -34,7 +34,7 @@ int evaluate_guess(const char *guess_word, const char *target_word, LetterFeedba
   return 0;
 }
 
-char *get_random_word() {
+char *get_random_word(void) {
   int fd, offset;
   char *word;
 
@@ -55,7 +55,7 @@ char *get_random_word() {
   return word;
 }
 
-int rand_word_index() {
+int rand_word_index(void) {
   int word_index = rand() % (WORD_COUNT + 1);
   int byte_offset = (WORD_LENGTH + 1) * word_index;
   return byte_offset;

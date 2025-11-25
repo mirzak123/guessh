@@ -14,7 +14,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-void sigchld_handler(int s) {
+void sigchld_handler(void) {
   // waitpid() might overwrite errno, so we save and restore it:
   int saved_errno = errno;
 
@@ -74,7 +74,7 @@ int start_listening(char *port) {
 
   // NOTE: No clue how this code block works
   // ???
-  sa.sa_handler = sigchld_handler; // reap all dead processes
+  sa.sa_handler = (void (*)(int))sigchld_handler; // reap all dead processes
   sigemptyset(&sa.sa_mask);
   sa.sa_flags = SA_RESTART;
   if (sigaction(SIGCHLD, &sa, NULL) == -1) {
@@ -129,7 +129,7 @@ void handle_new_connection(int listen_fd, int *fd_size, int *fd_count, struct po
 /*
  * Handle client data or client hangup.
  */
-void handle_client_data(GameServer *gs, int listen_fd, int *fd_count, struct pollfd pfds[], int *pfd_i) {
+void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int *pfd_i) {
   char buf[BUFSIZE];
 
   int client_fd = pfds[*pfd_i].fd;
@@ -163,7 +163,7 @@ void process_connections(GameServer *gs, int listen_fd, int *fd_size, int *fd_co
       if ((*pfds)[i].fd == listen_fd) {
         handle_new_connection(listen_fd, fd_size, fd_count, pfds);
       } else {
-        handle_client_data(gs, listen_fd, fd_count, *pfds, &i);
+        handle_client_data(gs, fd_count, *pfds, &i);
       }
     }
   }

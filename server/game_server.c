@@ -2,13 +2,14 @@
 #include "game_types.h"
 #include "network.h"
 #include <_string.h>
+#include <cjson/cJSON.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <time.h>
 
-GameServer *GS_create() {
+GameServer *GS_create(void) {
   GameServer *gs;
 
   gs = malloc(sizeof(GameServer));
@@ -21,7 +22,7 @@ GameServer *GS_create() {
   return gs;
 }
 
-RequestType parse_request_type(char *request, int size) {
+RequestType parse_request_type(char *request, size_t size) {
   if (!strncmp("CREATE_MATCH", request, 12)) {
     return CREATE_MATCH;
   }
@@ -31,10 +32,13 @@ RequestType parse_request_type(char *request, int size) {
   if (!strncmp("MAKE_GUESS", request, 10)) {
     return MAKE_GUESS;
   }
+  if (!strncmp("MATCH_NUM", request, 10)) {
+    return MATCH_META;
+  }
   return UNSUPPORTED_REQUEST;
 }
 
-void GS_request(GameServer *gs, int client_fd, char *data, int size) {
+void GS_request(GameServer *gs, int client_fd, char *data, size_t size) {
   RequestType rt = parse_request_type(data, size);
 
   long status;
@@ -44,13 +48,13 @@ void GS_request(GameServer *gs, int client_fd, char *data, int size) {
   switch (rt) {
   case CREATE_MATCH:
     if ((status = GS_create_match(gs, client_fd, 1, buf)) != -1)
-      sprintf(buf, "Match ID: %ld", status);
+      sprintf(buf, "Match ID: %ld\n", status);
     break;
 
   case UNSUPPORTED_REQUEST:
   default:
     status = -1;
-    strlcpy(buf, "error: nsupported request type\n", BUFSIZE);
+    strlcpy(buf, "error: unsupported request type\n", BUFSIZE);
   }
 
   if (send(client_fd, buf, strlen(buf), 0) == -1) {
@@ -77,6 +81,10 @@ long GS_create_match(GameServer *gs, int client_fd, int nrounds, char *err) {
   match->player = (Player){client_fd};
   match->round_current = 0;
   match->round_capacity = nrounds;
+
+  // TODO: add check for match limit
+  // WARN: gs->nmatches++ possibly increases the pointer, not the value
+  gs->matches[gs->nmatches++] = match;
 
   return match->id;
 }
