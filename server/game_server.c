@@ -22,7 +22,7 @@ GameServer *GS_create(void) {
   return gs;
 }
 
-RequestType parse_request_type(char *request, size_t size) {
+MessageType parse_request_type(char *request, size_t size) {
   if (!strncmp("CREATE_MATCH", request, 12)) {
     return CREATE_MATCH;
   }
@@ -33,13 +33,13 @@ RequestType parse_request_type(char *request, size_t size) {
     return MAKE_GUESS;
   }
   if (!strncmp("MATCH_NUM", request, 10)) {
-    return MATCH_META;
+    return MATCH_INFO;
   }
-  return UNSUPPORTED_REQUEST;
+  return UNSUPPORTED_MESSAGE_TYPE;
 }
 
 void GS_request(GameServer *gs, int client_fd, char *data, size_t size) {
-  RequestType rt = parse_request_type(data, size);
+  MessageType rt = parse_request_type(data, size);
 
   long status;
   char buf[BUFSIZE];
@@ -51,7 +51,7 @@ void GS_request(GameServer *gs, int client_fd, char *data, size_t size) {
       sprintf(buf, "Match ID: %ld\n", status);
     break;
 
-  case UNSUPPORTED_REQUEST:
+  case UNSUPPORTED_MESSAGE_TYPE:
   default:
     status = -1;
     strlcpy(buf, "error: unsupported request type\n", BUFSIZE);

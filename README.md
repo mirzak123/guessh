@@ -9,7 +9,7 @@ Welcome to GueSSH, a wordle-like head-to-head multiplayer game, available over S
 - main.c - main loop
 - game.c - game logic
 - room.c - creating, joining and deleting rooms
-- network.c - socket setup for communication with cli
+- network.c - socket setup for communication with client
 
 ### Game Logic
 
@@ -42,29 +42,46 @@ Find a better way to represent flow below 🙏🙏🙏
          - Remote
            1. Session:
               - Join existing room (room code input)
-              - Create new room 5. How many rounds? (number input)
+              - Create new room
+                1. How many rounds? (number input)
 
 ## Client-Server Protocol
 
-| #   | Name                | Sent by: C or S | Description                                                                    |
-| --- | ------------------- | --------------- | ------------------------------------------------------------------------------ |
-| 0   | CREATE_ROOM         | C               |                                                                                |
-|     | CONNECTED           | S               |                                                                                |
-|     | CREATE_MATCH        | C               | Client tells server to start a match                                           |
-|     | ROOM_CREATED        | S               |                                                                                |
-|     | ROOM_JOIN           | C               |                                                                                |
-|     | ROOM_JOINED         | S               |                                                                                |
-|     | ROOM_JOIN_FAILED    | S               | Room full                                                                      |
-|     | EXIT_ROOM           | S/C             | Potentially triggers server to kick other participant if match is over         |
-|     | WAIT_OPPONENT_JOIN  | S               | One player created a room and is waiting for the other player to join the room |
-|     | MATCH_STARTED       | S               |                                                                                |
-|     | ROUND_STARTED       | S               |                                                                                |
-|     | WAIT_GUESS          | S               |                                                                                |
-|     | WAIT_OPPONENT_GUESS | S               |                                                                                |
-|     | MAKE_GUESS          | C               |                                                                                |
-|     | ACCEPTED_GUESS      | S               |                                                                                |
-|     | INVALID_GUESS       | S               |                                                                                |
-|     | ROUND_FINISHED      | S               |                                                                                |
-|     | REQUEST_REMATCH     | C               |                                                                                |
-|     | MATCH_FINISHED      | S               |                                                                                |
-|     | DISCONNECTING       | S/C             |                                                                                |
+### Shared Message Types (Client & Server)
+
+| Type       | Description                                           |
+| ---------- | ----------------------------------------------------- |
+| MATCH_INFO |                                                       |
+| ROUND_INFO |                                                       |
+| BYE        | Potentially triggers server to kick other participant |
+
+### Client Message Types
+
+| Type            | Description                          |
+| --------------- | ------------------------------------ |
+| CREATE_ROOM     |                                      |
+| CREATE_MATCH    | Client tells server to start a match |
+| ROOM_JOIN       |                                      |
+| MAKE_GUESS      |                                      |
+| REQUEST_REMATCH |                                      |
+| EXIT_ROOM       |                                      |
+
+### Server Message Types
+
+| Type                | Description                                                                    |
+| ------------------- | ------------------------------------------------------------------------------ |
+| CONNECTED           |                                                                                |
+| ROOM_CREATED        |                                                                                |
+| ROOM_JOINED         |                                                                                |
+| ROOM_JOIN_FAILED    | Room full                                                                      |
+| WAIT_OPPONENT_JOIN  | One player created a room and is waiting for the other player to join the room |
+| MATCH_STARTED       |                                                                                |
+| ROUND_STARTED       |                                                                                |
+| WAIT_GUESS          |                                                                                |
+| WAIT_OPPONENT_GUESS |                                                                                |
+| ACCEPTED_GUESS      |                                                                                |
+| INVALID_GUESS       |                                                                                |
+| ROUND_FINISHED      |                                                                                |
+| MATCH_FINISHED      |                                                                                |
+| MATCH_INFO          |                                                                                |
+| ROUND_INFO          |                                                                                |
