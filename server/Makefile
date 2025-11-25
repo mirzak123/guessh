@@ -1,15 +1,22 @@
+BREW_PREFIX := /opt/homebrew
+CFLAGS := -Wall -Wextra -pedantic -I$(BREW_PREFIX)/include
+LDFLAGS := -L$(BREW_PREFIX)/lib -lcjson
+
 BUILD_DIR := ../bin
 BUILD_NAME := server
 BUILD_TEST_NAME := server-test
 SRC := main.c network.c game_logic.c game_server.c
 
+CC := gcc
+
 all: build run
 
 build:
-	gcc $(SRC) -o $(BUILD_DIR)/$(BUILD_NAME)
+	$(CC) $(SRC) $(CFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME)
 
 debug:
-	gcc -g -O0 -Wall -Wextra -pedantic $(SRC) -o $(BUILD_DIR)/$(BUILD_NAME)_debug
+	# Add -g for debugging symbols and -O0 to disable optimization
+	$(CC) -g -O0 $(CFLAGS) $(LDFLAGS) $(SRC) -o $(BUILD_DIR)/$(BUILD_NAME)_debug
 
 run:
 	$(BUILD_DIR)/$(BUILD_NAME)
@@ -18,4 +25,8 @@ run-debug:
 	$(BUILD_DIR)/$(BUILD_NAME)_debug
 
 test:
-	gcc test.c game_logic.c -o $(BUILD_DIR)/$(BUILD_TEST_NAME) && $(BUILD_DIR)/$(BUILD_TEST_NAME)
+	# Note: test.c likely needs cJSON flags too if it uses the library
+	$(CC) test.c game_logic.c $(CFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(BUILD_TEST_NAME) && $(BUILD_DIR)/$(BUILD_TEST_NAME)
+
+clean:
+	rm -rf $(BUILD_DIR)/*
