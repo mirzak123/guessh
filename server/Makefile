@@ -21,8 +21,8 @@ debug:
 run:
 	$(BUILD_DIR)/$(BUILD_NAME)
 
-run-debug:
-	$(BUILD_DIR)/$(BUILD_NAME)_debug
+debug-run: debug
+	lldb -- $(BUILD_DIR)/$(BUILD_NAME)_debug
 
 test:
 	# Note: test.c likely needs cJSON flags too if it uses the library
