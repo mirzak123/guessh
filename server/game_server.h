@@ -15,6 +15,9 @@
 #define STRING "string"
 #define NUMBER "number"
 
+#define E_MALFORMED_MESSAGE "Malformed message received"
+#define E_UNSUPPORTED_MESSAGE_TYPE "Unsupported message type"
+#define E_NOT_IMPLEMENTED "Not Implemented"
 #define E_MISSING_FIELD(field) "Missing '" field "' field"
 #define E_INVALID_TYPE(field, expected_type) "Invalid type of '" field "' field, expected: " expected_type
 #define E_INVALID_ROUNDS "Round number must be between 1 and " STR(MAX_ROUNDS)

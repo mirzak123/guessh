@@ -1,6 +1,5 @@
 #include "game_server.h"
 #include "game_types.h"
-#include "network.h"
 #include <_string.h>
 #include <cjson/cJSON.h>
 #include <stdio.h>
@@ -101,11 +100,9 @@ MessageType GS_parse_message(char *data, size_t size, cJSON **json_out) {
 
 void GS_handle_request(GameServer *gs, int client_fd, char *data, size_t size) {
   cJSON *json_request = NULL;
-  char response_buf[BUFSIZE];
   MessageType mt;
 
   mt = GS_parse_message(data, size, &json_request);
-  printf("[GS_handle_request] json_request: %s\n", cJSON_PrintUnformatted(json_request));
 
   switch (mt) {
   case MALFORMED_MESSAGE:
@@ -113,28 +110,29 @@ void GS_handle_request(GameServer *gs, int client_fd, char *data, size_t size) {
     if (json_request) {
       cJSON_Delete(json_request);
     }
+    GS_send_error(client_fd, E_MALFORMED_MESSAGE);
     return;
   case CREATE_MATCH:
     GS_handle_create_match(gs, client_fd, json_request);
     break;
   case CREATE_ROOM:
-    sprintf(response_buf, "Room created\n");
+    GS_send_error(client_fd, E_NOT_IMPLEMENTED);
     break;
   case JOIN_ROOM:
-    sprintf(response_buf, "Joining room...\n");
+    GS_send_error(client_fd, E_NOT_IMPLEMENTED);
     break;
   case MAKE_GUESS:
-    sprintf(response_buf, "Verifying guess...\n");
+    GS_send_error(client_fd, E_NOT_IMPLEMENTED);
     break;
   case REQUEST_REMATCH:
-    sprintf(response_buf, "Rematch requested\n");
+    GS_send_error(client_fd, E_NOT_IMPLEMENTED);
     break;
   case EXIT_MATCH:
-    sprintf(response_buf, "Leaving match...\n");
+    GS_send_error(client_fd, E_NOT_IMPLEMENTED);
     break;
   case UNSUPPORTED_MESSAGE_TYPE:
   default:
-    strlcpy(response_buf, "error: unsupported request type\n", BUFSIZE);
+    GS_send_error(client_fd, E_UNSUPPORTED_MESSAGE_TYPE);
   }
 
   cJSON_Delete(json_request);
@@ -244,7 +242,7 @@ void GS_send_error(int client_fd, char *reason) {
   cJSON *err_json = NULL;
 
   err_json = cJSON_CreateObject();
-  cJSON_AddStringToObject(err_json, "type", "ERROR");
+  cJSON_AddStringToObject(err_json, "type", STR(ERROR));
   cJSON_AddStringToObject(err_json, "reason", reason);
   GS_send_json(client_fd, err_json);
 }
