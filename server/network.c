@@ -102,7 +102,7 @@ void add_to_pfds(struct pollfd **pfds, int new_fd, int *fd_size, int *fd_count) 
 }
 
 /*
- * Something wrong.
+ * Delete a file descriptor after connection closes.
  */
 void del_from_pfds(struct pollfd pfds[], int i, int *fd_count) {
   pfds[i] = pfds[*fd_count - 1];
@@ -146,7 +146,7 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
     close(client_fd);
     del_from_pfds(pfds, *pfd_i, fd_count);
 
-    // reexamine slot as it contains a new fd after deletion
+    // re-examine slot as it contains a new fd after deletion
     (*pfd_i)--;
 
     return;
@@ -154,7 +154,7 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
 
   printf("received data from fd %d: %.*s", client_fd, nbytes, buf);
 
-  GS_request(gs, client_fd, buf, nbytes);
+  GS_handle_request(gs, client_fd, buf, nbytes);
 }
 
 void process_connections(GameServer *gs, int listen_fd, int *fd_size, int *fd_count, struct pollfd **pfds) {

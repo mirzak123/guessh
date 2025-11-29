@@ -33,8 +33,8 @@ typedef struct {
 } Round;
 
 typedef struct {
-  long id;
-  int round_current;    /* how many rounds have been played */
+  char *id;
+  int round_current;  /* how many rounds have been played */
   int round_capacity; /* total amount of rounds */
   Round **rounds;
   GameMode mode;

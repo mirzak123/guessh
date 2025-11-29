@@ -18,29 +18,30 @@ GameServer *GS_create(void) {
     exit(1);
   }
 
-  gs->nmatches = 0;
+  gs->match_number = 0;
   return gs;
 }
 
-MessageType GS_parse_message(char *data, size_t size, cJSON *json_out) {
+MessageType GS_parse_message(char *data, size_t size, cJSON **json_out) {
   cJSON *json_type = NULL;
   char *type;
   MessageType mt;
 
-  json_out = cJSON_ParseWithLength(data, size);
-  if (json_out == NULL) {
-    printf("[GS] cJSON failed to parse message\n");
+  *json_out = cJSON_ParseWithLength(data, size);
+  if (*json_out == NULL) {
+    printf("[GS_parse_message] cJSON failed to parse message\n");
     return MALFORMED_MESSAGE;
   }
+  printf("[GS_parse_message] json_out: %s\n", cJSON_PrintUnformatted(*json_out));
 
-  json_type = cJSON_GetObjectItem(json_out, "type");
+  json_type = cJSON_GetObjectItem(*json_out, "type");
   if (json_type == NULL) {
-    printf("[GS] message missing 'type' field\n");
+    printf("[GS_parse_message] message missing 'type' field\n");
     return MALFORMED_MESSAGE;
   }
 
   if (!cJSON_IsString(json_type)) {
-    printf("[GS] message 'type' field is not a string\n");
+    printf("[GS_parse_message] message 'type' field is not a string\n");
     return MALFORMED_MESSAGE;
   }
   type = cJSON_GetStringValue(json_type);
@@ -95,28 +96,26 @@ MessageType GS_parse_message(char *data, size_t size, cJSON *json_out) {
     mt = UNSUPPORTED_MESSAGE_TYPE;
   }
 
-  cJSON_free(json_type);
   return mt;
 }
 
-void GS_request(GameServer *gs, int client_fd, char *data, size_t size) {
+void GS_handle_request(GameServer *gs, int client_fd, char *data, size_t size) {
   cJSON *json_request = NULL;
-  long status;
   char response_buf[BUFSIZE];
   MessageType mt;
 
-  mt = GS_parse_message(data, size, json_request);
+  mt = GS_parse_message(data, size, &json_request);
+  printf("[GS_handle_request] json_request: %s\n", cJSON_PrintUnformatted(json_request));
 
   switch (mt) {
   case MALFORMED_MESSAGE:
-    printf("[GS] Malformed request received");
+    printf("[GS_handle_request] Malformed request received\n");
     if (json_request) {
-      cJSON_free(json_request);
+      cJSON_Delete(json_request);
     }
     return;
   case CREATE_MATCH:
-    if ((status = GS_create_match(gs, client_fd, 1, response_buf)) != -1)
-      sprintf(response_buf, "Match ID: %ld\n", status);
+    GS_handle_create_match(gs, client_fd, json_request);
     break;
   case CREATE_ROOM:
     sprintf(response_buf, "Room created\n");
@@ -138,42 +137,86 @@ void GS_request(GameServer *gs, int client_fd, char *data, size_t size) {
     strlcpy(response_buf, "error: unsupported request type\n", BUFSIZE);
   }
 
-  cJSON_free(json_request);
-
-  if (send(client_fd, response_buf, strlen(response_buf), 0) == -1) {
-    perror("send");
-  }
+  cJSON_Delete(json_request);
 }
 
-long GS_create_match(GameServer *gs, int client_fd, int nrounds, char *err) {
-  Match *match;
+void GS_handle_create_match(GameServer *gs, int client_fd, cJSON *json_request) {
+  Match *match = NULL;
+  cJSON *response_json = NULL, *rounds_json = NULL, *mode_json = NULL;
+  int rounds;
+  char *mode_str;
+  GameMode game_mode;
 
-  if (nrounds < 1 || nrounds > MAX_ROUNDS) {
-    strlcpy(err, E_INVALID_ROUNDS, sizeof E_INVALID_ROUNDS);
-    return -1;
+  printf("[GS_handle_create_match] json_request: %s\n", cJSON_PrintUnformatted(json_request));
+  // parse rounds
+  rounds_json = cJSON_GetObjectItem(json_request, "rounds");
+  if (rounds_json == NULL) {
+    GS_send_error(client_fd, E_MISSING_FIELD("rounds"));
+    return;
   }
 
+  if (!cJSON_IsNumber(rounds_json)) {
+    GS_send_error(client_fd, E_INVALID_TYPE("rounds", NUMBER));
+    return;
+  }
+
+  rounds = rounds_json->valueint;
+
+  if (rounds < 1 || rounds > MAX_ROUNDS) {
+    GS_send_error(client_fd, E_INVALID_ROUNDS);
+    return;
+  }
+
+  // parse mode
+  mode_json = cJSON_GetObjectItem(json_request, "mode");
+  if (mode_json == NULL) {
+    GS_send_error(client_fd, E_MISSING_FIELD("mode"));
+    return;
+  }
+
+  if (!cJSON_IsString(mode_json)) {
+    GS_send_error(client_fd, E_INVALID_TYPE("mode", STRING));
+    return;
+  }
+
+  mode_str = cJSON_GetStringValue(mode_json);
+  if (!strcmp("SINGLE", mode_str)) { // TODO: Add support for other modes
+    game_mode = SINGLE;
+  } else {
+    GS_send_error(client_fd, E_UNSUPPORTED_MODE);
+    return;
+  }
+
+  // create match
   match = malloc(sizeof(Match));
   if (match == NULL) {
     perror("malloc");
     exit(1);
   }
 
-  match->id = time(NULL);
-  match->mode = SINGLE; // INFO: Only one supported.
+  match->id = malloc(sizeof(long));
+  sprintf(match->id, "%lu", time(NULL));
+
+  match->mode = game_mode;
   match->player = (Player){client_fd};
   match->round_current = 0;
-  match->round_capacity = nrounds;
+  match->round_capacity = rounds;
 
   // TODO: add check for match limit
-  // WARN: gs->nmatches++ possibly increases the pointer, not the value
-  gs->matches[gs->nmatches++] = match;
+  gs->matches[(gs->match_number)++] = match;
 
-  return match->id;
+  response_json = cJSON_CreateObject();
+  if (response_json == NULL) {
+    printf("[GS_handle_create_match] cJSON_CreateObject() failed\n");
+    return;
+  }
+  cJSON_AddStringToObject(response_json, "matchId", match->id);
+
+  GS_send_json(client_fd, response_json);
 }
 
 Match *GS_get_match_by_player(GameServer *gs, int player_fd) {
-  for (int i = 0; i < gs->nmatches; i++) {
+  for (int i = 0; i < gs->match_number; i++) {
     if (gs->matches[i]->player.fd == player_fd) {
       return gs->matches[i];
     }
@@ -181,7 +224,6 @@ Match *GS_get_match_by_player(GameServer *gs, int player_fd) {
   return NULL;
 }
 
-void GS_destroy(GameServer *gs) { free(gs); }
 void GS_send_json(int client_fd, cJSON *json) {
   char *message = cJSON_PrintUnformatted(json);
   cJSON_Delete(json);
@@ -205,4 +247,13 @@ void GS_send_error(int client_fd, char *reason) {
   cJSON_AddStringToObject(err_json, "type", "ERROR");
   cJSON_AddStringToObject(err_json, "reason", reason);
   GS_send_json(client_fd, err_json);
+}
+
+void GS_destroy(GameServer *gs) {
+  Match *match;
+  for (int i = 0; i < gs->match_number; i++) {
+    match = gs->matches[i];
+    free(match->id);
+  }
+  free(gs);
 }
