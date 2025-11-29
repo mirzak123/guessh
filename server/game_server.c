@@ -29,17 +29,20 @@ MessageType GS_parse_message(char *data, size_t size, cJSON *json_out) {
 
   json_out = cJSON_ParseWithLength(data, size);
   if (json_out == NULL) {
-    printf("cJSON failed to parse message\n");
-    return -1;
+    printf("[GS] cJSON failed to parse message\n");
+    return MALFORMED_MESSAGE;
   }
 
   json_type = cJSON_GetObjectItem(json_out, "type");
   if (json_type == NULL) {
-    printf("cJSON cannot get type from message");
-    return -1;
+    printf("[GS] message missing 'type' field\n");
+    return MALFORMED_MESSAGE;
   }
 
-  // WARN: might have to check if it's really a string
+  if (!cJSON_IsString(json_type)) {
+    printf("[GS] message 'type' field is not a string\n");
+    return MALFORMED_MESSAGE;
+  }
   type = cJSON_GetStringValue(json_type);
 
   if (!strcmp("MATCH_INFO", type)) {
