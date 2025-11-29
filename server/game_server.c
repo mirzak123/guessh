@@ -22,42 +22,122 @@ GameServer *GS_create(void) {
   return gs;
 }
 
-MessageType parse_request_type(char *request, size_t size) {
-  if (!strncmp("CREATE_MATCH", request, 12)) {
-    return CREATE_MATCH;
+MessageType GS_parse_message(char *data, size_t size, cJSON *json_out) {
+  cJSON *json_type = NULL;
+  char *type;
+  MessageType mt;
+
+  json_out = cJSON_ParseWithLength(data, size);
+  if (json_out == NULL) {
+    printf("cJSON failed to parse message\n");
+    return -1;
   }
-  if (!strncmp("CREATE_ROUND", request, 12)) {
-    return CREATE_ROUND;
+
+  json_type = cJSON_GetObjectItem(json_out, "type");
+  if (json_type == NULL) {
+    printf("cJSON cannot get type from message");
+    return -1;
   }
-  if (!strncmp("MAKE_GUESS", request, 10)) {
-    return MAKE_GUESS;
+
+  // WARN: might have to check if it's really a string
+  type = cJSON_GetStringValue(json_type);
+
+  if (!strcmp("MATCH_INFO", type)) {
+    mt = MATCH_INFO;
+  } else if (!strcmp("ROUND_INFO", type)) {
+    mt = ROUND_INFO;
+  } else if (!strcmp("BYE", type)) {
+    mt = BYE;
+  } else if (!strcmp("CREATE_ROOM", type)) {
+    mt = CREATE_ROOM;
+  } else if (!strcmp("CREATE_MATCH", type)) {
+    mt = CREATE_MATCH;
+  } else if (!strcmp("CREATE_ROUND", type)) {
+    mt = CREATE_ROUND;
+  } else if (!strcmp("JOIN_ROOM", type)) {
+    mt = JOIN_ROOM;
+  } else if (!strcmp("MAKE_GUESS", type)) {
+    mt = MAKE_GUESS;
+  } else if (!strcmp("REQUEST_REMATCH", type)) {
+    mt = REQUEST_REMATCH;
+  } else if (!strcmp("EXIT_MATCH", type)) {
+    mt = EXIT_MATCH;
+  } else if (!strcmp("CONNECTED", type)) {
+    mt = CONNECTED;
+  } else if (!strcmp("ROOM_CREATED", type)) {
+    mt = ROOM_CREATED;
+  } else if (!strcmp("ROOM_JOINED", type)) {
+    mt = ROOM_JOINED;
+  } else if (!strcmp("ROOM_JOIN_FAILED", type)) {
+    mt = ROOM_JOIN_FAILED;
+  } else if (!strcmp("WAIT_OPPONENT_JOIN", type)) {
+    mt = WAIT_OPPONENT_JOIN;
+  } else if (!strcmp("MATCH_STARTED", type)) {
+    mt = MATCH_STARTED;
+  } else if (!strcmp("ROUND_STARTED", type)) {
+    mt = ROUND_STARTED;
+  } else if (!strcmp("WAIT_GUESS", type)) {
+    mt = WAIT_GUESS;
+  } else if (!strcmp("WAIT_OPPONENT_GUESS", type)) {
+    mt = WAIT_OPPONENT_GUESS;
+  } else if (!strcmp("ACCEPTED_GUESS", type)) {
+    mt = ACCEPTED_GUESS;
+  } else if (!strcmp("INVALID_GUESS", type)) {
+    mt = INVALID_GUESS;
+  } else if (!strcmp("ROUND_FINISHED", type)) {
+    mt = ROUND_FINISHED;
+  } else if (!strcmp("MATCH_FINISHED", type)) {
+    mt = MATCH_FINISHED;
+  } else {
+    mt = UNSUPPORTED_MESSAGE_TYPE;
   }
-  if (!strncmp("MATCH_NUM", request, 10)) {
-    return MATCH_INFO;
-  }
-  return UNSUPPORTED_MESSAGE_TYPE;
+
+  cJSON_free(json_type);
+  return mt;
 }
 
 void GS_request(GameServer *gs, int client_fd, char *data, size_t size) {
-  MessageType rt = parse_request_type(data, size);
-
+  cJSON *json_request = NULL;
   long status;
-  char buf[BUFSIZE];
-  sprintf(buf, "Request type: %d\n", rt);
+  char response_buf[BUFSIZE];
+  MessageType mt;
 
-  switch (rt) {
+  mt = GS_parse_message(data, size, json_request);
+
+  switch (mt) {
+  case MALFORMED_MESSAGE:
+    printf("[GS] Malformed request received");
+    if (json_request) {
+      cJSON_free(json_request);
+    }
+    return;
   case CREATE_MATCH:
-    if ((status = GS_create_match(gs, client_fd, 1, buf)) != -1)
-      sprintf(buf, "Match ID: %ld\n", status);
+    if ((status = GS_create_match(gs, client_fd, 1, response_buf)) != -1)
+      sprintf(response_buf, "Match ID: %ld\n", status);
     break;
-
+  case CREATE_ROOM:
+    sprintf(response_buf, "Room created\n");
+    break;
+  case JOIN_ROOM:
+    sprintf(response_buf, "Joining room...\n");
+    break;
+  case MAKE_GUESS:
+    sprintf(response_buf, "Verifying guess...\n");
+    break;
+  case REQUEST_REMATCH:
+    sprintf(response_buf, "Rematch requested\n");
+    break;
+  case EXIT_MATCH:
+    sprintf(response_buf, "Leaving match...\n");
+    break;
   case UNSUPPORTED_MESSAGE_TYPE:
   default:
-    status = -1;
-    strlcpy(buf, "error: unsupported request type\n", BUFSIZE);
+    strlcpy(response_buf, "error: unsupported request type\n", BUFSIZE);
   }
 
-  if (send(client_fd, buf, strlen(buf), 0) == -1) {
+  cJSON_free(json_request);
+
+  if (send(client_fd, response_buf, strlen(response_buf), 0) == -1) {
     perror("send");
   }
 }

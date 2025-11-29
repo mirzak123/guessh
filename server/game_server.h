@@ -2,6 +2,7 @@
 #define GAME_SERVER_H
 
 #include "game_types.h"
+#include <cjson/cJSON.h>
 #include <stddef.h>
 
 #define MAX_MATCHES 10
@@ -14,6 +15,7 @@
 #define E_INVALID_ROUNDS "Round number must be between 1 and " STR(MAX_ROUNDS) "\n"
 
 typedef enum {
+  MALFORMED_MESSAGE = -1,
   UNSUPPORTED_MESSAGE_TYPE,
 
   // Both
@@ -25,7 +27,7 @@ typedef enum {
   CREATE_ROOM,
   CREATE_MATCH,
   CREATE_ROUND,
-  ROOM_JOIN,
+  JOIN_ROOM,
   MAKE_GUESS,
   REQUEST_REMATCH,
   EXIT_MATCH,
@@ -53,9 +55,9 @@ typedef struct {
 
 GameServer *GS_create(void);
 void GS_request(GameServer *gs, int client_fd, char *data, size_t size);
-// void GS_response(GameServer *gs, object); // TODO: ???
 long GS_create_match(GameServer *gs, int client_fd, int nrounds, char *err);
 Match *GS_get_match_by_player(GameServer *gs, int player_fd);
 void GS_destroy(GameServer *gs);
+MessageType GS_parse_message(char *data, size_t size, cJSON *out);
 
 #endif // !GAME_SERVER_H
