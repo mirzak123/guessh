@@ -1,5 +1,6 @@
 #include "game_server.h"
 #include "game_types.h"
+#include "util.h"
 #include <_string.h>
 #include <cjson/cJSON.h>
 #include <stdio.h>
@@ -193,7 +194,7 @@ void GS_handle_create_match(GameServer *gs, int client_fd, cJSON *json_request) 
   }
 
   match->id = malloc(sizeof(long));
-  sprintf(match->id, "%lu", time(NULL));
+  sprintf(match->id, "%d", generate_unique_id());
 
   match->mode = game_mode;
   match->player = (Player){client_fd};
