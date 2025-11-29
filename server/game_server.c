@@ -182,3 +182,27 @@ Match *GS_get_match_by_player(GameServer *gs, int player_fd) {
 }
 
 void GS_destroy(GameServer *gs) { free(gs); }
+void GS_send_json(int client_fd, cJSON *json) {
+  char *message = cJSON_PrintUnformatted(json);
+  cJSON_Delete(json);
+
+  if (message == NULL) {
+    printf("[GS_send_json] cJSON_PrintUnformatted() failed");
+    return;
+  }
+
+  if (send(client_fd, message, strlen(message), 0) == -1) {
+    perror("send");
+  }
+
+  cJSON_free(message);
+}
+
+void GS_send_error(int client_fd, char *reason) {
+  cJSON *err_json = NULL;
+
+  err_json = cJSON_CreateObject();
+  cJSON_AddStringToObject(err_json, "type", "ERROR");
+  cJSON_AddStringToObject(err_json, "reason", reason);
+  GS_send_json(client_fd, err_json);
+}

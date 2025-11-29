@@ -12,7 +12,13 @@
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
 
-#define E_INVALID_ROUNDS "Round number must be between 1 and " STR(MAX_ROUNDS) "\n"
+#define STRING "string"
+#define NUMBER "number"
+
+#define E_MISSING_FIELD(field) "Missing '" field "' field"
+#define E_INVALID_TYPE(field, expected_type) "Invalid type of '" field "' field, expected: " expected_type
+#define E_INVALID_ROUNDS "Round number must be between 1 and " STR(MAX_ROUNDS)
+#define E_UNSUPPORTED_MODE "Unsupported mode"
 
 typedef enum {
   MALFORMED_MESSAGE = -1,
@@ -33,6 +39,7 @@ typedef enum {
   EXIT_MATCH,
 
   // Server
+  ERROR,
   CONNECTED,
   ROOM_CREATED,
   ROOM_JOINED,
@@ -59,5 +66,8 @@ long GS_create_match(GameServer *gs, int client_fd, int nrounds, char *err);
 Match *GS_get_match_by_player(GameServer *gs, int player_fd);
 void GS_destroy(GameServer *gs);
 MessageType GS_parse_message(char *data, size_t size, cJSON *out);
+// message send
+void GS_send_json(int client_fd, cJSON *json);
+void GS_send_error(int client_fd, char *reason);
 
 #endif // !GAME_SERVER_H
