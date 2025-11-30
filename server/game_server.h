@@ -59,7 +59,6 @@ typedef struct {
 
 GameServer *GS_create(void);
 void GS_handle_request(GameServer *gs, int client_fd, char *data, size_t size);
-long GS_create_match(GameServer *gs, int client_fd, int nrounds, char *err);
 Match *GS_get_match_by_player(GameServer *gs, int player_fd);
 void GS_destroy(GameServer *gs);
 MessageType GS_parse_message(char *data, size_t size, cJSON **out);

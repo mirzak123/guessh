@@ -5,7 +5,7 @@ LDFLAGS := -L$(BREW_PREFIX)/lib -lcjson
 BUILD_DIR := ../bin
 BUILD_NAME := server
 BUILD_TEST_NAME := server-test
-SRC := main.c network.c game_logic.c game_server.c util.c
+SRC := main.c network.c game_logic.c game_server.c game_types.c util.c
 
 CC := gcc
 
