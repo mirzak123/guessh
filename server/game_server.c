@@ -18,7 +18,6 @@ GameServer *GS_create(void) {
     exit(1);
   }
 
-  gs->match_number = 0;
   return gs;
 }
 
@@ -185,16 +184,20 @@ void GS_handle_create_match(GameServer *gs, int client_fd, cJSON *json_request) 
     exit(1);
   }
 
-  match->id = malloc(sizeof(long));
-  sprintf(match->id, "%d", generate_unique_id());
+  match = new_match(rounds, game_mode);
+  if (match == NULL) {
+    printf("[GS_handle_create_match] error: new_match() returned NULL\n");
+    return;
+  }
 
-  match->mode = game_mode;
-  match->player = (Player){client_fd};
-  match->round_current = 0;
-  match->round_capacity = rounds;
+  if (gs->head == NULL) {
+    gs->head = match;
+  } else {
+    match->next = gs->head;
+    gs->head = match;
+  }
 
-  // TODO: add check for match limit
-  gs->matches[(gs->match_number)++] = match;
+  Match_add_player(match, client_fd); // implicitly starts the match
 
   response_json = cJSON_CreateObject();
   if (response_json == NULL) {
@@ -206,12 +209,22 @@ void GS_handle_create_match(GameServer *gs, int client_fd, cJSON *json_request) 
   GS_send_json(client_fd, response_json);
 }
 
-Match *GS_get_match_by_player(GameServer *gs, int player_fd) {
-  for (int i = 0; i < gs->match_number; i++) {
-    if (gs->matches[i]->player.fd == player_fd) {
-      return gs->matches[i];
+Match *GS_get_match_by_player_fd(GameServer *gs, int player_fd) {
+  Match *match = gs->head;
+  while (match != NULL) {
+
+    // single and multiplayer
+    if (match->player1->fd == player_fd) {
+      return match;
     }
+
+    // multiplayer
+    if (match->player2 != NULL && match->player2->fd == player_fd)
+      return match;
+
+    match = match->next;
   }
+
   return NULL;
 }
 
@@ -241,10 +254,11 @@ void GS_send_error(int client_fd, char *reason) {
 }
 
 void GS_destroy(GameServer *gs) {
-  Match *match;
-  for (int i = 0; i < gs->match_number; i++) {
-    match = gs->matches[i];
-    free(match->id);
+  Match *match = gs->head, *next = NULL;
+  while (match != NULL) {
+    next = match->next;
+    delete_match(match);
+    match = next;
   }
   free(gs);
 }

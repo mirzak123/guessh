@@ -5,7 +5,6 @@
 #include <cjson/cJSON.h>
 #include <stddef.h>
 
-#define MAX_MATCHES 10
 #define MAX_ROUNDS 5
 
 // don't ask...
@@ -53,17 +52,16 @@ typedef enum {
 } MessageType;
 
 typedef struct {
-  Match *matches[MAX_MATCHES];
-  int match_number;
+  Match *head;
 } GameServer;
 
 GameServer *GS_create(void);
 void GS_handle_request(GameServer *gs, int client_fd, char *data, size_t size);
-Match *GS_get_match_by_player(GameServer *gs, int player_fd);
+Match *GS_get_match_by_player_fd(GameServer *gs, int player_fd);
 void GS_destroy(GameServer *gs);
 MessageType GS_parse_message(char *data, size_t size, cJSON **out);
 
-// message send
+// send message
 void GS_send_json(int client_fd, cJSON *json);
 void GS_send_error(int client_fd, char *reason);
 
