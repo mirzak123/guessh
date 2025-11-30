@@ -34,18 +34,20 @@ int evaluate_guess(const char *guess_word, const char *target_word, LetterFeedba
   return 0;
 }
 
-char *get_random_word(void) {
+char *get_random_word(int word_len) {
   int fd, offset;
   char *word;
 
-  fd = open(WORDS_FILE, O_RDONLY);
+  WordStore *ws = &word_stores[word_len - WORD_STORE_OFFSET];
+
+  fd = open(ws->file, O_RDONLY);
   if (fd == -1) {
     perror("open");
     exit(EXIT_FAILURE); // TODO: Maybe shouldn't kill program entirely
   }
 
-  word = malloc(WORD_LENGTH * sizeof(char));
-  offset = rand_word_index();
+  word = malloc(word_len * sizeof(char));
+  offset = rand_word_index(ws);
 
   if ((pread(fd, word, 5, offset)) == -1) {
     perror("pread");
@@ -55,8 +57,8 @@ char *get_random_word(void) {
   return word;
 }
 
-int rand_word_index(void) {
-  int word_index = rand() % (WORD_COUNT + 1);
-  int byte_offset = (WORD_LENGTH + 1) * word_index;
+int rand_word_index(WordStore *ws) {
+  int word_index = rand() % (ws->word_count + 1);
+  int byte_offset = (ws->word_len + 1) * word_index;
   return byte_offset;
 }

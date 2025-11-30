@@ -1,9 +1,21 @@
 #ifndef GAME_LOGIC_H
 #define GAME_LOGIC_H
 
-#define WORDS_FILE "./words/five-letter.txt"
-#define WORD_LENGTH 5
-#define WORD_COUNT 1168
+#include <stddef.h>
+#define WORD_STORE_LEN 3
+#define WORD_STORE_OFFSET 5 // first word store word_len
+
+typedef struct {
+  char *file;
+  size_t word_len;
+  size_t word_count;
+} WordStore;
+
+static WordStore word_stores[] = {
+    {"./words/five-letter.txt", 5, 1168},
+    {"./words/six-letter.txt", 6, 1164},
+    {"./words/seven-letter.txt", 7, 1164},
+};
 
 typedef enum {
   LETTER_ABSENT,
@@ -12,7 +24,7 @@ typedef enum {
 } LetterFeedback;
 
 int evaluate_guess(const char *guess_word, const char *target_word, LetterFeedback *feedback, int len);
-char *get_random_word(void);
-int rand_word_index(void); // TODO:  Remove from game_logic.h -- should be private
+char *get_random_word(int word_len);
+int rand_word_index(WordStore *ws); // TODO:  Remove from game_logic.h -- should be private
 
 #endif // !GAME_LOGIC_H
