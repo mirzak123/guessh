@@ -46,26 +46,20 @@ MessageType GS_parse_message(char *data, size_t size, cJSON **json_out) {
   }
   type = cJSON_GetStringValue(json_type);
 
-  if (!strcmp("MATCH_INFO", type)) {
-    mt = MATCH_INFO;
-  } else if (!strcmp("ROUND_INFO", type)) {
-    mt = ROUND_INFO;
-  } else if (!strcmp("BYE", type)) {
+  if (!strcmp("BYE", type)) {
     mt = BYE;
   } else if (!strcmp("CREATE_ROOM", type)) {
     mt = CREATE_ROOM;
   } else if (!strcmp("CREATE_MATCH", type)) {
     mt = CREATE_MATCH;
-  } else if (!strcmp("CREATE_ROUND", type)) {
-    mt = CREATE_ROUND;
   } else if (!strcmp("JOIN_ROOM", type)) {
     mt = JOIN_ROOM;
   } else if (!strcmp("MAKE_GUESS", type)) {
     mt = MAKE_GUESS;
   } else if (!strcmp("REQUEST_REMATCH", type)) {
     mt = REQUEST_REMATCH;
-  } else if (!strcmp("EXIT_MATCH", type)) {
-    mt = EXIT_MATCH;
+  } else if (!strcmp("LEAVE_MATCH", type)) {
+    mt = LEAVE_MATCH;
   } else if (!strcmp("CONNECTED", type)) {
     mt = CONNECTED;
   } else if (!strcmp("ROOM_CREATED", type)) {
@@ -84,10 +78,8 @@ MessageType GS_parse_message(char *data, size_t size, cJSON **json_out) {
     mt = WAIT_GUESS;
   } else if (!strcmp("WAIT_OPPONENT_GUESS", type)) {
     mt = WAIT_OPPONENT_GUESS;
-  } else if (!strcmp("ACCEPTED_GUESS", type)) {
-    mt = ACCEPTED_GUESS;
-  } else if (!strcmp("INVALID_GUESS", type)) {
-    mt = INVALID_GUESS;
+  } else if (!strcmp("GUESS_RESULT", type)) {
+    mt = GUESS_RESULT;
   } else if (!strcmp("ROUND_FINISHED", type)) {
     mt = ROUND_FINISHED;
   } else if (!strcmp("MATCH_FINISHED", type)) {
@@ -128,7 +120,7 @@ void GS_handle_request(GameServer *gs, int client_fd, char *data, size_t size) {
   case REQUEST_REMATCH:
     GS_send_error(client_fd, E_NOT_IMPLEMENTED);
     break;
-  case EXIT_MATCH:
+  case LEAVE_MATCH:
     GS_send_error(client_fd, E_NOT_IMPLEMENTED);
     break;
   case UNSUPPORTED_MESSAGE_TYPE:

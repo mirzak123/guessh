@@ -29,59 +29,50 @@ Find a better way to represent flow below 🙏🙏🙏
 
 ---
 
-1.  Choose game mode
-    - 1 word
-    - 4 words
-2.  Are you lonely?
+1.  Are you lonely?
     - Single player
       1. How many rounds? (number input)
+      2. How many letters? (number input)
     - Multi player
       1. Choose mode
          - Local (same terminal session)
            1. How many rounds? (number input)
+           2. How many letters? (number input)
          - Remote
            1. Session:
               - Join existing room (room code input)
               - Create new room
                 1. How many rounds? (number input)
+                2. How many letters? (number input)
 
 ## Client-Server Protocol
 
-### Shared Message Types (Client & Server)
-
-| Type       | Description                                           |
-| ---------- | ----------------------------------------------------- |
-| MATCH_INFO |                                                       |
-| ROUND_INFO |                                                       |
-| BYE        | Potentially triggers server to kick other participant |
-
 ### Client Message Types
 
-| Type            | Description                          |
-| --------------- | ------------------------------------ |
-| CREATE_ROOM     |                                      |
-| CREATE_MATCH    | Client tells server to start a match |
-| ROOM_JOIN       |                                      |
-| MAKE_GUESS      |                                      |
-| REQUEST_REMATCH |                                      |
-| EXIT_ROOM       |                                      |
+| Type            | Content                                                                         |
+| --------------- | ------------------------------------------------------------------------------- |
+| CREATE_ROOM     |                                                                                 |
+| CREATE_MATCH    | {"type": "CREATE_MATCH", "mode": "SINGLE", "rounds": number, "letters": number} |
+| JOIN_ROOM       |                                                                                 |
+| MAKE_GUESS      | {"type": "MAKE_GUESS", "guess": string}                                         |
+| REQUEST_REMATCH |                                                                                 |
+| LEAVE_MATCH     | {"type": "LEAVE_MATCH"}                                                         |
 
 ### Server Message Types
 
-| Type                | Description                                                                    |
-| ------------------- | ------------------------------------------------------------------------------ |
-| CONNECTED           |                                                                                |
-| ROOM_CREATED        |                                                                                |
-| ROOM_JOINED         |                                                                                |
-| ROOM_JOIN_FAILED    | Room full                                                                      |
-| WAIT_OPPONENT_JOIN  | One player created a room and is waiting for the other player to join the room |
-| MATCH_STARTED       |                                                                                |
-| ROUND_STARTED       |                                                                                |
-| WAIT_GUESS          |                                                                                |
-| WAIT_OPPONENT_GUESS |                                                                                |
-| ACCEPTED_GUESS      |                                                                                |
-| INVALID_GUESS       |                                                                                |
-| ROUND_FINISHED      |                                                                                |
-| MATCH_FINISHED      |                                                                                |
-| MATCH_INFO          |                                                                                |
-| ROUND_INFO          |                                                                                |
+| Type                | Content                                                                           | Additional info                                                         |
+| ------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| ERROR               | {"type": "ERROR", "reason": string}                                               |                                                                         |
+| CONNECTED           |                                                                                   |                                                                         |
+| ROOM_CREATED        | {"type": "ROOM_CREATED", "roomId", string}                                        |                                                                         |
+| ROOM_JOINED         | {"type": "ROOM_JOINED"}                                                           |                                                                         |
+| ROOM_JOIN_FAILED    | {"type": "ROOM_JOIN_FAILED"}                                                      | Room full                                                               |
+| WAIT_OPPONENT_JOIN  | {"type": "WAIT_OPPONENT_JOIN"}                                                    |                                                                         |
+| MATCH_STARTED       | {"type": "MATCH_STARTED", "matchId": string, "rounds": number, "letters": number} |                                                                         |
+| ROUND_STARTED       | {"type": "ROUND_STARTED", "roundNumber": number}                                  |                                                                         |
+| WAIT_GUESS          | {"type": "WAIT_GUESS"}                                                            |                                                                         |
+| WAIT_OPPONENT_GUESS | {"type": "WAIT_OPPONENT_GUESS"}                                                   |                                                                         |
+| GUESS_RESULT        | {"type": "GUESS_RESULT", "success": boolean, "feedback": number[]}                |                                                                         |
+| ROUND_FINISHED      | {"type": "ROUND_FINISHED", "success": boolean, "word": string}                    | In multiplayer we need to provide a field indicating the winning player |
+| MATCH_FINISHED      | {"type": "MATCH_FINISHED", "winner": string}                                      | Winner only relevant for multiplayer games.                             |
+| BYE                 | {"type": "BYE"}                                                                   |                                                                         |
