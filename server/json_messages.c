@@ -17,24 +17,6 @@ cJSON *json_room_created(const char *room_id) {
   return json;
 }
 
-cJSON *json_room_joined(void) {
-  cJSON *json = cJSON_CreateObject();
-  cJSON_AddStringToObject(json, "type", STR(ROOM_JOINED));
-  return json;
-}
-
-cJSON *json_room_join_failed(void) {
-  cJSON *json = cJSON_CreateObject();
-  cJSON_AddStringToObject(json, "type", STR(ROOM_JOIN_FAILED));
-  return json;
-}
-
-cJSON *json_wait_opponent_join(void) {
-  cJSON *json = cJSON_CreateObject();
-  cJSON_AddStringToObject(json, "type", STR(WAIT_OPPONENT_JOIN));
-  return json;
-}
-
 cJSON *json_match_started(const char *match_id, int rounds, size_t word_len) {
   cJSON *json = cJSON_CreateObject();
   cJSON_AddStringToObject(json, "type", STR(MATCH_STARTED));
@@ -48,18 +30,6 @@ cJSON *json_round_started(int round_num) {
   cJSON *json = cJSON_CreateObject();
   cJSON_AddStringToObject(json, "type", STR(ROUND_STARTED));
   cJSON_AddNumberToObject(json, "roundNumber", round_num);
-  return json;
-}
-
-cJSON *json_wait_guess(void) {
-  cJSON *json = cJSON_CreateObject();
-  cJSON_AddStringToObject(json, "type", STR(WAIT_GUESS));
-  return json;
-}
-
-cJSON *json_wait_opponent_guess(void) {
-  cJSON *json = cJSON_CreateObject();
-  cJSON_AddStringToObject(json, "type", STR(WAIT_OPPONENT_GUESS));
   return json;
 }
 
@@ -89,11 +59,5 @@ cJSON *json_match_finished(const char *winner) {
   cJSON *json = cJSON_CreateObject();
   cJSON_AddStringToObject(json, "type", STR(MATCH_FINISHED));
   cJSON_AddStringToObject(json, "winner", winner);
-  return json;
-}
-
-cJSON *json_bye(void) {
-  cJSON *json = cJSON_CreateObject();
-  cJSON_AddStringToObject(json, "type", STR(BYE));
   return json;
 }

@@ -62,11 +62,13 @@ Match *GS_get_match_by_player_fd(GameServer *gs, int player_fd);
 void GS_destroy(GameServer *gs);
 MessageType GS_parse_message(char *data, size_t size, cJSON **out);
 
-void GS_start_match(GameServer *gs, Match *match);
+void GS_start_match(Match *match);
+void GS_start_round(Match *match);
 
 // send message
 void GS_send_json(int client_fd, cJSON *json);
-void GS_send_error(int client_fd, char *reason);
+void GS_send_only_type(int client_fd, const char *type);
+void GS_send_error(int client_fd, const char *reason);
 
 // message handlers
 void GS_handle_create_match(GameServer *gs, int client_fd, cJSON *json_request);

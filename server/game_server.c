@@ -3,6 +3,7 @@
 #include "game_types.h"
 #include "json_messages.h"
 #include <_string.h>
+#include <assert.h>
 #include <cjson/cJSON.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -133,7 +134,7 @@ void GS_handle_request(GameServer *gs, int client_fd, char *data, size_t size) {
 
 void GS_handle_create_match(GameServer *gs, int client_fd, cJSON *json_request) {
   Match *match = NULL;
-  cJSON *response_json = NULL, *rounds_json = NULL, *mode_json = NULL, *word_len_json = NULL;
+  cJSON *rounds_json = NULL, *mode_json = NULL, *word_len_json = NULL;
   size_t rounds, word_len;
   char *mode_str;
   GameMode game_mode;
@@ -217,16 +218,71 @@ void GS_handle_create_match(GameServer *gs, int client_fd, cJSON *json_request) 
     gs->head = match;
   }
 
+  // TODO: make Match_add_player return an indicator whether we can start the match,
+  // and start the match here explicitly.
   Match_add_player(match, client_fd); // implicitly starts the match
+}
 
-  response_json = cJSON_CreateObject();
-  if (response_json == NULL) {
-    printf("[GS_handle_create_match] cJSON_CreateObject() failed\n");
+void GS_start_match(Match *match) {
+  cJSON *match_started_json;
+  // TODO: Send MATCH_STARTED message
+  size_t max_attempts = match->word_len + 1; // TODO: allow for flexible max_attempts
+  WordChallenge *wc = new_word_challenge(match->word_len, max_attempts);
+  if (wc == NULL) {
+    printf("[Match_start_match] error: new_word_challenge() returned NULL\n");
     return;
   }
-  cJSON_AddStringToObject(response_json, "matchId", match->id);
 
-  GS_send_json(client_fd, response_json);
+  Round *round = new_round(wc, match->player1);
+  if (round == NULL) {
+    printf("[Match_start_match] error: new_round() returned NULL\n");
+    return;
+  }
+
+  match->rounds[match->round_current] = round;
+  match_started_json = json_match_started(match->id, match->round_capacity, match->word_len);
+
+  if (match->player1 != NULL) {
+    GS_send_json(match->player1->fd, match_started_json);
+  }
+  if (match->player2 != NULL) {
+    GS_send_json(match->player2->fd, match_started_json);
+  }
+  cJSON_Delete(match_started_json);
+  GS_start_round(match);
+}
+
+void GS_start_round(Match *match) {
+  Round *round = match->rounds[match->round_current++];
+  cJSON *round_started_json = json_round_started(match->round_current);
+
+  assert(match->player1 != NULL);
+  GS_send_json(match->player1->fd, round_started_json);
+  if (match->player1 == round->starting_player) {
+    GS_send_only_type(match->player1->fd, STR(WAIT_GUESS));
+    if (match->player2 != NULL) {
+      GS_send_only_type(match->player1->fd, STR(WAIT_OPPONENT_GUESS));
+    }
+  } else { // player2 is starting
+    assert(match->player2 != NULL);
+    GS_send_only_type(match->player1->fd, STR(WAIT_OPPONENT_GUESS));
+    GS_send_only_type(match->player2->fd, STR(WAIT_GUESS));
+  }
+  cJSON_Delete(round_started_json);
+}
+
+void delete_match(Match *match) {
+  free(match->id);
+  if (match->player1 != NULL)
+    delete_player(match->player1);
+  if (match->player2 != NULL)
+    delete_player(match->player2);
+
+  for (int i = 0; i < (int)match->round_capacity; i++) {
+    delete_round(match->rounds[i]);
+  }
+  free(match->rounds);
+  free(match);
 }
 
 // INFO: Might not need it
@@ -251,7 +307,6 @@ Match *GS_get_match_by_player_fd(GameServer *gs, int player_fd) {
 
 void GS_send_json(int client_fd, cJSON *json) {
   char *message = cJSON_PrintUnformatted(json);
-  cJSON_Delete(json);
 
   if (message == NULL) {
     printf("[GS_send_json] cJSON_PrintUnformatted() failed");
@@ -265,9 +320,17 @@ void GS_send_json(int client_fd, cJSON *json) {
   cJSON_free(message);
 }
 
-void GS_send_error(int client_fd, char *reason) {
+void GS_send_only_type(int client_fd, const char *type) {
+  cJSON *json = cJSON_CreateObject();
+  cJSON_AddStringToObject(json, "type", type);
+  GS_send_json(client_fd, json);
+  cJSON_Delete(json);
+}
+
+void GS_send_error(int client_fd, const char *reason) {
   cJSON *err_json = json_error(reason);
   GS_send_json(client_fd, err_json);
+  cJSON_Delete(err_json);
 }
 
 void GS_destroy(GameServer *gs) {
