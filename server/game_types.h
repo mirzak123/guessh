@@ -55,11 +55,14 @@ typedef struct Match {
   Outcome outcome;
   Player *player1;
   Player *player2;
+  size_t word_len;
   struct Match *next;
 } Match;
 
-Match *new_match(size_t round_capacity, GameMode mode);
+Match *new_match(size_t round_capacity, GameMode mode, size_t word_len);
 void Match_add_player(Match *match, int client_fd);
+void Match_start_match(Match *match);
+void Match_start_round(Match *match);
 void delete_match(Match *match);
 
 #endif // !GAME_TYPES_H

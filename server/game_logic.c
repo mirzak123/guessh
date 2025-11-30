@@ -38,7 +38,7 @@ char *get_random_word(int word_len) {
   int fd, offset;
   char *word;
 
-  WordStore *ws = &word_stores[word_len - WORD_STORE_OFFSET];
+  WordStore *ws = &word_stores[word_len - MIN_WORD_LEN];
 
   fd = open(ws->file, O_RDONLY);
   if (fd == -1) {

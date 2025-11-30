@@ -20,6 +20,7 @@
 #define E_MISSING_FIELD(field) "Missing '" field "' field"
 #define E_INVALID_TYPE(field, expected_type) "Invalid type of '" field "' field, expected: " expected_type
 #define E_INVALID_ROUNDS "Round number must be between 1 and " STR(MAX_ROUNDS)
+#define E_INVALID_WORD_LEN "wordLength must be between " STR(MIN_WORD_LEN) " and " STR(MAX_WORD_LEN)
 #define E_UNSUPPORTED_MODE "Unsupported mode"
 
 typedef enum {
@@ -60,6 +61,8 @@ void GS_handle_request(GameServer *gs, int client_fd, char *data, size_t size);
 Match *GS_get_match_by_player_fd(GameServer *gs, int player_fd);
 void GS_destroy(GameServer *gs);
 MessageType GS_parse_message(char *data, size_t size, cJSON **out);
+
+void GS_start_match(GameServer *gs, Match *match);
 
 // send message
 void GS_send_json(int client_fd, cJSON *json);

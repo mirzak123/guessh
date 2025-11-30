@@ -1,4 +1,5 @@
 #include "game_server.h"
+#include "game_logic.h"
 #include "game_types.h"
 #include "util.h"
 #include <_string.h>
@@ -132,8 +133,8 @@ void GS_handle_request(GameServer *gs, int client_fd, char *data, size_t size) {
 
 void GS_handle_create_match(GameServer *gs, int client_fd, cJSON *json_request) {
   Match *match = NULL;
-  cJSON *response_json = NULL, *rounds_json = NULL, *mode_json = NULL;
-  int rounds;
+  cJSON *response_json = NULL, *rounds_json = NULL, *mode_json = NULL, *word_len_json = NULL;
+  size_t rounds, word_len;
   char *mode_str;
   GameMode game_mode;
 
@@ -177,6 +178,25 @@ void GS_handle_create_match(GameServer *gs, int client_fd, cJSON *json_request) 
     return;
   }
 
+  // parse wordLength
+  word_len_json = cJSON_GetObjectItem(json_request, "wordLength");
+  if (word_len_json == NULL) {
+    GS_send_error(client_fd, E_MISSING_FIELD("wordLength"));
+    return;
+  }
+
+  if (!cJSON_IsNumber(word_len_json)) {
+    GS_send_error(client_fd, E_INVALID_TYPE("wordLength", NUMBER));
+    return;
+  }
+
+  word_len = word_len_json->valueint;
+
+  if (word_len < MIN_WORD_LEN || rounds > MAX_WORD_LEN) {
+    GS_send_error(client_fd, E_INVALID_WORD_LEN);
+    return;
+  }
+
   // create match
   match = malloc(sizeof(Match));
   if (match == NULL) {
@@ -184,7 +204,7 @@ void GS_handle_create_match(GameServer *gs, int client_fd, cJSON *json_request) 
     exit(1);
   }
 
-  match = new_match(rounds, game_mode);
+  match = new_match(rounds, game_mode, word_len);
   if (match == NULL) {
     printf("[GS_handle_create_match] error: new_match() returned NULL\n");
     return;
@@ -209,6 +229,7 @@ void GS_handle_create_match(GameServer *gs, int client_fd, cJSON *json_request) 
   GS_send_json(client_fd, response_json);
 }
 
+// INFO: Might not need it
 Match *GS_get_match_by_player_fd(GameServer *gs, int player_fd) {
   Match *match = gs->head;
   while (match != NULL) {

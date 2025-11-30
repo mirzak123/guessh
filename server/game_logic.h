@@ -3,7 +3,8 @@
 
 #include <stddef.h>
 #define WORD_STORE_LEN 3
-#define WORD_STORE_OFFSET 5 // first word store word_len
+#define MIN_WORD_LEN 5
+#define MAX_WORD_LEN 7
 
 typedef struct {
   char *file;

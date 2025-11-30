@@ -1,10 +1,11 @@
 #include "game_types.h"
 #include "game_logic.h"
 #include "util.h"
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-Match *new_match(size_t round_capacity, GameMode mode) {
+Match *new_match(size_t round_capacity, GameMode mode, size_t word_len) {
   Match *match = malloc(sizeof(Match));
   if (match == NULL) {
     perror("malloc");
@@ -18,6 +19,7 @@ Match *new_match(size_t round_capacity, GameMode mode) {
   match->mode = mode;
   match->round_current = 0;
   match->rounds = malloc(sizeof(Round) * round_capacity);
+  match->word_len = word_len;
 
   return match;
 }
@@ -46,6 +48,29 @@ void Match_add_player(Match *match, int client_fd) {
     printf("[Match_add_player] error: trying to add a player to a match that has 2 players\n");
     return;
   }
+}
+
+void Match_start_match(Match *match) {
+  // TODO: Send MATCH_STARTED message
+  size_t max_attempts = match->word_len + 1; // TODO: allow for flexible max_attempts
+  WordChallenge *wc = new_word_challenge(match->word_len, max_attempts);
+  if (wc == NULL) {
+    printf("[Match_start_match] error: new_word_challenge() returned NULL\n");
+    return;
+  }
+
+  Round *round = new_round(wc, match->player1);
+  if (round == NULL) {
+    printf("[Match_start_match] error: new_round() returned NULL\n");
+    return;
+  }
+
+  match->rounds[match->round_current] = round;
+  Match_start_round(match);
+}
+
+void Match_start_round(Match *match) {
+  // TODO: Send ROUND_STARTED message
 }
 
 void delete_match(Match *match) {

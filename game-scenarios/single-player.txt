@@ -11,8 +11,8 @@ player->cli: number
 player<-cli: How many letters? (number input)
 player->cli: number
 
-cli->server: {"type": "CREATE_MATCH", "mode": "SINGLE", "rounds": number, "letters": number}
-cli<-server: {"type": "MATCH_STARTED", "matchId": string, "rounds": number, "letters": number} 
+cli->server: {"type": "CREATE_MATCH", "mode": "SINGLE", "rounds": number, "wordLength": number}
+cli<-server: {"type": "MATCH_STARTED", "matchId": string, "rounds": number, "wordLength": number} 
 cli<-server: {"type": "ROUND_STARTED", "roundNumber": number}
 cli<-server: {"type": "WAIT_GUESS"}
 
