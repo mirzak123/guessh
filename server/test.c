@@ -4,17 +4,17 @@
 
 #define WORD_LEN 5
 
-void test_evaluate_guess();
+void test_evaluate_guess(void);
 void assert_feedback(LetterFeedback *feedback, LetterFeedback *expected);
 void print_feedback(LetterFeedback *feedback);
 
-int main() {
+int main(void) {
   test_evaluate_guess();
 
   return 0;
 }
 
-void test_evaluate_guess() {
+void test_evaluate_guess(void) {
   LetterFeedback feedback[WORD_LEN];
   int r;
 

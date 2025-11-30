@@ -1,7 +1,7 @@
 #include "game_server.h"
 #include "game_logic.h"
 #include "game_types.h"
-#include "util.h"
+#include "json_messages.h"
 #include <_string.h>
 #include <cjson/cJSON.h>
 #include <stdio.h>
@@ -266,11 +266,7 @@ void GS_send_json(int client_fd, cJSON *json) {
 }
 
 void GS_send_error(int client_fd, char *reason) {
-  cJSON *err_json = NULL;
-
-  err_json = cJSON_CreateObject();
-  cJSON_AddStringToObject(err_json, "type", STR(ERROR));
-  cJSON_AddStringToObject(err_json, "reason", reason);
+  cJSON *err_json = json_error(reason);
   GS_send_json(client_fd, err_json);
 }
 

@@ -64,7 +64,7 @@ Find a better way to represent flow below 🙏🙏🙏
 | ------------------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
 | ERROR               | {"type": "ERROR", "reason": string}                                                  |                                                                         |
 | CONNECTED           |                                                                                      |                                                                         |
-| ROOM_CREATED        | {"type": "ROOM_CREATED", "roomId", string}                                           |                                                                         |
+| ROOM_CREATED        | {"type": "ROOM_CREATED", "roomId": string}                                           |                                                                         |
 | ROOM_JOINED         | {"type": "ROOM_JOINED"}                                                              |                                                                         |
 | ROOM_JOIN_FAILED    | {"type": "ROOM_JOIN_FAILED"}                                                         | Room full                                                               |
 | WAIT_OPPONENT_JOIN  | {"type": "WAIT_OPPONENT_JOIN"}                                                       |                                                                         |
