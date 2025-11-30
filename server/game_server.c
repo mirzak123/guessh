@@ -192,7 +192,7 @@ void GS_handle_create_match(GameServer *gs, int client_fd, cJSON *json_request) 
 
   word_len = word_len_json->valueint;
 
-  if (word_len < MIN_WORD_LEN || rounds > MAX_WORD_LEN) {
+  if (word_len < MIN_WORD_LEN || word_len > MAX_WORD_LEN) {
     GS_send_error(client_fd, E_INVALID_WORD_LEN);
     return;
   }
