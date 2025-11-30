@@ -1,10 +1,12 @@
 #include "game_logic.h"
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/fcntl.h>
 #include <unistd.h>
 
-int evaluate_guess(const char *guess_word, const char *target_word, LetterFeedback *feedback, int len) {
+/* Returns 1 if correctly guessed, 0 otherwise. */
+bool evaluate_guess(const char *guess_word, const char *target_word, LetterFeedback *feedback, int len) {
   int alphabet[26] = {0};
   int correct_count = 0;
 
@@ -39,6 +41,7 @@ char *get_random_word(int word_len) {
   char *word;
 
   WordStore *ws = &word_stores[word_len - MIN_WORD_LEN];
+  printf("[get_random_word] getting word from file: %s\n", ws->file);
 
   fd = open(ws->file, O_RDONLY);
   if (fd == -1) {
@@ -49,7 +52,7 @@ char *get_random_word(int word_len) {
   word = malloc(word_len * sizeof(char));
   offset = rand_word_index(ws);
 
-  if ((pread(fd, word, 5, offset)) == -1) {
+  if ((pread(fd, word, word_len, offset)) == -1) {
     perror("pread");
     exit(EXIT_FAILURE);
   }

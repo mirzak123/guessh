@@ -19,7 +19,7 @@ Match *new_match(size_t round_capacity, GameMode mode, size_t word_len) {
 
   match->round_capacity = round_capacity;
   match->mode = mode;
-  match->round_current = 0;
+  match->round_idx = 0;
   match->rounds = malloc(sizeof(Round) * round_capacity);
   match->word_len = word_len;
 
@@ -59,7 +59,7 @@ Round *new_round(WordChallenge *word_challenge, Player *starting_player) {
     return NULL;
   }
 
-  round->starting_player = starting_player;
+  round->on_turn = starting_player;
   round->wc = word_challenge;
 
   return round;
@@ -82,6 +82,7 @@ WordChallenge *new_word_challenge(int word_len, int max_attempts) {
   wc->max_attempts = max_attempts;
   wc->guess_attempts = malloc(sizeof(char) * word_len * max_attempts);
   wc->word = get_random_word(word_len);
+  printf("[new_word_challenge] word: %s\n", wc->word);
 
   return wc;
 }

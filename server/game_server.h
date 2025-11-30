@@ -17,10 +17,13 @@
 #define E_MALFORMED_MESSAGE "Malformed message received"
 #define E_UNSUPPORTED_MESSAGE_TYPE "Unsupported message type"
 #define E_NOT_IMPLEMENTED "Not Implemented"
+#define E_ALREADY_IN_MATCH "Player already in another match"
 #define E_MISSING_FIELD(field) "Missing '" field "' field"
 #define E_INVALID_TYPE(field, expected_type) "Invalid type of '" field "' field, expected: " expected_type
+#define E_INVALID_VALUE(field, reason) "Invalid value received for field '" field "': " reason
 #define E_INVALID_ROUNDS "Round number must be between 1 and " STR(MAX_ROUNDS)
 #define E_INVALID_WORD_LEN "wordLength must be between " STR(MIN_WORD_LEN) " and " STR(MAX_WORD_LEN)
+#define E_NOT_ON_TURN "Opponent is currently on turn"
 #define E_UNSUPPORTED_MODE "Unsupported mode"
 
 typedef enum {
@@ -72,5 +75,6 @@ void GS_send_error(int client_fd, const char *reason);
 
 // message handlers
 void GS_handle_create_match(GameServer *gs, int client_fd, cJSON *json_request);
+void GS_handle_make_guess(GameServer *gs, int client_fd, cJSON *json_request);
 
 #endif // !GAME_SERVER_H

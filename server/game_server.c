@@ -19,6 +19,7 @@ GameServer *GS_create(void) {
     perror("malloc");
     exit(1);
   }
+  srand(time(NULL));
 
   return gs;
 }
@@ -116,7 +117,7 @@ void GS_handle_request(GameServer *gs, int client_fd, char *data, size_t size) {
     GS_send_error(client_fd, E_NOT_IMPLEMENTED);
     break;
   case MAKE_GUESS:
-    GS_send_error(client_fd, E_NOT_IMPLEMENTED);
+    GS_handle_make_guess(gs, client_fd, json_request);
     break;
   case REQUEST_REMATCH:
     GS_send_error(client_fd, E_NOT_IMPLEMENTED);
@@ -140,6 +141,12 @@ void GS_handle_create_match(GameServer *gs, int client_fd, cJSON *json_request) 
   GameMode game_mode;
 
   printf("[GS_handle_create_match] json_request: %s\n", cJSON_PrintUnformatted(json_request));
+
+  if (GS_get_match_by_player_fd(gs, client_fd) != NULL) {
+    GS_send_error(client_fd, E_ALREADY_IN_MATCH);
+    return;
+  }
+
   // parse rounds
   rounds_json = cJSON_GetObjectItem(json_request, "rounds");
   if (rounds_json == NULL) {
@@ -223,9 +230,66 @@ void GS_handle_create_match(GameServer *gs, int client_fd, cJSON *json_request) 
   Match_add_player(match, client_fd); // implicitly starts the match
 }
 
+void GS_handle_make_guess(GameServer *gs, int client_fd, cJSON *json_request) {
+  Match *match;
+  Round *round;
+  Player *player, *opponent;
+  cJSON *guess_json, *guess_result_json;
+  char *guess;
+  bool success;
+  LetterFeedback *feedback;
+
+  match = GS_get_match_by_player_fd(gs, client_fd);
+  round = match->rounds[match->round_idx];
+  player = match->player1->fd == client_fd ? match->player1 : match->player2;
+  opponent = match->player1 == player ? match->player2 : match->player1;
+
+  if (player != round->on_turn) {
+    GS_send_error(client_fd, E_NOT_ON_TURN);
+    return;
+  }
+
+  guess_json = cJSON_GetObjectItem(json_request, "guess");
+  if (guess_json == NULL) {
+    GS_send_error(client_fd, E_MISSING_FIELD("guess"));
+    return;
+  }
+
+  if (!cJSON_IsString(guess_json)) {
+    GS_send_error(client_fd, E_INVALID_TYPE("guess", STRING));
+    return;
+  }
+
+  guess = cJSON_GetStringValue(guess_json);
+  if (strlen(guess) != match->word_len) {
+    GS_send_error(client_fd, E_INVALID_VALUE("guess", "incorrect word length"));
+    return;
+  }
+
+  feedback = malloc(sizeof(int) * match->word_len);
+  if (feedback == NULL) {
+    perror("malloc");
+    return;
+  }
+
+  success = evaluate_guess(guess, round->wc->word, feedback, match->word_len);
+  guess_result_json = json_guess_result(success, feedback, match->word_len);
+
+  GS_send_json(player->fd, guess_result_json);
+  if (opponent) {
+    GS_send_json(opponent->fd, guess_result_json); // TODO: Send more appropriate message
+  }
+
+  if (match->mode == MULTI_REMOTE) { // TODO: Maybe also for MULTI_LOCAL?
+    round->on_turn = opponent;
+  }
+
+  // TODO: Add round finish on correct guess or max attempts reached
+  free(feedback);
+}
+
 void GS_start_match(Match *match) {
   cJSON *match_started_json;
-  // TODO: Send MATCH_STARTED message
   size_t max_attempts = match->word_len + 1; // TODO: allow for flexible max_attempts
   WordChallenge *wc = new_word_challenge(match->word_len, max_attempts);
   if (wc == NULL) {
@@ -239,7 +303,7 @@ void GS_start_match(Match *match) {
     return;
   }
 
-  match->rounds[match->round_current] = round;
+  match->rounds[match->round_idx] = round;
   match_started_json = json_match_started(match->id, match->round_capacity, match->word_len);
 
   if (match->player1 != NULL) {
@@ -253,12 +317,12 @@ void GS_start_match(Match *match) {
 }
 
 void GS_start_round(Match *match) {
-  Round *round = match->rounds[match->round_current++];
-  cJSON *round_started_json = json_round_started(match->round_current);
+  Round *round = match->rounds[match->round_idx];
+  cJSON *round_started_json = json_round_started(match->round_idx + 1);
 
   assert(match->player1 != NULL);
   GS_send_json(match->player1->fd, round_started_json);
-  if (match->player1 == round->starting_player) {
+  if (match->player1 == round->on_turn) {
     GS_send_only_type(match->player1->fd, STR(WAIT_GUESS));
     if (match->player2 != NULL) {
       GS_send_only_type(match->player1->fd, STR(WAIT_OPPONENT_GUESS));
@@ -285,7 +349,6 @@ void delete_match(Match *match) {
   free(match);
 }
 
-// INFO: Might not need it
 Match *GS_get_match_by_player_fd(GameServer *gs, int player_fd) {
   Match *match = gs->head;
   while (match != NULL) {

@@ -16,7 +16,7 @@ typedef enum {
 // resolve the file descriptor at the last minute, when sending a message.
 typedef struct {
   int fd;
-  /* additional fields like name, socket_id, etc. */
+  /* additional fields like name, etc. */
 } Player;
 
 Player *new_player(int client_fd);
@@ -40,7 +40,7 @@ typedef struct {
    * of WordChallenge structs */
   WordChallenge *wc;
   Outcome outcome;
-  Player *starting_player;
+  Player *on_turn;
 } Round;
 
 Round *new_round(WordChallenge *word_challenge, Player *starting_player);
@@ -48,7 +48,7 @@ void delete_round(Round *round);
 
 typedef struct Match {
   char *id;
-  size_t round_current;  /* how many rounds have been played */
+  size_t round_idx;
   size_t round_capacity; /* total amount of rounds */
   Round **rounds;
   GameMode mode;

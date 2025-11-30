@@ -1,6 +1,7 @@
 #ifndef GAME_LOGIC_H
 #define GAME_LOGIC_H
 
+#include <stdbool.h>
 #include <stddef.h>
 #define WORD_STORE_LEN 3
 #define MIN_WORD_LEN 5
@@ -24,7 +25,7 @@ typedef enum {
   LETTER_CORRECT,
 } LetterFeedback;
 
-int evaluate_guess(const char *guess_word, const char *target_word, LetterFeedback *feedback, int len);
+bool evaluate_guess(const char *guess_word, const char *target_word, LetterFeedback *feedback, int len);
 char *get_random_word(int word_len);
 int rand_word_index(WordStore *ws); // TODO:  Remove from game_logic.h -- should be private
 
