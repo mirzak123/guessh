@@ -1,5 +1,6 @@
 #include "network.h"
 #include "game_server.h"
+#include "game_types.h"
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -145,6 +146,14 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
 
     close(client_fd);
     del_from_pfds(pfds, *pfd_i, fd_count);
+
+    // Delete match if it exists
+    Match *match = GS_get_match_by_player_fd(gs, client_fd);
+    if (match != NULL) {
+      // TODO: Handle premature match end for multiplayer games better by notifying
+      // the other client correctly on why the match ended
+      GS_end_match(gs, match);
+    }
 
     // re-examine slot as it contains a new fd after deletion
     (*pfd_i)--;
