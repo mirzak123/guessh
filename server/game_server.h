@@ -19,12 +19,14 @@
 #define E_NOT_IMPLEMENTED "Not Implemented"
 #define E_ALREADY_IN_MATCH "Player already in another match"
 #define E_MISSING_FIELD(field) "Missing '" field "' field"
+#define E_INVALID_STATE(reason) "Invalid state: " reason
 #define E_INVALID_TYPE(field, expected_type) "Invalid type of '" field "' field, expected: " expected_type
 #define E_INVALID_VALUE(field, reason) "Invalid value received for field '" field "': " reason
 #define E_INVALID_ROUNDS "Round number must be between 1 and " STR(MAX_ROUNDS)
 #define E_INVALID_WORD_LEN "wordLength must be between " STR(MIN_WORD_LEN) " and " STR(MAX_WORD_LEN)
 #define E_NOT_ON_TURN "Opponent is currently on turn"
 #define E_UNSUPPORTED_MODE "Unsupported mode"
+#define E_PLAYER_NOT_IN_MATCH "Player is not in an active match"
 
 typedef enum {
   MALFORMED_MESSAGE = -1,
@@ -67,6 +69,8 @@ MessageType GS_parse_message(char *data, size_t size, cJSON **out);
 
 void GS_start_match(Match *match);
 void GS_start_round(Match *match);
+void GS_end_match(GameServer *gs, Match *match);
+void GS_end_round(GameServer *gs, Match *match, Player *player, Player *opponent);
 
 // send message
 void GS_send_json(int client_fd, cJSON *json);
