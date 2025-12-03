@@ -1,5 +1,6 @@
 #include "network.h"
 #include "game_server.h"
+#include "game_types.h"
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -14,7 +15,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-void sigchld_handler(int s) {
+void sigchld_handler(void) {
   // waitpid() might overwrite errno, so we save and restore it:
   int saved_errno = errno;
 
@@ -74,7 +75,7 @@ int start_listening(char *port) {
 
   // NOTE: No clue how this code block works
   // ???
-  sa.sa_handler = sigchld_handler; // reap all dead processes
+  sa.sa_handler = (void (*)(int))sigchld_handler; // reap all dead processes
   sigemptyset(&sa.sa_mask);
   sa.sa_flags = SA_RESTART;
   if (sigaction(SIGCHLD, &sa, NULL) == -1) {
@@ -102,7 +103,7 @@ void add_to_pfds(struct pollfd **pfds, int new_fd, int *fd_size, int *fd_count) 
 }
 
 /*
- * Something wrong.
+ * Delete a file descriptor after connection closes.
  */
 void del_from_pfds(struct pollfd pfds[], int i, int *fd_count) {
   pfds[i] = pfds[*fd_count - 1];
@@ -129,7 +130,7 @@ void handle_new_connection(int listen_fd, int *fd_size, int *fd_count, struct po
 /*
  * Handle client data or client hangup.
  */
-void handle_client_data(int listen_fd, int *fd_count, struct pollfd pfds[], int *pfd_i) {
+void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int *pfd_i) {
   char buf[BUFSIZE];
 
   int client_fd = pfds[*pfd_i].fd;
@@ -146,7 +147,15 @@ void handle_client_data(int listen_fd, int *fd_count, struct pollfd pfds[], int 
     close(client_fd);
     del_from_pfds(pfds, *pfd_i, fd_count);
 
-    // reexamine slot as it contains a new fd after deletion
+    // Delete match if it exists
+    Match *match = GS_get_match_by_player_fd(gs, client_fd);
+    if (match != NULL) {
+      // TODO: Handle premature match end for multiplayer games better by notifying
+      // the other client correctly on why the match ended
+      GS_end_match(gs, match);
+    }
+
+    // re-examine slot as it contains a new fd after deletion
     (*pfd_i)--;
 
     return;
@@ -154,17 +163,16 @@ void handle_client_data(int listen_fd, int *fd_count, struct pollfd pfds[], int 
 
   printf("received data from fd %d: %.*s", client_fd, nbytes, buf);
 
-  // TODO: Handle game logic
-  GS_request(client_fd, buf, nbytes);
+  GS_handle_request(gs, client_fd, buf, nbytes);
 }
 
-void process_connections(int listen_fd, int *fd_size, int *fd_count, struct pollfd **pfds) {
+void process_connections(GameServer *gs, int listen_fd, int *fd_size, int *fd_count, struct pollfd **pfds) {
   for (int i = 0; i < *fd_count; i++) {
     if ((*pfds)[i].revents & (POLLIN | POLLHUP)) {
       if ((*pfds)[i].fd == listen_fd) {
         handle_new_connection(listen_fd, fd_size, fd_count, pfds);
       } else {
-        handle_client_data(listen_fd, fd_count, *pfds, &i);
+        handle_client_data(gs, fd_count, *pfds, &i);
       }
     }
   }
