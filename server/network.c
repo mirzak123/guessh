@@ -152,7 +152,7 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
     if (match != NULL) {
       // TODO: Handle premature match end for multiplayer games better by notifying
       // the other client correctly on why the match ended
-      GS_end_match(gs, match);
+      GS_end_match(gs, match); // BUG: Sending message to player that disonnected causes a seg fault
     }
 
     // re-examine slot as it contains a new fd after deletion

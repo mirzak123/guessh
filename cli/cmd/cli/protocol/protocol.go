@@ -3,15 +3,15 @@ package protocol
 type GameMode string
 
 const (
-	SINGLE       = "SINGLE"
-	MULTI_LOCAL  = "MULTI_LOCAL"
-	MULTI_REMOTE = "MULTI_REMOTE"
+	SINGLE       GameMode = "SINGLE"
+	MULTI_LOCAL  GameMode = "MULTI_LOCAL"
+	MULTI_REMOTE GameMode = "MULTI_REMOTE"
 )
 
 type LetterFeedback int
 
 const (
-	LETTER_ABSENT  = 0
-	LETTER_PRESENT = 1
-	LETTER_CORRECT = 2
+	LETTER_ABSENT  LetterFeedback = 0
+	LETTER_PRESENT LetterFeedback = 1
+	LETTER_CORRECT LetterFeedback = 2
 )

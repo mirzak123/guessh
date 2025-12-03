@@ -1,4 +1,4 @@
-package connection
+package transport
 
 import (
 	"log"
@@ -9,7 +9,7 @@ import (
 
 type EventMsg string
 
-func ListenForActivity(conn net.Conn, sub chan string) tea.Cmd {
+func ListenForActivity(conn net.Conn, sub chan EventMsg) tea.Cmd {
 	return func() tea.Msg {
 		for {
 			buffer := make([]byte, 1024)
@@ -17,12 +17,12 @@ func ListenForActivity(conn net.Conn, sub chan string) tea.Cmd {
 				log.Printf("ListenForActivity error: %v", err)
 				return err
 			}
-			sub <- string(buffer)
+			sub <- EventMsg(string(buffer))
 		}
 	}
 }
 
-func WaitForEvent(sub chan string) tea.Cmd {
+func WaitForEvent(sub chan EventMsg) tea.Cmd {
 	return func() tea.Msg {
 		return EventMsg(<-sub)
 	}
