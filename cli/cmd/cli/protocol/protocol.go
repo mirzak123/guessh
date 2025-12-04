@@ -11,13 +11,25 @@ const (
 type LetterFeedback int
 
 const (
-	LETTER_ABSENT  LetterFeedback = 0
-	LETTER_PRESENT LetterFeedback = 1
-	LETTER_CORRECT LetterFeedback = 2
+	LETTER_ABSENT LetterFeedback = iota
+	LETTER_PRESENT
+	LETTER_CORRECT
 )
 
 type MatchInfo struct {
 	Mode      GameMode
 	WordLen   int
 	RawRounds string
+}
+
+type Guess struct {
+	Word   string
+	Result []LetterFeedback
+}
+
+func NewGuess(word string, result []LetterFeedback) *Guess {
+	return &Guess{
+		Word:   word,
+		Result: result,
+	}
 }
