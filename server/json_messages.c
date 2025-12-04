@@ -1,3 +1,4 @@
+#include "json_messages.h"
 #include "game_logic.h"
 #include "game_server.h"
 #include <cjson/cJSON.h>
@@ -33,11 +34,12 @@ cJSON *json_round_started(int round_num) {
   return json;
 }
 
-cJSON *json_guess_result(bool success, const LetterFeedback *feedback, size_t word_len) {
+cJSON *json_guess_result(bool success, const char *guess, const LetterFeedback *feedback, size_t word_len) {
   cJSON *json = cJSON_CreateObject(), *feedback_json = cJSON_CreateArray(), *feedback_item = NULL;
 
   cJSON_AddStringToObject(json, "type", STR(GUESS_RESULT));
   cJSON_AddBoolToObject(json, "success", success);
+  cJSON_AddStringToObject(json, "guess", guess);
   for (int i = 0; i < (int)word_len; i++) {
     feedback_item = cJSON_CreateNumber(feedback[i]);
     cJSON_AddItemToArray(feedback_json, feedback_item);

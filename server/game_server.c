@@ -279,7 +279,7 @@ void GS_handle_make_guess(GameServer *gs, int client_fd, cJSON *json_request) {
 
   round->wc->attempt_count++;
   success = evaluate_guess(guess, round->wc->word, feedback, match->word_len);
-  guess_result_json = json_guess_result(success, feedback, match->word_len);
+  guess_result_json = json_guess_result(success, guess, feedback, match->word_len);
 
   GS_send_json(player->fd, guess_result_json);
   if (opponent) {
@@ -439,6 +439,7 @@ Match *GS_get_match_by_player_fd(GameServer *gs, int player_fd) {
     match = match->next;
   }
 
+  printf("[GS_get_match_by_player_fd] player is not in a match\n");
   return NULL;
 }
 
