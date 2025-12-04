@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/charmbracelet/huh"
+	"github.com/charmbracelet/lipgloss"
 )
 
 const (
@@ -18,48 +19,63 @@ var (
 	RawRounds string
 	Mode      protocol.GameMode
 	WordLen   int
-	Start     bool
+	StartGame bool
 )
 
-var StartMenu = huh.NewForm(
-	huh.NewGroup(
-		huh.NewSelect[protocol.GameMode]().
-			Title("Are you lonely?").
-			Options(
-				huh.NewOption("Single player", protocol.SINGLE),
-				huh.NewOption("Two player local", protocol.MULTI_LOCAL),
-				huh.NewOption("Two player remote", protocol.MULTI_REMOTE),
-			).
-			Value(&Mode),
+var GameModeLabels = map[protocol.GameMode]string{
+	protocol.SINGLE:       "Single player",
+	protocol.MULTI_LOCAL:  "Two player local",
+	protocol.MULTI_REMOTE: "Two player remote",
+}
 
-		huh.NewSelect[int]().
-			Title("How big of words are we feeling?").
-			Options(
-				huh.NewOption("Five", 5),
-				huh.NewOption("Six", 6),
-				huh.NewOption("Seven", 7),
-			).
-			Value(&WordLen),
+func NewStartMenu() *huh.Form {
+	return huh.NewForm(
+		huh.NewGroup(
+			huh.NewSelect[protocol.GameMode]().
+				Title("Are you lonely?").
+				Options(
+					huh.NewOption(GameModeLabels[protocol.SINGLE], protocol.SINGLE),
+					huh.NewOption(GameModeLabels[protocol.MULTI_LOCAL], protocol.MULTI_LOCAL),
+					huh.NewOption(GameModeLabels[protocol.MULTI_REMOTE], protocol.MULTI_REMOTE),
+				).
+				Value(&Mode),
 
-		huh.NewInput().
-			Title(fmt.Sprintf("How many rounds? (%d - %d)", minRounds, maxRounds)).
-			Prompt("-> ").
-			Validate(func(str string) error {
-				r, err := strconv.Atoi(str)
-				if err != nil {
-					return errors.New("Please enter a valid number")
-				}
-				if r < minRounds || r > maxRounds {
-					return fmt.Errorf("Round number must be between %d and %d", minRounds, maxRounds)
-				}
-				return nil
-			}).
-			Value(&RawRounds),
-	),
+			huh.NewSelect[int]().
+				Title("How many letters are we feeling?").
+				Options(
+					huh.NewOption("Five", 5),
+					huh.NewOption("Six", 6),
+					huh.NewOption("Seven", 7),
+				).
+				Value(&WordLen),
 
-	huh.NewGroup(
-		huh.NewConfirm().
-			Title("Start match?").
-			Value(&Start),
-	),
-)
+			huh.NewInput().
+				Title(fmt.Sprintf("How many rounds? (%d - %d)", minRounds, maxRounds)).
+				Prompt("> ").
+				Validate(func(str string) error {
+					r, err := strconv.Atoi(str)
+					if err != nil {
+						return errors.New("Please enter a valid number")
+					}
+					if r < minRounds || r > maxRounds {
+						return fmt.Errorf("Round number must be between %d and %d", minRounds, maxRounds)
+					}
+					return nil
+				}).
+				Value(&RawRounds),
+		),
+
+		huh.NewGroup(
+			huh.NewConfirm().
+				Title("Start match?").
+				DescriptionFunc(func() string {
+					return fmt.Sprintf(
+						"mode:             \t%s\n"+
+							"word length:      \t%d\n"+
+							"number of rounds: \t%s",
+						GameModeLabels[Mode], WordLen, RawRounds)
+				}, nil).
+				Value(&StartGame).WithButtonAlignment(lipgloss.Left),
+		).WithHeight(6),
+	)
+}
