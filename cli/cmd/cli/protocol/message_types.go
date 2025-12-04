@@ -1,67 +1,88 @@
 package protocol
 
-type Envelope struct {
+import (
+	"encoding/json"
+	"log"
+)
+
+type EnvelopeMessage struct {
 	Type string `json:"type"`
 }
 
 /* Client Types */
 
-type CreateMatch struct {
-	Envelope
+type CreateMatchMessage struct {
+	Type       string   `json:"type"`
 	Mode       GameMode `json:"mode"`
 	Rounds     int      `json:"rounds"`
 	WordLength int      `json:"wordLength"`
 }
 
-type MakeGuess struct {
-	Envelope
+type MakeGuessMessage struct {
+	Type  string `json:"type"`
 	Guess string `json:"guess"`
 }
 
-type LeaveMatch struct {
-	Envelope
+func NewMakeGuessMessage(guess string) *MakeGuessMessage {
+	return &MakeGuessMessage{
+		Type:  "MAKE_GUESS",
+		Guess: guess,
+	}
+}
+
+func (m *MakeGuessMessage) JSON() string {
+	if v, err := json.Marshal(m); err != nil {
+		log.Print("[MakeGuessMessage.JSON] Failed to marshal")
+		return ""
+	} else {
+		return string(v)
+	}
+}
+
+type LeaveMatchMessage struct {
+	EnvelopeMessage
 }
 
 /* Server Types */
 
-type Error struct {
-	Envelope
+type ErrorMessage struct {
+	Type   string `json:"type"`
 	Reason string `json:"reason"`
 }
 
-type MatchStarted struct {
-	Envelope
+type MatchStartedMessage struct {
+	Type       string `json:"type"`
 	MatchID    string `json:"matchId"`
 	Rounds     int    `json:"rounds"`
 	WordLength int    `json:"wordLength"`
 }
 
-type RoundStarted struct {
-	Envelope
-	RoundNumber int `json:"roundNumber"`
+type RoundStartedMessage struct {
+	Type        string `json:"type"`
+	RoundNumber int    `json:"roundNumber"`
 }
 
-type WaitGuess struct {
-	Envelope
+type WaitGuessMessage struct {
+	Type string `json:"type"`
 }
 
-type WaitOpponentGuess struct {
-	Envelope
+type WaitOpponentGuessMessage struct {
+	Type string `json:"type"`
 }
 
-type GuessResult struct {
-	Envelope
+type GuessResultMessage struct {
+	Type     string           `json:"type"`
 	Success  bool             `json:"success"`
 	Feedback []LetterFeedback `json:"feedback"`
 }
 
-type RoundFinished struct {
-	Envelope
+type RoundFinishedMessage struct {
+	Type    string `json:"type"`
 	Success bool   `json:"success"`
 	Word    string `json:"word"`
 }
 
-type MatchFinished struct {
-	Envelope
+type MatchFinishedMessage struct {
+	Type   string `json:"type"`
 	Winner string `json:"winner"`
 }

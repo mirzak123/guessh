@@ -15,3 +15,9 @@ const (
 	LETTER_PRESENT LetterFeedback = 1
 	LETTER_CORRECT LetterFeedback = 2
 )
+
+type MatchInfo struct {
+	Mode      GameMode
+	WordLen   int
+	RawRounds string
+}
