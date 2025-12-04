@@ -22,7 +22,7 @@ var GameModeLabels = map[protocol.GameMode]string{
 }
 
 func NewStartMenu(matchInfo *protocol.MatchInfo) (*huh.Form, *bool) {
-	var confirm bool
+	confirm := true
 
 	form := huh.NewForm(
 		huh.NewGroup(
