@@ -5,6 +5,7 @@
 #include <_string.h>
 #include <assert.h>
 #include <cjson/cJSON.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -444,6 +445,8 @@ Match *GS_get_match_by_player_fd(GameServer *gs, int player_fd) {
 }
 
 void GS_send_json(int client_fd, cJSON *json) {
+  size_t length;
+  uint32_t nlength;
   char *message = cJSON_PrintUnformatted(json);
 
   if (message == NULL) {
@@ -451,6 +454,14 @@ void GS_send_json(int client_fd, cJSON *json) {
     return;
   }
 
+  // TCP segment length prefix
+  length = strlen(message);
+  nlength = htonl(length);
+  if (send(client_fd, &nlength, 4, 0) == -1) {
+    perror("send");
+  }
+
+  // Data
   if (send(client_fd, message, strlen(message), 0) == -1) {
     perror("send");
   }
