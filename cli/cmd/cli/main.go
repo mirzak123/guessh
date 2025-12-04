@@ -1,6 +1,7 @@
 package main
 
 import (
+	"guessh/cmd/cli/protocol"
 	"guessh/cmd/cli/screen"
 	"log"
 
@@ -23,16 +24,20 @@ const (
 
 type model struct {
 	width, height int
+	matchInfo     *protocol.MatchInfo
+	confirm       *bool
 	screen        ScreenType
 	form          *huh.Form
 	game          *tea.Model
 }
 
 func initialModel() model {
-	return model{
-		screen: StartScreenType,
-		form:   screen.NewStartMenu(),
+	m := model{
+		screen:    StartScreenType,
+		matchInfo: &protocol.MatchInfo{},
 	}
+	m.form, m.confirm = screen.NewStartMenu(m.matchInfo)
+	return m
 }
 
 func (m model) Init() tea.Cmd {
@@ -41,7 +46,6 @@ func (m model) Init() tea.Cmd {
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	log.Print("[Update] Updating model...")
-	log.Print("StartGame:", screen.StartGame)
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		log.Print("[Update] KeyMsg")
@@ -63,12 +67,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.form = updatedModel.(*huh.Form)
 
 	if m.screen == StartScreenType && m.form.State == huh.StateCompleted {
-		if screen.StartGame {
+		if *m.confirm {
 			m.screen = GameScreenType
 		} else {
 			m.screen = StartScreenType
-			screen.StartGame = false
-			m.form = screen.NewStartMenu()
+			m.form, m.confirm = screen.NewStartMenu(m.matchInfo)
 
 			return m, tea.ClearScreen
 		}
@@ -84,7 +87,6 @@ func (m model) View() string {
 		content = formStyle.Render(m.form.View())
 	case GameScreenType:
 		content = "Game started"
-		// content = formStyle.Render(m.form.View())
 	}
 
 	return lipgloss.Place(

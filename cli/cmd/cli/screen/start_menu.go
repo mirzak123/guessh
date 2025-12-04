@@ -15,21 +15,16 @@ const (
 	maxRounds = 5
 )
 
-var (
-	RawRounds string
-	Mode      protocol.GameMode
-	WordLen   int
-	StartGame bool
-)
-
 var GameModeLabels = map[protocol.GameMode]string{
 	protocol.SINGLE:       "Single player",
 	protocol.MULTI_LOCAL:  "Two player local",
 	protocol.MULTI_REMOTE: "Two player remote",
 }
 
-func NewStartMenu() *huh.Form {
-	return huh.NewForm(
+func NewStartMenu(matchInfo *protocol.MatchInfo) (*huh.Form, *bool) {
+	var confirm bool
+
+	form := huh.NewForm(
 		huh.NewGroup(
 			huh.NewSelect[protocol.GameMode]().
 				Title("Are you lonely?").
@@ -38,7 +33,7 @@ func NewStartMenu() *huh.Form {
 					huh.NewOption(GameModeLabels[protocol.MULTI_LOCAL], protocol.MULTI_LOCAL),
 					huh.NewOption(GameModeLabels[protocol.MULTI_REMOTE], protocol.MULTI_REMOTE),
 				).
-				Value(&Mode),
+				Value(&matchInfo.Mode),
 
 			huh.NewSelect[int]().
 				Title("How many letters are we feeling?").
@@ -47,11 +42,10 @@ func NewStartMenu() *huh.Form {
 					huh.NewOption("Six", 6),
 					huh.NewOption("Seven", 7),
 				).
-				Value(&WordLen),
+				Value(&matchInfo.WordLen),
 
 			huh.NewInput().
 				Title(fmt.Sprintf("How many rounds? (%d - %d)", minRounds, maxRounds)).
-				Prompt("> ").
 				Validate(func(str string) error {
 					r, err := strconv.Atoi(str)
 					if err != nil {
@@ -62,7 +56,7 @@ func NewStartMenu() *huh.Form {
 					}
 					return nil
 				}).
-				Value(&RawRounds),
+				Value(&matchInfo.RawRounds),
 		),
 
 		huh.NewGroup(
@@ -73,9 +67,11 @@ func NewStartMenu() *huh.Form {
 						"mode:             \t%s\n"+
 							"word length:      \t%d\n"+
 							"number of rounds: \t%s",
-						GameModeLabels[Mode], WordLen, RawRounds)
+						GameModeLabels[matchInfo.Mode], matchInfo.WordLen, matchInfo.RawRounds)
 				}, nil).
-				Value(&StartGame).WithButtonAlignment(lipgloss.Left),
+				Value(&confirm).WithButtonAlignment(lipgloss.Left),
 		).WithHeight(6),
 	)
+
+	return form, &confirm
 }
