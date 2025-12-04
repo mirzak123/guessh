@@ -1,7 +1,6 @@
 package client
 
 import (
-	"encoding/binary"
 	"encoding/json"
 	"guessh/cmd/cli/protocol"
 	"guessh/cmd/cli/transport"

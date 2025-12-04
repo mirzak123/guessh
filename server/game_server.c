@@ -457,6 +457,7 @@ void GS_send_json(int client_fd, cJSON *json) {
   // TCP segment length prefix
   length = strlen(message);
   nlength = htonl(length);
+  printf("[GS_send_json] sending %zu bytes of data", length);
   if (send(client_fd, &nlength, 4, 0) == -1) {
     perror("send");
   }

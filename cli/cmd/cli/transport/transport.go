@@ -2,6 +2,7 @@ package transport
 
 import (
 	"encoding/binary"
+	"io"
 	"log"
 	"net"
 
@@ -15,9 +16,16 @@ type EventMsg string
 func ListenForActivity(conn net.Conn, msg chan EventMsg) tea.Cmd {
 	return func() tea.Msg {
 		for {
-			buffer := make([]byte, 1024)
-			if _, err := conn.Read(buffer); err != nil {
-				log.Printf("ListenForActivity error: %v", err)
+			var length uint32
+			if err := binary.Read(conn, binary.BigEndian, &length); err != nil {
+				log.Printf("[ListenForActivity] error: %v", err)
+				return err
+			}
+
+			buffer := make([]byte, length)
+
+			if _, err := io.ReadFull(conn, buffer); err != nil {
+				log.Printf("[ListenForActivity] error: %v", err)
 				return err
 			}
 			msg <- EventMsg(buffer)
