@@ -41,6 +41,7 @@ type CreateMatchMessage struct {
 func NewCreateMatchMessage(mode GameMode, wordLen int, rounds int) *CreateMatchMessage {
 	return &CreateMatchMessage{
 		Type:    CREATE_MATCH,
+		Mode:    mode,
 		WordLen: wordLen,
 		Rounds:  rounds,
 	}

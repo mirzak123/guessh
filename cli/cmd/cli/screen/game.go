@@ -27,12 +27,13 @@ const (
 )
 
 type model struct {
-	client  *client.Client
-	input   textinput.Model
-	guesses []*protocol.Guess
-	state   GameState
-	msg     chan transport.EventMsg
-	err     error
+	client    *client.Client
+	matchInfo *protocol.MatchInfo
+	input     textinput.Model
+	guesses   []*protocol.Guess
+	state     GameState
+	msg       chan transport.EventMsg
+	err       error
 }
 
 func NewGame(matchInfo *protocol.MatchInfo) model {
@@ -49,15 +50,19 @@ func NewGame(matchInfo *protocol.MatchInfo) model {
 	ti.Focus()
 
 	return model{
-		client: c,
-		input:  ti,
-		state:  StateInit,
-		msg:    make(chan transport.EventMsg),
-		err:    nil,
+		client:    c,
+		matchInfo: matchInfo,
+		input:     ti,
+		state:     StateInit,
+		msg:       make(chan transport.EventMsg),
+		err:       nil,
 	}
 }
 
 func (m model) Init() tea.Cmd {
+	log.Printf("[Game Init] matchInfo.Mode: %s", m.matchInfo.Mode)
+	m.client.CreateMatch(m.matchInfo)
+
 	return tea.Batch(
 		textinput.Blink,
 		transport.ListenForActivity(m.client.Conn, m.msg),
@@ -72,8 +77,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyCtrlC, tea.KeyEsc:
 			return m, tea.Quit
 		case tea.KeyEnter:
-			m.client.MakeGuess(m.input.Value())
-			m.input.SetValue("")
+			v := m.input.Value()
+
+			if len(v) == m.matchInfo.WordLen { // do nothing if not enough letters
+				m.client.MakeGuess(m.input.Value())
+				m.input.SetValue("")
+			}
 		}
 	case transport.EventMsg:
 		log.Printf("New event received: %s\n", string(msg))
@@ -89,6 +98,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
+
 	return m.input.View()
 }
 
