@@ -10,30 +10,30 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-var formStyle = lipgloss.NewStyle().
+var contentStyle = lipgloss.NewStyle().
 	Border(lipgloss.RoundedBorder()).
 	BorderForeground(lipgloss.Color("63")).
 	Padding(1, 2)
 
-type ScreenType string
+type ScreenID string
 
 const (
-	StartScreenType ScreenType = "start"
-	GameScreenType  ScreenType = "game"
+	StartScreenID ScreenID = "start"
+	GameScreenID  ScreenID = "game"
 )
 
 type model struct {
 	width, height int
 	matchInfo     *protocol.MatchInfo
 	confirm       *bool
-	screen        ScreenType
+	screenID      ScreenID
 	form          *huh.Form
-	game          *tea.Model
+	game          tea.Model
 }
 
 func initialModel() model {
 	m := model{
-		screen:    StartScreenType,
+		screenID:  StartScreenID,
 		matchInfo: &protocol.MatchInfo{},
 	}
 	m.form, m.confirm = screen.NewStartMenu(m.matchInfo)
@@ -45,13 +45,13 @@ func (m model) Init() tea.Cmd {
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	log.Print("[Update] Updating model...")
+	var cmd tea.Cmd
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		log.Print("[Update] KeyMsg")
 		switch msg.Type {
 		case tea.KeyCtrlC:
-			log.Print("Quitting...")
+			log.Print("Program quitting...")
 			return m, tea.Quit
 		}
 
@@ -62,31 +62,46 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	log.Print("[Update] Calling form.Update()")
-	updatedModel, cmd := m.form.Update(msg)
-	m.form = updatedModel.(*huh.Form)
+	switch m.screenID {
 
-	if m.screen == StartScreenType && m.form.State == huh.StateCompleted {
-		if *m.confirm {
-			m.screen = GameScreenType
-		} else {
-			m.screen = StartScreenType
-			m.form, m.confirm = screen.NewStartMenu(m.matchInfo)
+	case StartScreenID:
+		updatedModel, formCmd := m.form.Update(msg)
+		m.form = updatedModel.(*huh.Form)
+		cmd = formCmd
 
-			return m, tea.ClearScreen
+		if m.screenID == StartScreenID && m.form.State == huh.StateCompleted {
+			if *m.confirm {
+				m.screenID = GameScreenID
+				m.game = screen.NewGame(m.matchInfo)
+
+				return m, tea.Batch(cmd, m.game.Init())
+			} else {
+				m.screenID = StartScreenID
+				m.form, m.confirm = screen.NewStartMenu(m.matchInfo)
+
+				return m, tea.ClearScreen
+			}
 		}
+		return m, cmd
+
+	case GameScreenID:
+		updatedModel, gameCmd := m.game.Update(msg)
+		m.game = updatedModel
+
+		return m, gameCmd
 	}
-	return m, cmd
+
+	return m, nil
 }
 
 func (m model) View() string {
 	var content string
 
-	switch m.screen {
-	case StartScreenType:
-		content = formStyle.Render(m.form.View())
-	case GameScreenType:
-		content = "Game started"
+	switch m.screenID {
+	case StartScreenID:
+		content = contentStyle.Render(m.form.View())
+	case GameScreenID:
+		content = contentStyle.Render(m.game.View())
 	}
 
 	return lipgloss.Place(
