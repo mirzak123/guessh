@@ -1,4 +1,5 @@
 #include "network.h"
+#include "client.h"
 #include "game_server.h"
 #include "game_types.h"
 #include <arpa/inet.h>
@@ -113,7 +114,7 @@ void del_from_pfds(struct pollfd pfds[], int i, int *fd_count) {
 /*
  * Handle incomming connections.
  */
-void handle_new_connection(int listen_fd, int *fd_size, int *fd_count, struct pollfd **pfds) {
+void handle_new_connection(GameServer *gs, int listen_fd, int *fd_size, int *fd_count, struct pollfd **pfds) {
   struct sockaddr_storage client_addr;
   socklen_t addr_size = sizeof client_addr;
 
@@ -125,6 +126,8 @@ void handle_new_connection(int listen_fd, int *fd_size, int *fd_count, struct po
   }
 
   add_to_pfds(pfds, client_fd, fd_size, fd_count);
+
+  gs->clients[client_fd] = new_client(client_fd);
 }
 
 /*
@@ -148,7 +151,7 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
     del_from_pfds(pfds, *pfd_i, fd_count);
 
     // Delete match if it exists
-    Match *match = GS_get_match_by_player_fd(gs, client_fd);
+    Match *match = GS_get_match_by_client_fd(gs, client_fd);
     if (match != NULL) {
       // TODO: Handle premature match end for multiplayer games better by notifying
       // the other client correctly on why the match ended
@@ -161,7 +164,7 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
     return;
   }
 
-  printf("received data from fd %d: %.*s", client_fd, nbytes, buf);
+  printf("received data from fd %d: %.*s\n", client_fd, nbytes, buf);
 
   GS_handle_request(gs, client_fd, buf, nbytes);
 }
@@ -170,7 +173,7 @@ void process_connections(GameServer *gs, int listen_fd, int *fd_size, int *fd_co
   for (int i = 0; i < *fd_count; i++) {
     if ((*pfds)[i].revents & (POLLIN | POLLHUP)) {
       if ((*pfds)[i].fd == listen_fd) {
-        handle_new_connection(listen_fd, fd_size, fd_count, pfds);
+        handle_new_connection(gs, listen_fd, fd_size, fd_count, pfds);
       } else {
         handle_client_data(gs, fd_count, *pfds, &i);
       }

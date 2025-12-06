@@ -1,7 +1,12 @@
 #ifndef GAME_TYPES_H
 #define GAME_TYPES_H
 
+#include "client.h"
+#include <stdbool.h>
 #include <stddef.h>
+
+#define MAX_CLIENT_DATA 1024
+
 typedef enum { TIE, PLAYER1_WINS, PLAYER2_WINS } Outcome;
 
 typedef enum {
@@ -15,11 +20,11 @@ typedef enum {
 // Ideally should create a system to interact with players only through playerId, and
 // resolve the file descriptor at the last minute, when sending a message.
 typedef struct {
-  int fd;
-  /* additional fields like name, etc. */
+  Client *client;
+  struct Match *match;
 } Player;
 
-Player *new_player(int client_fd);
+Player *new_player(Client *client, struct Match *match);
 void delete_player(Player *player);
 
 typedef struct {
@@ -60,7 +65,6 @@ typedef struct Match {
 } Match;
 
 Match *new_match(size_t round_capacity, GameMode mode, size_t word_len);
-void Match_add_player(Match *match, int client_fd);
 void Match_start_match(Match *match);
 void Match_start_round(Match *match);
 void delete_match(Match *match);

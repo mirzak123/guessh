@@ -26,32 +26,6 @@ Match *new_match(size_t round_capacity, GameMode mode, size_t word_len) {
   return match;
 }
 
-void Match_add_player(Match *match, int client_fd) {
-  Player *player = new_player(client_fd);
-  if (player == NULL) {
-    printf("[Match_add_player] error: new_player() returned NULL\n");
-    return;
-  }
-
-  if (match->player1 == NULL) { // first player
-    match->player1 = player;
-    if (match->mode == SINGLE) {
-      GS_start_match(match);
-    }
-  } else if (match->player2 == NULL) { // second player
-    if (match->mode == SINGLE) {
-      printf("[Match_add_player] error: trying to add second player to a match in SINGLE mode\n");
-      return;
-    } else { // multiplayer
-      match->player2 = player;
-      // TODO: start match
-    }
-  } else {
-    printf("[Match_add_player] error: trying to add a player to a match that has 2 players\n");
-    return;
-  }
-}
-
 Round *new_round(WordChallenge *word_challenge, Player *starting_player) {
   Round *round = malloc(sizeof(Round));
   if (round == NULL) {
@@ -97,14 +71,15 @@ void delete_word_challenge(WordChallenge *wc) {
   free(wc);
 }
 
-Player *new_player(int client_fd) {
+Player *new_player(Client *client, Match *match) {
   Player *player = malloc(sizeof(Player));
   if (player == NULL) {
     perror("malloc");
     return NULL;
   }
 
-  player->fd = client_fd;
+  player->client = client;
+  player->match = match;
   return player;
 }
 
