@@ -7,7 +7,6 @@ import (
 	"guessh/internal/transport"
 	"log"
 	"net"
-	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -18,7 +17,7 @@ type GameState int
 const (
 	StateInit GameState = iota
 	StateMatchStarted
-	StateWaitingGuess
+	StateWaitGuess
 	StateWaitingGuessResult
 	StateWaitOpponentJoin
 	StateWaitOpponentGuess
@@ -26,12 +25,14 @@ const (
 	StateMatchFinished
 )
 
+type GameFinishedMsg struct{}
+
 type model struct {
 	client    *client.Client
 	matchInfo *protocol.MatchInfo
 	input     textinput.Model
 	guesses   []*protocol.Guess
-	state     GameState
+	State     GameState
 	msg       chan transport.EventMsg
 	err       error
 }
@@ -53,7 +54,7 @@ func NewGame(matchInfo *protocol.MatchInfo) model {
 		client:    c,
 		matchInfo: matchInfo,
 		input:     ti,
-		state:     StateInit,
+		State:     StateInit,
 		msg:       make(chan transport.EventMsg),
 		err:       nil,
 	}
@@ -84,10 +85,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.input.SetValue("")
 			}
 		}
+
 	case transport.EventMsg:
+		log.Printf("State: %d", m.State)
 		log.Printf("New event received: %s\n", string(msg))
-		m.handleEvent(msg)
+		m, msgFromEvent := m.handleEvent(msg)
+		if msgFromEvent != nil {
+			return m, func() tea.Msg { return msgFromEvent } // TODO: This is ugly, fix this
+		}
 		return m, transport.WaitForEvent(m.msg)
+
 	case error:
 		m.err = msg
 		return m, nil
@@ -102,43 +109,50 @@ func (m model) View() string {
 	return m.input.View()
 }
 
-func (m model) handleEvent(eventMsg transport.EventMsg) {
-	msg := []byte(strings.TrimRight(string(eventMsg), " \t\n\r\x00"))
+func (m model) handleEvent(eventMsg transport.EventMsg) (model, tea.Msg) {
+	msg := []byte(eventMsg)
 	event := &protocol.EnvelopeMessage{}
 
-	if err := json.Unmarshal([]byte(msg), event); err != nil {
+	if err := json.Unmarshal(msg, event); err != nil {
 		log.Printf("[handleEvent] error unmarshaling EnvelopeMessage: %s", err)
-		return
+		return m, nil
 	}
 
 	switch event.Type {
 
 	case protocol.MATCH_STARTED:
-		m.state = StateMatchStarted
+		m.State = StateMatchStarted
 
 	case protocol.ROUND_STARTED:
-		m.state = StateMatchStarted
+		m.State = StateMatchStarted
+
+	case protocol.WAIT_GUESS:
+		m.State = StateWaitGuess
+
+	case protocol.WAIT_OPPONENT_GUESS:
+		m.State = StateWaitOpponentGuess
+
+	case protocol.WAIT_OPPONENT_JOIN:
+		m.State = StateWaitOpponentJoin
 
 	case protocol.GUESS_RESULT:
-		// TODO: If MULTI_REMOTE, toggle StateWaitingGuess and StateWaitOpponentGuess
-		m.state = StateWaitingGuess
-
 		guessResultEvent := &protocol.GuessResultMessage{}
 
 		if err := json.Unmarshal(msg, guessResultEvent); err != nil {
 			log.Printf("[handleEvent] error unmarshaling GuessResultMessage: %v", err)
-			return
+			return m, nil
 		}
 
 		m.guesses = append(m.guesses, protocol.NewGuess(guessResultEvent.Guess, guessResultEvent.Feedback))
 
 	case protocol.ROUND_FINISHED:
-		m.state = StateRoundFinished
+		m.State = StateRoundFinished
 
 	case protocol.MATCH_FINISHED:
-		m.state = StateMatchFinished
-
+		m.State = StateMatchFinished
+		return m, GameFinishedMsg{}
 	}
 
 	log.Printf("[handleEvent] Event type: %s", event.Type)
+	return m, nil
 }

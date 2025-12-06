@@ -60,6 +60,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 		return m, nil
+
+	case screen.GameFinishedMsg:
+		m.screenID = StartScreenID
+		m.matchInfo = &protocol.MatchInfo{}
+		m.form, m.confirm = screen.NewStartMenu(m.matchInfo)
+		return m, nil
 	}
 
 	switch m.screenID {
@@ -87,6 +93,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case GameScreenID:
 		updatedModel, gameCmd := m.game.Update(msg)
 		m.game = updatedModel
+
+		// TODO: If game state is StateMatchFinished, move back to a new form
 
 		return m, gameCmd
 	}
