@@ -2,8 +2,8 @@ package client
 
 import (
 	"encoding/json"
-	"guessh/cmd/cli/protocol"
-	"guessh/cmd/cli/transport"
+	"guessh/internal/protocol"
+	"guessh/internal/transport"
 	"log"
 	"net"
 	"strconv"
@@ -53,7 +53,8 @@ func (c *Client) MakeGuess(guess string) {
 }
 
 func (c *Client) send(payload []byte) {
+	log.Printf("[Client.send] Sending message: %s", payload)
 	if _, err := transport.SendMessage(c.Conn, payload); err != nil {
-		log.Printf("[Client.CreateMatch] Failed to send message: %v", err)
+		log.Printf("[Client.send] Failed to send message: %v", err)
 	}
 }

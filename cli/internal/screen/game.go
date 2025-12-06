@@ -2,9 +2,9 @@ package screen
 
 import (
 	"encoding/json"
-	"guessh/cmd/cli/client"
-	"guessh/cmd/cli/protocol"
-	"guessh/cmd/cli/transport"
+	"guessh/internal/client"
+	"guessh/internal/protocol"
+	"guessh/internal/transport"
 	"log"
 	"net"
 	"strings"

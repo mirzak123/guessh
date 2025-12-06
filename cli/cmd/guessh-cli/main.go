@@ -1,8 +1,8 @@
 package main
 
 import (
-	"guessh/cmd/cli/protocol"
-	"guessh/cmd/cli/screen"
+	"guessh/internal/protocol"
+	"guessh/internal/screen"
 	"log"
 
 	tea "github.com/charmbracelet/bubbletea"

@@ -3,7 +3,7 @@ package screen
 import (
 	"errors"
 	"fmt"
-	"guessh/cmd/cli/protocol"
+	"guessh/internal/protocol"
 	"strconv"
 
 	"github.com/charmbracelet/huh"
