@@ -10,7 +10,8 @@ Client *new_client(int client_fd) {
   }
 
   client->fd = client_fd;
-  client->buffer_len = 0;
+  client->buf_start = client->buffer;
+  client->buf_len = 0;
   client->payload_size = 0;
   client->state = READING_LENGTH;
 

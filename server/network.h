@@ -6,6 +6,7 @@
 #include <stdint.h>
 
 #define BACKLOG 10
+#define LEN_PREFIX_BYTES 4
 
 int start_listening(char *port);
 void process_connections(GameServer *gs, int listen_fd, int *fd_size, int *fd_count, struct pollfd **pfds);

@@ -6,9 +6,11 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <signal.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/_endian.h>
 #include <sys/_types/_socklen_t.h>
 #include <sys/errno.h>
 #include <sys/poll.h>
@@ -134,11 +136,12 @@ void handle_new_connection(GameServer *gs, int listen_fd, int *fd_size, int *fd_
  * Handle client data or client hangup.
  */
 void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int *pfd_i) {
-  char buf[BUFSIZE];
+  char incomming_buf[BUFSIZE];
 
   int client_fd = pfds[*pfd_i].fd;
+  Client *client = gs->clients[client_fd];
 
-  int nbytes = recv(client_fd, buf, BUFSIZE, 0);
+  int nbytes = recv(client_fd, incomming_buf, BUFSIZE, 0);
 
   if (nbytes <= 0) {
     if (nbytes == 0) { // client hang up
@@ -164,9 +167,51 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
     return;
   }
 
-  printf("received data from fd %d: %.*s\n", client_fd, nbytes, buf);
+  printf("[handle_client_data] received %d bytes of data data from fd %d\n", nbytes, client_fd);
 
-  GS_handle_request(gs, client_fd, buf, nbytes);
+  if ((client->buf_len + nbytes) - (client->buf_start - client->buffer) > BUFSIZE) {
+    printf("[handle_client_data] error: buffer overflow\n");
+    close(client_fd);
+  }
+
+  memcpy(client->buffer + client->buf_len, incomming_buf, nbytes);
+  client->buf_len += nbytes;
+
+  int run = 1;
+  while (run) {
+    switch (client->state) {
+    case READING_LENGTH:
+      if (client->buf_len < LEN_PREFIX_BYTES) {
+        run = 0;
+        break;
+      }
+
+      uint32_t netlen;
+      memcpy(&netlen, client->buf_start, LEN_PREFIX_BYTES);
+
+      client->payload_size = ntohl(netlen);
+      client->buf_start += LEN_PREFIX_BYTES;
+      client->buf_len -= LEN_PREFIX_BYTES;
+      client->state = READING_PAYLOAD;
+      break;
+
+    case READING_PAYLOAD:
+      if (client->buf_len < client->payload_size) {
+        run = 0;
+        break;
+      }
+
+      GS_handle_request(gs, client_fd, client->buf_start, client->payload_size);
+
+      client->buf_start += client->payload_size;
+      client->buf_len -= client->payload_size;
+      client->state = READING_LENGTH;
+      break;
+    }
+  }
+
+  memmove(client->buffer, client->buf_start, client->buf_len);
+  client->buf_start = client->buffer;
 }
 
 void process_connections(GameServer *gs, int listen_fd, int *fd_size, int *fd_count, struct pollfd **pfds) {

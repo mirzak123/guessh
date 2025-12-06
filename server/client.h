@@ -5,7 +5,6 @@
 #include <stdint.h>
 
 #define BUFSIZE 1000
-#define LEN_PREFIX_BYTES 4
 
 typedef enum {
   READING_LENGTH,
@@ -16,7 +15,8 @@ typedef struct {
   int fd;
   ClientState state;
   char buffer[BUFSIZE];
-  size_t buffer_len;
+  char *buf_start;
+  size_t buf_len;
   uint32_t payload_size;
 } Client;
 

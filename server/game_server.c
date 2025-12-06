@@ -91,6 +91,7 @@ MessageType GS_parse_message(char *data, size_t size, cJSON **json_out) {
   return mt;
 }
 
+// TODO: Change param `int client_fd` into `Client *client`, since we have it ready at call time
 void GS_handle_request(GameServer *gs, int client_fd, char *data, size_t size) {
   cJSON *json_request = NULL;
   MessageType mt;

@@ -1,5 +1,5 @@
 BREW_PREFIX := /opt/homebrew
-CFLAGS := -Wall -Wextra -pedantic -I$(BREW_PREFIX)/include
+CFLAGS := -std=c17 -Wall -Wextra -pedantic -I$(BREW_PREFIX)/include
 LDFLAGS := -L$(BREW_PREFIX)/lib -lcjson
 
 BUILD_DIR := ../bin
