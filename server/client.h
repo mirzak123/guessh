@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 #define BUFSIZE 1000
-#define BACKLOG 10
+#define LEN_PREFIX_BYTES 4
 
 typedef enum {
   READING_LENGTH,

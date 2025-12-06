@@ -6,6 +6,7 @@
 #include <stddef.h>
 
 #define MAX_ROUNDS 5
+#define MAX_CLIENTS 100
 
 // don't ask...
 #define STR_HELPER(x) #x
@@ -59,7 +60,7 @@ typedef enum {
 
 typedef struct {
   Match *match_head;
-  Client *clients[100]; // TODO: Replace with actual map
+  Client **clients; // TODO: Replace with actual map
 } GameServer;
 
 GameServer *GS_create(void);

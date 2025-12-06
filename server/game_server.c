@@ -1,16 +1,11 @@
 #include "game_server.h"
 #include "game_logic.h"
-#include "game_types.h"
 #include "json_messages.h"
-#include <_string.h>
 #include <assert.h>
-#include <cjson/cJSON.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
-#include <time.h>
 
 GameServer *GS_create(void) {
   GameServer *gs;
@@ -22,7 +17,7 @@ GameServer *GS_create(void) {
   }
 
   gs->match_head = NULL;
-  srand(time(NULL));
+  gs->clients = calloc(MAX_CLIENTS, sizeof(Client *));
 
   return gs;
 }
@@ -104,7 +99,7 @@ void GS_handle_request(GameServer *gs, int client_fd, char *data, size_t size) {
 
   switch (mt) {
   case MALFORMED_MESSAGE:
-    printf("[GS_handle_request] Malformed request received\n");
+    printf("[GS_handle_request] Malformed request received: \"%s\"\n", data);
     if (json_request) {
       cJSON_Delete(json_request);
     }
@@ -484,7 +479,7 @@ void GS_send_json(int client_fd, cJSON *json) {
   // TCP segment length prefix
   length = strlen(message);
   nlength = htonl(length);
-  printf("[GS_send_json] sending %zu bytes of data", length);
+  printf("[GS_send_json] sending %zu bytes of data\n", length);
   if (send(client_fd, &nlength, 4, 0) == -1) {
     perror("send");
   }
@@ -516,6 +511,12 @@ void GS_destroy(GameServer *gs) {
     next = match->next;
     delete_match(match);
     match = next;
+  }
+
+  for (int i = 0; i < MAX_CLIENTS; i++) {
+    if (gs->clients[i] == NULL)
+      continue;
+    delete_client(gs->clients[i]);
   }
   free(gs);
 }
