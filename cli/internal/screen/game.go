@@ -6,6 +6,7 @@ import (
 	"guessh/internal/client"
 	"guessh/internal/protocol"
 	"guessh/internal/transport"
+	"guessh/internal/ui"
 	"log"
 	"net"
 	"strings"
@@ -127,7 +128,7 @@ func (m model) View() string {
 	guessRows := make([]string, len(m.guesses))
 
 	for i, guess := range m.guesses {
-		guessRows[i] = guess.View()
+		guessRows[i] = ui.ViewGuess(guess)
 	}
 
 	guessResultsView = strings.Join(guessRows, "\n")
@@ -135,7 +136,7 @@ func (m model) View() string {
 	if m.uiPaused {
 		view = fmt.Sprintf("%s\n%s", "Press enter to continue...", guessResultsView)
 	} else {
-		view = fmt.Sprintf("%s\n%s", m.input.View(), guessResultsView)
+		view = fmt.Sprintf("%s\n%s", guessResultsView, ui.ViewWordInput(m.input.Value(), m.matchInfo.WordLen))
 	}
 
 	return view
