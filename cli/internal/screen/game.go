@@ -34,9 +34,10 @@ type model struct {
 	matchInfo *protocol.MatchInfo
 	input     textinput.Model
 	guesses   []*protocol.Guess
-	State     GameState
+	state     GameState
 	msg       chan transport.EventMsg
 	err       error
+	uiPaused  bool
 }
 
 func NewGame(matchInfo *protocol.MatchInfo) model {
@@ -56,9 +57,10 @@ func NewGame(matchInfo *protocol.MatchInfo) model {
 		client:    c,
 		matchInfo: matchInfo,
 		input:     ti,
-		State:     StateInit,
+		state:     StateInit,
 		msg:       make(chan transport.EventMsg),
 		err:       nil,
+		uiPaused:  false,
 	}
 }
 
@@ -74,12 +76,19 @@ func (m model) Init() tea.Cmd {
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyCtrlC, tea.KeyEsc:
 			return m, tea.Quit
 		case tea.KeyEnter:
+			if m.uiPaused {
+				// Resume processing events
+				m.uiPaused = false
+				return m, transport.WaitForEvent(m.msg)
+			}
+
 			v := m.input.Value()
 
 			if len(v) == m.matchInfo.WordLen { // do nothing if not enough letters
@@ -89,11 +98,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case transport.EventMsg:
-		log.Printf("State: %d", m.State)
+		log.Printf("State: %d", m.state)
 		log.Printf("New event received: %s\n", string(msg))
+
 		m, msgFromEvent := m.handleEvent(msg)
 		if msgFromEvent != nil {
 			return m, func() tea.Msg { return msgFromEvent } // TODO: This is ugly, fix this
+		}
+
+		if m.uiPaused {
+			// Pause processing events from channel
+			return m, nil
 		}
 		return m, transport.WaitForEvent(m.msg)
 
@@ -107,13 +122,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
+	var view string
+	var guessResultsView string
 	guessRows := make([]string, len(m.guesses))
 
 	for i, guess := range m.guesses {
 		guessRows[i] = guess.View()
 	}
 
-	return fmt.Sprintf("%s\n%s", m.input.View(), strings.Join(guessRows, "\n"))
+	guessResultsView = strings.Join(guessRows, "\n")
+
+	if m.uiPaused {
+		view = fmt.Sprintf("%s\n%s", "Press enter to continue...", guessResultsView)
+	} else {
+		view = fmt.Sprintf("%s\n%s", m.input.View(), guessResultsView)
+	}
+
+	return view
 }
 
 func (m model) handleEvent(eventMsg transport.EventMsg) (model, tea.Msg) {
@@ -128,19 +153,20 @@ func (m model) handleEvent(eventMsg transport.EventMsg) (model, tea.Msg) {
 	switch event.Type {
 
 	case protocol.MATCH_STARTED:
-		m.State = StateMatchStarted
+		m.state = StateMatchStarted
 
 	case protocol.ROUND_STARTED:
-		m.State = StateMatchStarted
+		m.state = StateMatchStarted
+		m.guesses = nil
 
 	case protocol.WAIT_GUESS:
-		m.State = StateWaitGuess
+		m.state = StateWaitGuess
 
 	case protocol.WAIT_OPPONENT_GUESS:
-		m.State = StateWaitOpponentGuess
+		m.state = StateWaitOpponentGuess
 
 	case protocol.WAIT_OPPONENT_JOIN:
-		m.State = StateWaitOpponentJoin
+		m.state = StateWaitOpponentJoin
 
 	case protocol.GUESS_RESULT:
 		guessResultEvent := &protocol.GuessResultMessage{}
@@ -153,11 +179,12 @@ func (m model) handleEvent(eventMsg transport.EventMsg) (model, tea.Msg) {
 		m.guesses = append(m.guesses, protocol.NewGuess(guessResultEvent.Guess, guessResultEvent.Feedback))
 
 	case protocol.ROUND_FINISHED:
-		m.State = StateRoundFinished
-		m.guesses = nil
+		m.state = StateRoundFinished
+		m.uiPaused = true
 
 	case protocol.MATCH_FINISHED:
-		m.State = StateMatchFinished
+		m.state = StateMatchFinished
+		m.uiPaused = true
 		return m, GameFinishedMsg{}
 	}
 

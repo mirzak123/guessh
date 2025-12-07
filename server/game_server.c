@@ -271,7 +271,6 @@ void GS_handle_make_guess(GameServer *gs, int client_fd, cJSON *json_request) {
   player = match->player1->client->fd == client_fd ? match->player1 : match->player2;
   opponent = match->player1 == player ? match->player2 : match->player1;
 
-  printf("Attempt count: %d\nMax attempts:%d\n", (int)round->wc->attempt_count, (int)round->wc->max_attempts);
   assert(round->wc->attempt_count < round->wc->max_attempts);
 
   if (player != round->on_turn) {
