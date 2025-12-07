@@ -2,11 +2,13 @@ package screen
 
 import (
 	"encoding/json"
+	"fmt"
 	"guessh/internal/client"
 	"guessh/internal/protocol"
 	"guessh/internal/transport"
 	"log"
 	"net"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -105,8 +107,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
+	guessRows := make([]string, len(m.guesses))
 
-	return m.input.View()
+	for i, guess := range m.guesses {
+		guessRows[i] = guess.View()
+	}
+
+	return fmt.Sprintf("%s\n%s", m.input.View(), strings.Join(guessRows, "\n"))
 }
 
 func (m model) handleEvent(eventMsg transport.EventMsg) (model, tea.Msg) {
@@ -147,6 +154,7 @@ func (m model) handleEvent(eventMsg transport.EventMsg) (model, tea.Msg) {
 
 	case protocol.ROUND_FINISHED:
 		m.State = StateRoundFinished
+		m.guesses = nil
 
 	case protocol.MATCH_FINISHED:
 		m.State = StateMatchFinished
