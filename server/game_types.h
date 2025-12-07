@@ -53,7 +53,7 @@ void delete_round(Round *round);
 
 typedef struct Match {
   char *id;
-  size_t round_idx;
+  int round_idx;
   size_t round_capacity; /* total amount of rounds */
   Round **rounds;
   GameMode mode;

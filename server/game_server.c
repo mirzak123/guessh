@@ -271,6 +271,7 @@ void GS_handle_make_guess(GameServer *gs, int client_fd, cJSON *json_request) {
   player = match->player1->client->fd == client_fd ? match->player1 : match->player2;
   opponent = match->player1 == player ? match->player2 : match->player1;
 
+  printf("Attempt count: %d\nMax attempts:%d\n", (int)round->wc->attempt_count, (int)round->wc->max_attempts);
   assert(round->wc->attempt_count < round->wc->max_attempts);
 
   if (player != round->on_turn) {
@@ -327,7 +328,7 @@ void GS_handle_make_guess(GameServer *gs, int client_fd, cJSON *json_request) {
 }
 
 void GS_end_round(GameServer *gs, Match *match, Player *player, Player *opponent) {
-  Round *round = match->rounds[match->round_idx++];
+  Round *round = match->rounds[match->round_idx];
   cJSON *round_finished_json = json_round_finished(round->outcome, round->wc->word);
 
   printf("[GS_end_round] Ending round...\n");
@@ -338,7 +339,7 @@ void GS_end_round(GameServer *gs, Match *match, Player *player, Player *opponent
   }
   cJSON_Delete(round_finished_json);
 
-  if (match->round_idx < match->round_capacity) {
+  if (match->round_idx + 1 < (int)match->round_capacity) {
     GS_start_round(match);
   } else {
     GS_end_match(gs, match);
@@ -414,7 +415,7 @@ void GS_start_round(Match *match) {
     return;
   }
 
-  match->rounds[match->round_idx] = round;
+  match->rounds[++(match->round_idx)] = round;
 
   assert(match->player1 != NULL);
   GS_send_json(match->player1->client->fd, round_started_json);
@@ -438,7 +439,8 @@ void delete_match(Match *match) {
   if (match->player2 != NULL)
     delete_player(match->player2);
 
-  for (int i = 0; i < (int)match->round_capacity; i++) {
+  for (int i = 0; i <= match->round_idx; i++) {
+    printf("Deleting round idx: %d\n", i);
     delete_round(match->rounds[i]);
   }
   free(match->rounds);
