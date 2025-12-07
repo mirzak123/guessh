@@ -80,6 +80,7 @@ type MatchStartedMessage struct {
 type RoundStartedMessage struct {
 	Type        MessageType `json:"type"`
 	RoundNumber int         `json:"roundNumber"`
+	MaxAttempts int         `json:"maxAttempts"`
 }
 
 type WaitGuessMessage struct {

@@ -17,9 +17,10 @@ const (
 )
 
 type MatchInfo struct {
-	Mode      GameMode
-	WordLen   int
-	RawRounds string
+	Mode        GameMode
+	WordLen     int
+	RawRounds   string
+	MaxAttempts int
 }
 
 type Guess struct {

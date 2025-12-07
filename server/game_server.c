@@ -1,4 +1,5 @@
 #include "game_server.h"
+#include "client.h"
 #include "game_logic.h"
 #include "json_messages.h"
 #include <assert.h>
@@ -397,8 +398,7 @@ void GS_start_match(Match *match) {
 }
 
 void GS_start_round(Match *match) {
-  cJSON *round_started_json = json_round_started(match->round_idx + 1);
-
+  cJSON *round_started_json = NULL;
   printf("[GS_start_round] Starting new round...\n");
 
   size_t max_attempts = match->word_len + 1; // TODO: allow for flexible max_attempts
@@ -415,6 +415,7 @@ void GS_start_round(Match *match) {
   }
 
   match->rounds[++(match->round_idx)] = round;
+  round_started_json = json_round_started(match->round_idx, round->wc->max_attempts);
 
   assert(match->player1 != NULL);
   GS_send_json(match->player1->client->fd, round_started_json);

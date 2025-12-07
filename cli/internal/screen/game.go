@@ -9,10 +9,10 @@ import (
 	"guessh/internal/ui"
 	"log"
 	"net"
-	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 type GameState int
@@ -124,22 +124,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() string {
 	var view string
-	var guessResultsView string
-	guessRows := make([]string, len(m.guesses))
 
-	for i, guess := range m.guesses {
-		guessRows[i] = ui.ViewGuess(guess)
-	}
-
-	guessResultsView = strings.Join(guessRows, "\n")
+	guessGrid := ui.ViewGuessGrid(m.guesses, m.input.Value(), m.matchInfo.MaxAttempts, m.matchInfo.WordLen)
+	continueMsg := "Press enter to continue..."
 
 	if m.uiPaused {
-		view = fmt.Sprintf("%s\n%s", "Press enter to continue...", guessResultsView)
+		view = fmt.Sprintf("%s\n%s", guessGrid, continueMsg)
 	} else {
-		view = fmt.Sprintf("%s\n%s", guessResultsView, ui.ViewWordInput(m.input.Value(), m.matchInfo.WordLen))
+		view = fmt.Sprintf("%s\n\n", guessGrid)
 	}
 
-	return view
+	return lipgloss.NewStyle().Width(len(continueMsg)).Render(view)
 }
 
 func (m model) handleEvent(eventMsg transport.EventMsg) (model, tea.Msg) {
@@ -157,7 +152,14 @@ func (m model) handleEvent(eventMsg transport.EventMsg) (model, tea.Msg) {
 		m.state = StateMatchStarted
 
 	case protocol.ROUND_STARTED:
+		roundStartedEvent := &protocol.RoundStartedMessage{}
+
+		if err := json.Unmarshal(msg, roundStartedEvent); err != nil {
+			log.Printf("[handleEvent] error unmarshaling RoundStartedMessage: %v", err)
+			return m, nil
+		}
 		m.state = StateMatchStarted
+		m.matchInfo.MaxAttempts = roundStartedEvent.MaxAttempts
 		m.guesses = nil
 
 	case protocol.WAIT_GUESS:

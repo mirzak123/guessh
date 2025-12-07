@@ -27,10 +27,11 @@ cJSON *json_match_started(const char *match_id, int rounds, size_t word_len) {
   return json;
 }
 
-cJSON *json_round_started(int round_num) {
+cJSON *json_round_started(size_t round_num, size_t max_attempts) {
   cJSON *json = cJSON_CreateObject();
   cJSON_AddStringToObject(json, "type", STR(ROUND_STARTED));
   cJSON_AddNumberToObject(json, "roundNumber", round_num);
+  cJSON_AddNumberToObject(json, "maxAttempts", max_attempts);
   return json;
 }
 

@@ -2,6 +2,7 @@ package ui
 
 import (
 	"guessh/internal/protocol"
+	"strings"
 
 	"github.com/charmbracelet/lipgloss"
 )
@@ -47,7 +48,7 @@ func ViewGuess(g *protocol.Guess) string {
 		blocks[i] = style.Render(string(r))
 	}
 
-	return lipgloss.JoinHorizontal(lipgloss.Left, blocks...)
+	return lipgloss.JoinHorizontal(lipgloss.Center, blocks...)
 }
 
 func ViewWordInput(input string, length int) string {
@@ -63,5 +64,21 @@ func ViewWordInput(input string, length int) string {
 		blocks[i] = baseLetterStyle.Render(char)
 	}
 
-	return lipgloss.JoinHorizontal(lipgloss.Left, blocks...)
+	return lipgloss.JoinHorizontal(lipgloss.Center, blocks...)
+}
+
+func ViewGuessGrid(guesses []*protocol.Guess, input string, maxAttempts int, wordLen int) string {
+	grid := make([]string, maxAttempts)
+
+	for i := range maxAttempts {
+		if i < len(guesses) {
+			grid[i] = ViewGuess(guesses[i])
+		} else if i == len(guesses) {
+			grid[i] = ViewWordInput(input, wordLen)
+		} else {
+			grid[i] = ViewWordInput("", wordLen)
+		}
+	}
+
+	return strings.Join(grid, "\n")
 }

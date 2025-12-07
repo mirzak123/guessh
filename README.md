@@ -69,7 +69,7 @@ Find a better way to represent flow below 🙏🙏🙏
 | ROOM_JOIN_FAILED    | {"type": "ROOM_JOIN_FAILED"}                                                         | Room full                                                               |
 | WAIT_OPPONENT_JOIN  | {"type": "WAIT_OPPONENT_JOIN"}                                                       |                                                                         |
 | MATCH_STARTED       | {"type": "MATCH_STARTED", "matchId": string, "rounds": number, "wordLength": number} |                                                                         |
-| ROUND_STARTED       | {"type": "ROUND_STARTED", "roundNumber": number}                                     |                                                                         |
+| ROUND_STARTED       | {"type": "ROUND_STARTED", "roundNumber": number, "maxAttempts": number}              |                                                                         |
 | WAIT_GUESS          | {"type": "WAIT_GUESS"}                                                               |                                                                         |
 | WAIT_OPPONENT_GUESS | {"type": "WAIT_OPPONENT_GUESS"}                                                      |                                                                         |
 | GUESS_RESULT        | {"type": "GUESS_RESULT", "success": boolean, "feedback": number[]}                   |                                                                         |
