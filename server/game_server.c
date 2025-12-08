@@ -338,7 +338,7 @@ void GS_end_round(GameServer *gs, Match *match, Player *player, Player *opponent
 
   GS_send_json(player->client->fd, round_finished_json);
   if (opponent) {
-    GS_send_json(player->client->fd, round_finished_json);
+    GS_send_json(opponent->client->fd, round_finished_json);
   }
   cJSON_Delete(round_finished_json);
 
@@ -422,6 +422,9 @@ void GS_start_round(Match *match) {
 
   assert(match->player1 != NULL);
   GS_send_json(match->player1->client->fd, round_started_json);
+  if (match->player2 != NULL) {
+    GS_send_json(match->player2->client->fd, round_started_json);
+  }
   if (match->player1 == round->on_turn) {
     GS_send_only_type(match->player1->client->fd, STR(WAIT_GUESS));
     if (match->player2 != NULL) {

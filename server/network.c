@@ -112,7 +112,7 @@ void del_from_pfds(struct pollfd pfds[], int i, int *fd_count) {
 }
 
 /*
- * Handle incomming connections.
+ * Handle incoming connections.
  */
 void handle_new_connection(GameServer *gs, int listen_fd, int *fd_size, int *fd_count, struct pollfd **pfds) {
   struct sockaddr_storage client_addr;
@@ -165,7 +165,7 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
     return;
   }
 
-  printf("[handle_client_data] received %d bytes of data data from fd %d\n", nbytes, client_fd);
+  printf("[handle_client_data] received %d bytes of data from fd %d\n", nbytes, client_fd);
 
   if ((client->buf_len + nbytes) - (client->buf_start - client->buffer) > BUFSIZE) {
     printf("[handle_client_data] error: buffer overflow\n");
