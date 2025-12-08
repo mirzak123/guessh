@@ -134,12 +134,12 @@ void handle_new_connection(GameServer *gs, int listen_fd, int *fd_size, int *fd_
  * Handle client data or client hangup.
  */
 void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int *pfd_i) {
-  char incomming_buf[BUFSIZE];
+  char incoming_buf[BUFSIZE];
 
   int client_fd = pfds[*pfd_i].fd;
   Client *client = gs->clients[client_fd];
 
-  int nbytes = recv(client_fd, incomming_buf, BUFSIZE, 0);
+  int nbytes = recv(client_fd, incoming_buf, BUFSIZE, 0);
 
   if (nbytes <= 0) {
     if (nbytes == 0) { // client hang up
@@ -180,7 +180,7 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
     return;
   }
 
-  memcpy(client->buffer + client->buf_len, incomming_buf, nbytes);
+  memcpy(client->buffer + client->buf_len, incoming_buf, nbytes);
   client->buf_len += nbytes;
 
   int run = 1;
