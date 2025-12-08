@@ -10,8 +10,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/_endian.h>
-#include <sys/_types/_socklen_t.h>
 #include <sys/errno.h>
 #include <sys/poll.h>
 #include <sys/signal.h>
@@ -172,6 +170,14 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
   if ((client->buf_len + nbytes) - (client->buf_start - client->buffer) > BUFSIZE) {
     printf("[handle_client_data] error: buffer overflow\n");
     close(client_fd);
+    del_from_pfds(pfds, *pfd_i, fd_count);
+
+    Match *match = GS_get_match_by_client_fd(gs, client_fd);
+    if (match != NULL) {
+      GS_end_match(gs, match);
+    }
+    (*pfd_i)--;
+    return;
   }
 
   memcpy(client->buffer + client->buf_len, incomming_buf, nbytes);
@@ -190,6 +196,13 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
       memcpy(&netlen, client->buf_start, LEN_PREFIX_BYTES);
 
       client->payload_size = ntohl(netlen);
+      if (client->payload_size > BUFSIZE) {
+        printf("[handle_client_data] error: payload size %d larger than allowed buffer limit %d\n", client->payload_size,
+               BUFSIZE);
+        close(client_fd);
+        return;
+      }
+
       client->buf_start += LEN_PREFIX_BYTES;
       client->buf_len -= LEN_PREFIX_BYTES;
       client->state = READING_PAYLOAD;

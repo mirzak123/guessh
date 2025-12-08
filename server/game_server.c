@@ -261,6 +261,9 @@ void GS_handle_make_guess(GameServer *gs, int client_fd, cJSON *json_request) {
   bool success;
   LetterFeedback *feedback;
 
+  // BUG: Client one starts match before client two. Client two finishes match.
+  // Once client one tries to send another guess, they get an error saying they
+  // are not part of an active match.
   match = GS_get_match_by_client_fd(gs, client_fd);
 
   if (match == NULL) {
