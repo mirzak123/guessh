@@ -134,6 +134,8 @@ func (m model) View() string {
 		view = fmt.Sprintf("%s\n\n", guessGrid)
 	}
 
+	// TODO: If user didn't guess correctly, display the correct word
+
 	return lipgloss.NewStyle().Width(len(continueMsg)).Render(view)
 }
 
