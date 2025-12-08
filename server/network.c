@@ -1,14 +1,15 @@
 #include "network.h"
+#include "client.h"
 #include "game_server.h"
 #include "game_types.h"
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <signal.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/_types/_socklen_t.h>
 #include <sys/errno.h>
 #include <sys/poll.h>
 #include <sys/signal.h>
@@ -111,9 +112,9 @@ void del_from_pfds(struct pollfd pfds[], int i, int *fd_count) {
 }
 
 /*
- * Handle incomming connections.
+ * Handle incoming connections.
  */
-void handle_new_connection(int listen_fd, int *fd_size, int *fd_count, struct pollfd **pfds) {
+void handle_new_connection(GameServer *gs, int listen_fd, int *fd_size, int *fd_count, struct pollfd **pfds) {
   struct sockaddr_storage client_addr;
   socklen_t addr_size = sizeof client_addr;
 
@@ -125,17 +126,20 @@ void handle_new_connection(int listen_fd, int *fd_size, int *fd_count, struct po
   }
 
   add_to_pfds(pfds, client_fd, fd_size, fd_count);
+
+  gs->clients[client_fd] = new_client(client_fd);
 }
 
 /*
  * Handle client data or client hangup.
  */
 void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int *pfd_i) {
-  char buf[BUFSIZE];
+  char incoming_buf[BUFSIZE];
 
   int client_fd = pfds[*pfd_i].fd;
+  Client *client = gs->clients[client_fd];
 
-  int nbytes = recv(client_fd, buf, BUFSIZE, 0);
+  int nbytes = recv(client_fd, incoming_buf, BUFSIZE, 0);
 
   if (nbytes <= 0) {
     if (nbytes == 0) { // client hang up
@@ -148,7 +152,7 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
     del_from_pfds(pfds, *pfd_i, fd_count);
 
     // Delete match if it exists
-    Match *match = GS_get_match_by_player_fd(gs, client_fd);
+    Match *match = GS_get_match_by_client_fd(gs, client_fd);
     if (match != NULL) {
       // TODO: Handle premature match end for multiplayer games better by notifying
       // the other client correctly on why the match ended
@@ -161,16 +165,73 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
     return;
   }
 
-  printf("received data from fd %d: %.*s", client_fd, nbytes, buf);
+  printf("[handle_client_data] received %d bytes of data from fd %d\n", nbytes, client_fd);
 
-  GS_handle_request(gs, client_fd, buf, nbytes);
+  if ((client->buf_len + nbytes) - (client->buf_start - client->buffer) > BUFSIZE) {
+    printf("[handle_client_data] error: buffer overflow\n");
+    close(client_fd);
+    del_from_pfds(pfds, *pfd_i, fd_count);
+
+    Match *match = GS_get_match_by_client_fd(gs, client_fd);
+    if (match != NULL) {
+      GS_end_match(gs, match);
+    }
+    (*pfd_i)--;
+    return;
+  }
+
+  memcpy(client->buffer + client->buf_len, incoming_buf, nbytes);
+  client->buf_len += nbytes;
+
+  int run = 1;
+  while (run) {
+    switch (client->state) {
+    case READING_LENGTH:
+      if (client->buf_len < LEN_PREFIX_BYTES) {
+        run = 0;
+        break;
+      }
+
+      uint32_t netlen;
+      memcpy(&netlen, client->buf_start, LEN_PREFIX_BYTES);
+
+      client->payload_size = ntohl(netlen);
+      if (client->payload_size > BUFSIZE) {
+        printf("[handle_client_data] error: payload size %d larger than allowed buffer limit %d\n", client->payload_size,
+               BUFSIZE);
+        close(client_fd);
+        return;
+      }
+
+      client->buf_start += LEN_PREFIX_BYTES;
+      client->buf_len -= LEN_PREFIX_BYTES;
+      client->state = READING_PAYLOAD;
+      break;
+
+    case READING_PAYLOAD:
+      if (client->buf_len < client->payload_size) {
+        run = 0;
+        break;
+      }
+
+      GS_handle_request(gs, client_fd, client->buf_start, client->payload_size);
+
+      client->buf_start += client->payload_size;
+      client->buf_len -= client->payload_size;
+      client->state = READING_LENGTH;
+      break;
+    }
+  }
+
+  memmove(client->buffer, client->buf_start, client->buf_len);
+  client->buf_start = client->buffer;
 }
 
 void process_connections(GameServer *gs, int listen_fd, int *fd_size, int *fd_count, struct pollfd **pfds) {
   for (int i = 0; i < *fd_count; i++) {
     if ((*pfds)[i].revents & (POLLIN | POLLHUP)) {
       if ((*pfds)[i].fd == listen_fd) {
-        handle_new_connection(listen_fd, fd_size, fd_count, pfds);
+        handle_new_connection(gs, listen_fd, fd_size, fd_count, pfds);
       } else {
         handle_client_data(gs, fd_count, *pfds, &i);
       }

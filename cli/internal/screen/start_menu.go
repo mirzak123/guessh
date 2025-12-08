@@ -1,0 +1,77 @@
+package screen
+
+import (
+	"errors"
+	"fmt"
+	"guessh/internal/protocol"
+	"strconv"
+
+	"github.com/charmbracelet/huh"
+	"github.com/charmbracelet/lipgloss"
+)
+
+const (
+	minRounds = 1
+	maxRounds = 5
+)
+
+var GameModeLabels = map[protocol.GameMode]string{
+	protocol.SINGLE:       "Single player",
+	protocol.MULTI_LOCAL:  "Two player local",
+	protocol.MULTI_REMOTE: "Two player remote",
+}
+
+func NewStartMenu(matchInfo *protocol.MatchInfo) (*huh.Form, *bool) {
+	confirm := true
+
+	form := huh.NewForm(
+		huh.NewGroup(
+			huh.NewSelect[protocol.GameMode]().
+				Title("Are you lonely?").
+				Options(
+					huh.NewOption(GameModeLabels[protocol.SINGLE], protocol.SINGLE),
+					huh.NewOption(GameModeLabels[protocol.MULTI_LOCAL], protocol.MULTI_LOCAL),
+					huh.NewOption(GameModeLabels[protocol.MULTI_REMOTE], protocol.MULTI_REMOTE),
+				).
+				Value(&matchInfo.Mode),
+
+			huh.NewSelect[int]().
+				Title("How many letters are we feeling?").
+				Options(
+					huh.NewOption("Five", 5),
+					huh.NewOption("Six", 6),
+					huh.NewOption("Seven", 7),
+				).
+				Value(&matchInfo.WordLen),
+
+			huh.NewInput().
+				Title(fmt.Sprintf("How many rounds? (%d - %d)", minRounds, maxRounds)).
+				Validate(func(str string) error {
+					r, err := strconv.Atoi(str)
+					if err != nil {
+						return errors.New("Please enter a valid number")
+					}
+					if r < minRounds || r > maxRounds {
+						return fmt.Errorf("Round number must be between %d and %d", minRounds, maxRounds)
+					}
+					return nil
+				}).
+				Value(&matchInfo.RawRounds),
+		),
+
+		huh.NewGroup(
+			huh.NewConfirm().
+				Title("Start match?").
+				DescriptionFunc(func() string {
+					return fmt.Sprintf(
+						"mode:             \t%s\n"+
+							"word length:      \t%d\n"+
+							"number of rounds: \t%s",
+						GameModeLabels[matchInfo.Mode], matchInfo.WordLen, matchInfo.RawRounds)
+				}, nil).
+				Value(&confirm).WithButtonAlignment(lipgloss.Left),
+		).WithHeight(6),
+	)
+
+	return form, &confirm
+}

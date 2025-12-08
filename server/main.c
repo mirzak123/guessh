@@ -5,6 +5,7 @@
 #include <string.h>
 #include <sys/poll.h>
 #include <sys/socket.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "game_server.h"
@@ -28,6 +29,7 @@ int main(void) {
   pfds[0].events = POLLIN;
   fd_count = 1;
 
+  srand(time(NULL));
   gs = GS_create();
   for (;;) {
     int poll_count = poll(pfds, fd_count, -1);
