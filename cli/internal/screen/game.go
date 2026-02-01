@@ -30,6 +30,11 @@ const (
 
 type GameFinishedMsg struct{}
 
+type RoundInfo struct {
+	word    string
+	success bool
+}
+
 type model struct {
 	client    *client.Client
 	matchInfo *protocol.MatchInfo
@@ -38,6 +43,7 @@ type model struct {
 	state     GameState
 	msg       chan transport.EventMsg
 	err       error
+	roundInfo *RoundInfo
 	uiPaused  bool
 }
 
@@ -61,7 +67,7 @@ func NewGame(matchInfo *protocol.MatchInfo) model {
 		state:     StateInit,
 		msg:       make(chan transport.EventMsg),
 		err:       nil,
-		uiPaused:  false,
+		roundInfo: &RoundInfo{},
 	}
 }
 
@@ -128,10 +134,14 @@ func (m model) View() string {
 	guessGrid := ui.ViewGuessGrid(m.guesses, m.input.Value(), m.matchInfo.MaxAttempts, m.matchInfo.WordLen)
 	continueMsg := "Press enter to continue..."
 
+	view = fmt.Sprintf("%s\n%s\n", header, guessGrid)
+
 	if m.uiPaused {
-		view = fmt.Sprintf("%s\n%s", guessGrid, continueMsg)
-	} else {
-		view = fmt.Sprintf("%s\n\n", guessGrid)
+		if m.roundInfo.success {
+			view = fmt.Sprintf("%s\n%s", view, continueMsg)
+		} else {
+			view = fmt.Sprintf("%s\nCorrect word: %s\n%s", view, m.roundInfo.word, continueMsg)
+		}
 	}
 
 	header += fmt.Sprintf("Round: %d/%s\n", m.matchInfo.CurrentRound, m.matchInfo.RawTotalRounds)
@@ -186,8 +196,18 @@ func (m model) handleEvent(eventMsg transport.EventMsg) (model, tea.Msg) {
 		m.guesses = append(m.guesses, protocol.NewGuess(guessResultEvent.Guess, guessResultEvent.Feedback))
 
 	case protocol.ROUND_FINISHED:
+		roundFinishedEvent := &protocol.RoundFinishedMessage{}
+
+		if err := json.Unmarshal(msg, roundFinishedEvent); err != nil {
+			log.Printf("[handleEvent] error unmarshaling RoundFinishedMessage: %v", err)
+			return m, nil
+		}
+
 		m.state = StateRoundFinished
 		m.uiPaused = true
+		log.Print(roundFinishedEvent)
+		m.roundInfo.word = roundFinishedEvent.Word
+		m.roundInfo.success = roundFinishedEvent.Success
 
 	case protocol.MATCH_FINISHED:
 		m.state = StateMatchFinished
