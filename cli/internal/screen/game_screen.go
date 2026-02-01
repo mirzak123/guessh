@@ -37,7 +37,7 @@ type MatchInfo struct {
 	rawTotalRounds string
 	totalRounds    int
 	maxAttempts    int
-	roundsGuessed  int
+	roundsWon      int
 }
 
 func NewMatchInfo() *MatchInfo {
@@ -108,6 +108,7 @@ func (m gameModel) Init() tea.Cmd {
 }
 
 func (m gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	log.Printf("Update(%v)", msg)
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
@@ -162,6 +163,7 @@ func (m gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m gameModel) View() string {
+	log.Print("View()")
 	var body, header, footer string
 
 	guessGrid := ui.ViewGuessGrid(m.guesses, m.input.Value(), m.matchInfo.maxAttempts, m.matchInfo.wordLen)
@@ -171,7 +173,7 @@ func (m gameModel) View() string {
 		"Round: %d/%s\tGuessed correctly: %d\n",
 		m.matchInfo.currentRound,
 		m.matchInfo.rawTotalRounds,
-		m.matchInfo.roundsGuessed,
+		m.matchInfo.roundsWon,
 	)
 
 	centeredGrid := lipgloss.PlaceHorizontal(
@@ -263,13 +265,16 @@ func (m gameModel) handleEvent(eventMsg transport.EventMsg) (gameModel, tea.Msg)
 		m.input.Blur()
 
 		if roundFinishedEvent.Success {
-			m.matchInfo.roundsGuessed++
+			m.matchInfo.roundsWon++
 		}
 
 	case protocol.MATCH_FINISHED:
 		m.state = StateMatchFinished
 		m.uiPaused = true
-		return m, MatchFinishedMsg{roundsPlayed: m.matchInfo.totalRounds}
+		return m, MatchFinishedMsg{
+			roundsPlayed: m.matchInfo.totalRounds,
+			roundsWon:    m.matchInfo.roundsWon,
+		}
 	}
 
 	log.Printf("[handleEvent] Event type: %s", event.Type)

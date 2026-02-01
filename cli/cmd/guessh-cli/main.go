@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	log.SetFlags(log.Llongfile)
+	log.SetFlags(log.Lshortfile)
 	if _, err := tea.LogToFile("cli.log", ""); err != nil {
 		log.Fatalf("tea.LogToFile failed: %v", err)
 	}

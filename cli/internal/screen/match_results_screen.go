@@ -2,6 +2,7 @@ package screen
 
 import (
 	"fmt"
+	"log"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -23,6 +24,7 @@ func (m matchResultsModel) Init() tea.Cmd {
 }
 
 func (m matchResultsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	log.Printf("Update(%v)", msg)
 	switch msg.(type) {
 	case tea.KeyMsg:
 		return m, func() tea.Msg { return StartGameMsg{} }
@@ -31,5 +33,10 @@ func (m matchResultsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m matchResultsModel) View() string {
-	return fmt.Sprintf("Rounds played: %d\nRounds guessed correctly: %d", m.roundsPlayed, m.roundsWon)
+	log.Printf("View()")
+	return fmt.Sprintf(
+		"Rounds played: %d\nRounds guessed correctly: %d",
+		m.roundsPlayed,
+		m.roundsWon,
+	)
 }

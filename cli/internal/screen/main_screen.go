@@ -25,6 +25,7 @@ type MatchFinishedMsg struct {
 	roundsPlayed int
 	roundsWon    int
 }
+
 type StartGameMsg struct{}
 
 type mainModel struct {
@@ -51,6 +52,7 @@ func (m mainModel) Init() tea.Cmd {
 }
 
 func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	log.Printf("Update(%v)", msg)
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
@@ -117,6 +119,7 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m mainModel) View() string {
+	log.Print("View()")
 	var content string
 
 	switch m.screenID {
