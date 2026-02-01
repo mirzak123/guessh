@@ -6,7 +6,6 @@ import (
 	"guessh/internal/transport"
 	"log"
 	"net"
-	"strconv"
 )
 
 type Client struct {
@@ -19,18 +18,13 @@ func NewClient(conn net.Conn) *Client {
 	}
 }
 
-func (c *Client) CreateMatch(matchInfo *protocol.MatchInfo) {
+func (c *Client) CreateMatch(mode protocol.GameMode, wordLen, rounds int) {
 	var (
-		rounds int
-		msg    []byte
-		err    error
+		msg []byte
+		err error
 	)
 
-	if rounds, err = strconv.Atoi(matchInfo.RawRounds); err != nil {
-		log.Fatalf("[Client.CreateMatch] Failed to convert matchInfo.RawRounds after it passed validation: %v", err)
-	}
-
-	createMatchMsg := protocol.NewCreateMatchMessage(matchInfo.Mode, matchInfo.WordLen, rounds)
+	createMatchMsg := protocol.NewCreateMatchMessage(mode, wordLen, rounds)
 	if msg, err = json.Marshal(createMatchMsg); err != nil {
 		log.Fatalf("[Client.CreateMatch] Failed to marshal CreateMatchMessage: %v", err)
 	}

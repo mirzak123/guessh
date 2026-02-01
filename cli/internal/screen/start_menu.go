@@ -21,7 +21,7 @@ var GameModeLabels = map[protocol.GameMode]string{
 	protocol.MULTI_REMOTE: "Two player remote",
 }
 
-func NewStartMenu(matchInfo *protocol.MatchInfo) (*huh.Form, *bool) {
+func NewStartMenu(matchInfo *MatchInfo) (*huh.Form, *bool) {
 	confirm := true
 
 	form := huh.NewForm(
@@ -33,7 +33,7 @@ func NewStartMenu(matchInfo *protocol.MatchInfo) (*huh.Form, *bool) {
 					huh.NewOption(GameModeLabels[protocol.MULTI_LOCAL], protocol.MULTI_LOCAL),
 					huh.NewOption(GameModeLabels[protocol.MULTI_REMOTE], protocol.MULTI_REMOTE),
 				).
-				Value(&matchInfo.Mode),
+				Value(&matchInfo.mode),
 
 			huh.NewSelect[int]().
 				Title("How many letters are we feeling?").
@@ -42,21 +42,21 @@ func NewStartMenu(matchInfo *protocol.MatchInfo) (*huh.Form, *bool) {
 					huh.NewOption("Six", 6),
 					huh.NewOption("Seven", 7),
 				).
-				Value(&matchInfo.WordLen),
+				Value(&matchInfo.wordLen),
 
 			huh.NewInput().
 				Title(fmt.Sprintf("How many rounds? (%d - %d)", minRounds, maxRounds)).
 				Validate(func(str string) error {
 					r, err := strconv.Atoi(str)
 					if err != nil {
-						return errors.New("Please enter a valid number")
+						return errors.New("please enter a valid number")
 					}
 					if r < minRounds || r > maxRounds {
-						return fmt.Errorf("Round number must be between %d and %d", minRounds, maxRounds)
+						return fmt.Errorf("round number must be between %d and %d", minRounds, maxRounds)
 					}
 					return nil
 				}).
-				Value(&matchInfo.RawRounds),
+				Value(&matchInfo.rawTotalRounds),
 		),
 
 		huh.NewGroup(
@@ -67,7 +67,7 @@ func NewStartMenu(matchInfo *protocol.MatchInfo) (*huh.Form, *bool) {
 						"mode:             \t%s\n"+
 							"word length:      \t%d\n"+
 							"number of rounds: \t%s",
-						GameModeLabels[matchInfo.Mode], matchInfo.WordLen, matchInfo.RawRounds)
+						GameModeLabels[matchInfo.mode], matchInfo.wordLen, matchInfo.rawTotalRounds)
 				}, nil).
 				Value(&confirm).WithButtonAlignment(lipgloss.Left),
 		).WithHeight(6),
