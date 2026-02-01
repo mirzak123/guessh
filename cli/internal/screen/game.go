@@ -30,13 +30,12 @@ const (
 	StateMatchFinished
 )
 
-type GameFinishedMsg struct{}
-
 type MatchInfo struct {
 	mode           protocol.GameMode
 	wordLen        int
 	currentRound   int
 	rawTotalRounds string
+	totalRounds    int
 	maxAttempts    int
 	roundsGuessed  int
 }
@@ -56,7 +55,7 @@ func NewRoundInfo() *RoundInfo {
 	return &RoundInfo{}
 }
 
-type model struct {
+type gameModel struct {
 	width, height int
 	client        *client.Client
 	matchInfo     *MatchInfo
@@ -69,7 +68,7 @@ type model struct {
 	uiPaused      bool
 }
 
-func NewGame(matchInfo *MatchInfo) model {
+func NewGame(matchInfo *MatchInfo) gameModel {
 	conn, err := net.Dial("tcp", "localhost:2480")
 	if err != nil {
 		log.Fatalf("net.Dial error: %v", err)
@@ -82,7 +81,7 @@ func NewGame(matchInfo *MatchInfo) model {
 	ti.Width = matchInfo.wordLen
 	ti.Focus()
 
-	return model{
+	return gameModel{
 		client:    c,
 		matchInfo: matchInfo,
 		input:     ti,
@@ -93,18 +92,15 @@ func NewGame(matchInfo *MatchInfo) model {
 	}
 }
 
-func (m model) Init() tea.Cmd {
+func (m gameModel) Init() tea.Cmd {
 	log.Printf("[Game Init] matchInfo.Mode: %s", m.matchInfo.mode)
-	var (
-		rounds int
-		err    error
-	)
+	var err error
 
-	if rounds, err = strconv.Atoi(m.matchInfo.rawTotalRounds); err != nil {
+	if m.matchInfo.totalRounds, err = strconv.Atoi(m.matchInfo.rawTotalRounds); err != nil {
 		log.Fatalf("[Client.CreateMatch] Failed to convert matchInfo.RawTotalRounds after it passed validation: %v", err)
 	}
 
-	m.client.CreateMatch(m.matchInfo.mode, m.matchInfo.wordLen, rounds)
+	m.client.CreateMatch(m.matchInfo.mode, m.matchInfo.wordLen, m.matchInfo.totalRounds)
 
 	return tea.Batch(
 		textinput.Blink,
@@ -112,7 +108,7 @@ func (m model) Init() tea.Cmd {
 		transport.WaitForEvent(m.msg))
 }
 
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
@@ -166,7 +162,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m model) View() string {
+func (m gameModel) View() string {
 	var body, header, footer string
 
 	guessGrid := ui.ViewGuessGrid(m.guesses, m.input.Value(), m.matchInfo.maxAttempts, m.matchInfo.wordLen)
@@ -203,7 +199,7 @@ func (m model) View() string {
 		Render(view)
 }
 
-func (m model) handleEvent(eventMsg transport.EventMsg) (model, tea.Msg) {
+func (m gameModel) handleEvent(eventMsg transport.EventMsg) (gameModel, tea.Msg) {
 	msg := []byte(eventMsg)
 	event := &protocol.EnvelopeMessage{}
 
@@ -271,7 +267,7 @@ func (m model) handleEvent(eventMsg transport.EventMsg) (model, tea.Msg) {
 	case protocol.MATCH_FINISHED:
 		m.state = StateMatchFinished
 		m.uiPaused = true
-		return m, GameFinishedMsg{}
+		return m, MatchFinishedMsg{roundsPlayed: m.matchInfo.totalRounds}
 	}
 
 	log.Printf("[handleEvent] Event type: %s", event.Type)
