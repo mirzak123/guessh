@@ -123,7 +123,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
-	var view string
+	var view, header string
 
 	guessGrid := ui.ViewGuessGrid(m.guesses, m.input.Value(), m.matchInfo.MaxAttempts, m.matchInfo.WordLen)
 	continueMsg := "Press enter to continue..."
@@ -134,7 +134,8 @@ func (m model) View() string {
 		view = fmt.Sprintf("%s\n\n", guessGrid)
 	}
 
-	// TODO: If user didn't guess correctly, display the correct word
+	header += fmt.Sprintf("Round: %d/%s\n", m.matchInfo.CurrentRound, m.matchInfo.RawTotalRounds)
+	view = header + view
 
 	return lipgloss.NewStyle().Width(len(continueMsg)).Render(view)
 }
@@ -154,6 +155,7 @@ func (m model) handleEvent(eventMsg transport.EventMsg) (model, tea.Msg) {
 		m.state = StateMatchStarted
 
 	case protocol.ROUND_STARTED:
+		m.matchInfo.CurrentRound++
 		roundStartedEvent := &protocol.RoundStartedMessage{}
 
 		if err := json.Unmarshal(msg, roundStartedEvent); err != nil {

@@ -34,7 +34,7 @@ type model struct {
 func initialModel() model {
 	m := model{
 		screenID:  StartScreenID,
-		matchInfo: &protocol.MatchInfo{},
+		matchInfo: protocol.NewMatchInfo(),
 	}
 	m.form, m.confirm = screen.NewStartMenu(m.matchInfo)
 	return m
@@ -63,7 +63,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case screen.GameFinishedMsg:
 		m.screenID = StartScreenID
-		m.matchInfo = &protocol.MatchInfo{}
+		m.matchInfo = protocol.NewMatchInfo()
 		m.form, m.confirm = screen.NewStartMenu(m.matchInfo)
 		return m, nil
 	}

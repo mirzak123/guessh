@@ -26,8 +26,8 @@ func (c *Client) CreateMatch(matchInfo *protocol.MatchInfo) {
 		err    error
 	)
 
-	if rounds, err = strconv.Atoi(matchInfo.RawRounds); err != nil {
-		log.Fatalf("[Client.CreateMatch] Failed to convert matchInfo.RawRounds after it passed validation: %v", err)
+	if rounds, err = strconv.Atoi(matchInfo.RawTotalRounds); err != nil {
+		log.Fatalf("[Client.CreateMatch] Failed to convert matchInfo.RawTotalRounds after it passed validation: %v", err)
 	}
 
 	createMatchMsg := protocol.NewCreateMatchMessage(matchInfo.Mode, matchInfo.WordLen, rounds)

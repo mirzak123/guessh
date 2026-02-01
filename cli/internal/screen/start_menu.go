@@ -49,14 +49,14 @@ func NewStartMenu(matchInfo *protocol.MatchInfo) (*huh.Form, *bool) {
 				Validate(func(str string) error {
 					r, err := strconv.Atoi(str)
 					if err != nil {
-						return errors.New("Please enter a valid number")
+						return errors.New("please enter a valid number")
 					}
 					if r < minRounds || r > maxRounds {
-						return fmt.Errorf("Round number must be between %d and %d", minRounds, maxRounds)
+						return fmt.Errorf("round number must be between %d and %d", minRounds, maxRounds)
 					}
 					return nil
 				}).
-				Value(&matchInfo.RawRounds),
+				Value(&matchInfo.RawTotalRounds),
 		),
 
 		huh.NewGroup(
@@ -67,7 +67,7 @@ func NewStartMenu(matchInfo *protocol.MatchInfo) (*huh.Form, *bool) {
 						"mode:             \t%s\n"+
 							"word length:      \t%d\n"+
 							"number of rounds: \t%s",
-						GameModeLabels[matchInfo.Mode], matchInfo.WordLen, matchInfo.RawRounds)
+						GameModeLabels[matchInfo.Mode], matchInfo.WordLen, matchInfo.RawTotalRounds)
 				}, nil).
 				Value(&confirm).WithButtonAlignment(lipgloss.Left),
 		).WithHeight(6),
