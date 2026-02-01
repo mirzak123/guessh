@@ -8,7 +8,10 @@ import (
 )
 
 func main() {
-	tea.LogToFile("cli.log", "")
+	log.SetFlags(log.Llongfile)
+	if _, err := tea.LogToFile("cli.log", ""); err != nil {
+		log.Fatalf("tea.LogToFile failed: %v", err)
+	}
 
 	p := tea.NewProgram(
 		screen.InitialModel(),
