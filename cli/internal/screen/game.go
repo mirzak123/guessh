@@ -10,6 +10,7 @@ import (
 	"log"
 	"net"
 	"strconv"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -32,16 +33,17 @@ const (
 type GameFinishedMsg struct{}
 
 type MatchInfo struct {
-	Mode           protocol.GameMode
-	WordLen        int
-	CurrentRound   int
-	RawTotalRounds string
-	MaxAttempts    int
+	mode           protocol.GameMode
+	wordLen        int
+	currentRound   int
+	rawTotalRounds string
+	maxAttempts    int
+	roundsGuessed  int
 }
 
 func NewMatchInfo() *MatchInfo {
 	return &MatchInfo{
-		CurrentRound: 0,
+		currentRound: 0,
 	}
 }
 
@@ -55,15 +57,16 @@ func NewRoundInfo() *RoundInfo {
 }
 
 type model struct {
-	client    *client.Client
-	matchInfo *MatchInfo
-	input     textinput.Model
-	guesses   []*protocol.Guess
-	state     GameState
-	msg       chan transport.EventMsg
-	err       error
-	roundInfo *RoundInfo
-	uiPaused  bool
+	width, height int
+	client        *client.Client
+	matchInfo     *MatchInfo
+	input         textinput.Model
+	guesses       []*protocol.Guess
+	state         GameState
+	msg           chan transport.EventMsg
+	err           error
+	roundInfo     *RoundInfo
+	uiPaused      bool
 }
 
 func NewGame(matchInfo *MatchInfo) model {
@@ -75,8 +78,8 @@ func NewGame(matchInfo *MatchInfo) model {
 	c := client.NewClient(conn)
 
 	ti := textinput.New()
-	ti.CharLimit = matchInfo.WordLen
-	ti.Width = matchInfo.WordLen
+	ti.CharLimit = matchInfo.wordLen
+	ti.Width = matchInfo.wordLen
 	ti.Focus()
 
 	return model{
@@ -91,17 +94,17 @@ func NewGame(matchInfo *MatchInfo) model {
 }
 
 func (m model) Init() tea.Cmd {
-	log.Printf("[Game Init] matchInfo.Mode: %s", m.matchInfo.Mode)
+	log.Printf("[Game Init] matchInfo.Mode: %s", m.matchInfo.mode)
 	var (
 		rounds int
 		err    error
 	)
 
-	if rounds, err = strconv.Atoi(m.matchInfo.RawTotalRounds); err != nil {
+	if rounds, err = strconv.Atoi(m.matchInfo.rawTotalRounds); err != nil {
 		log.Fatalf("[Client.CreateMatch] Failed to convert matchInfo.RawTotalRounds after it passed validation: %v", err)
 	}
 
-	m.client.CreateMatch(m.matchInfo.Mode, m.matchInfo.WordLen, rounds)
+	m.client.CreateMatch(m.matchInfo.mode, m.matchInfo.wordLen, rounds)
 
 	return tea.Batch(
 		textinput.Blink,
@@ -113,6 +116,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
+
+	case tea.WindowSizeMsg:
+		log.Print("[Update] Window resizing...")
+		m.width = msg.Width
+		m.height = msg.Height
+		return m, nil
+
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyCtrlC, tea.KeyEsc:
@@ -126,7 +136,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			v := m.input.Value()
 
-			if len(v) == m.matchInfo.WordLen { // do nothing if not enough letters
+			if len(v) == m.matchInfo.wordLen { // do nothing if not enough letters
 				m.client.MakeGuess(m.input.Value())
 				m.input.SetValue("")
 			}
@@ -157,25 +167,40 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
-	var view, header string
+	var body, header, footer string
 
-	guessGrid := ui.ViewGuessGrid(m.guesses, m.input.Value(), m.matchInfo.MaxAttempts, m.matchInfo.WordLen)
+	guessGrid := ui.ViewGuessGrid(m.guesses, m.input.Value(), m.matchInfo.maxAttempts, m.matchInfo.wordLen)
 	continueMsg := "Press enter to continue..."
 
-	view = fmt.Sprintf("%s\n%s\n", header, guessGrid)
+	header += fmt.Sprintf(
+		"Round: %d/%s\tGuessed correctly: %d\n",
+		m.matchInfo.currentRound,
+		m.matchInfo.rawTotalRounds,
+		m.matchInfo.roundsGuessed,
+	)
+
+	centeredGrid := lipgloss.PlaceHorizontal(
+		m.width,
+		lipgloss.Center,
+		guessGrid,
+	)
+
+	body = centeredGrid
 
 	if m.uiPaused {
 		if m.roundInfo.success {
-			view = fmt.Sprintf("%s\n%s", view, continueMsg)
+			footer = continueMsg
 		} else {
-			view = fmt.Sprintf("%s\nCorrect word: %s\n%s", view, m.roundInfo.word, continueMsg)
+			footer = fmt.Sprintf("Correct word: %s\n%s", m.roundInfo.word, continueMsg)
 		}
 	}
 
-	header += fmt.Sprintf("Round: %d/%s\n", m.matchInfo.CurrentRound, m.matchInfo.RawTotalRounds)
-	view = header + view
+	view := strings.Join([]string{header, body, footer}, "\n")
 
-	return lipgloss.NewStyle().Render(view)
+	return lipgloss.NewStyle().
+		Width(m.width).
+		AlignHorizontal(lipgloss.Center).
+		Render(view)
 }
 
 func (m model) handleEvent(eventMsg transport.EventMsg) (model, tea.Msg) {
@@ -193,7 +218,7 @@ func (m model) handleEvent(eventMsg transport.EventMsg) (model, tea.Msg) {
 		m.state = StateMatchStarted
 
 	case protocol.ROUND_STARTED:
-		m.matchInfo.CurrentRound++
+		m.matchInfo.currentRound++
 		m.roundInfo = NewRoundInfo()
 
 		roundStartedEvent := &protocol.RoundStartedMessage{}
@@ -203,7 +228,7 @@ func (m model) handleEvent(eventMsg transport.EventMsg) (model, tea.Msg) {
 			return m, nil
 		}
 		m.state = StateMatchStarted
-		m.matchInfo.MaxAttempts = roundStartedEvent.MaxAttempts
+		m.matchInfo.maxAttempts = roundStartedEvent.MaxAttempts
 		m.guesses = nil
 
 	case protocol.WAIT_GUESS:
@@ -238,6 +263,10 @@ func (m model) handleEvent(eventMsg transport.EventMsg) (model, tea.Msg) {
 		log.Print(roundFinishedEvent)
 		m.roundInfo.word = roundFinishedEvent.Word
 		m.roundInfo.success = roundFinishedEvent.Success
+
+		if roundFinishedEvent.Success {
+			m.matchInfo.roundsGuessed++
+		}
 
 	case protocol.MATCH_FINISHED:
 		m.state = StateMatchFinished

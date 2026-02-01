@@ -33,7 +33,7 @@ func NewStartMenu(matchInfo *MatchInfo) (*huh.Form, *bool) {
 					huh.NewOption(GameModeLabels[protocol.MULTI_LOCAL], protocol.MULTI_LOCAL),
 					huh.NewOption(GameModeLabels[protocol.MULTI_REMOTE], protocol.MULTI_REMOTE),
 				).
-				Value(&matchInfo.Mode),
+				Value(&matchInfo.mode),
 
 			huh.NewSelect[int]().
 				Title("How many letters are we feeling?").
@@ -42,7 +42,7 @@ func NewStartMenu(matchInfo *MatchInfo) (*huh.Form, *bool) {
 					huh.NewOption("Six", 6),
 					huh.NewOption("Seven", 7),
 				).
-				Value(&matchInfo.WordLen),
+				Value(&matchInfo.wordLen),
 
 			huh.NewInput().
 				Title(fmt.Sprintf("How many rounds? (%d - %d)", minRounds, maxRounds)).
@@ -56,7 +56,7 @@ func NewStartMenu(matchInfo *MatchInfo) (*huh.Form, *bool) {
 					}
 					return nil
 				}).
-				Value(&matchInfo.RawTotalRounds),
+				Value(&matchInfo.rawTotalRounds),
 		),
 
 		huh.NewGroup(
@@ -67,7 +67,7 @@ func NewStartMenu(matchInfo *MatchInfo) (*huh.Form, *bool) {
 						"mode:             \t%s\n"+
 							"word length:      \t%d\n"+
 							"number of rounds: \t%s",
-						GameModeLabels[matchInfo.Mode], matchInfo.WordLen, matchInfo.RawTotalRounds)
+						GameModeLabels[matchInfo.mode], matchInfo.wordLen, matchInfo.rawTotalRounds)
 				}, nil).
 				Value(&confirm).WithButtonAlignment(lipgloss.Left),
 		).WithHeight(6),
