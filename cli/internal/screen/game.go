@@ -9,6 +9,7 @@ import (
 	"guessh/internal/ui"
 	"log"
 	"net"
+	"strconv"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -30,14 +31,32 @@ const (
 
 type GameFinishedMsg struct{}
 
+type MatchInfo struct {
+	Mode           protocol.GameMode
+	WordLen        int
+	CurrentRound   int
+	RawTotalRounds string
+	MaxAttempts    int
+}
+
+func NewMatchInfo() *MatchInfo {
+	return &MatchInfo{
+		CurrentRound: 0,
+	}
+}
+
 type RoundInfo struct {
 	word    string
 	success bool
 }
 
+func NewRoundInfo() *RoundInfo {
+	return &RoundInfo{}
+}
+
 type model struct {
 	client    *client.Client
-	matchInfo *protocol.MatchInfo
+	matchInfo *MatchInfo
 	input     textinput.Model
 	guesses   []*protocol.Guess
 	state     GameState
@@ -47,7 +66,7 @@ type model struct {
 	uiPaused  bool
 }
 
-func NewGame(matchInfo *protocol.MatchInfo) model {
+func NewGame(matchInfo *MatchInfo) model {
 	conn, err := net.Dial("tcp", "localhost:2480")
 	if err != nil {
 		log.Fatalf("net.Dial error: %v", err)
@@ -67,13 +86,22 @@ func NewGame(matchInfo *protocol.MatchInfo) model {
 		state:     StateInit,
 		msg:       make(chan transport.EventMsg),
 		err:       nil,
-		roundInfo: &RoundInfo{},
+		roundInfo: NewRoundInfo(),
 	}
 }
 
 func (m model) Init() tea.Cmd {
 	log.Printf("[Game Init] matchInfo.Mode: %s", m.matchInfo.Mode)
-	m.client.CreateMatch(m.matchInfo)
+	var (
+		rounds int
+		err    error
+	)
+
+	if rounds, err = strconv.Atoi(m.matchInfo.RawTotalRounds); err != nil {
+		log.Fatalf("[Client.CreateMatch] Failed to convert matchInfo.RawTotalRounds after it passed validation: %v", err)
+	}
+
+	m.client.CreateMatch(m.matchInfo.Mode, m.matchInfo.WordLen, rounds)
 
 	return tea.Batch(
 		textinput.Blink,
@@ -166,6 +194,8 @@ func (m model) handleEvent(eventMsg transport.EventMsg) (model, tea.Msg) {
 
 	case protocol.ROUND_STARTED:
 		m.matchInfo.CurrentRound++
+		m.roundInfo = NewRoundInfo()
+
 		roundStartedEvent := &protocol.RoundStartedMessage{}
 
 		if err := json.Unmarshal(msg, roundStartedEvent); err != nil {

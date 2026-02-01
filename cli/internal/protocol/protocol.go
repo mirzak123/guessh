@@ -16,20 +16,6 @@ const (
 	LETTER_CORRECT
 )
 
-type MatchInfo struct {
-	Mode           GameMode
-	WordLen        int
-	CurrentRound   int
-	RawTotalRounds string
-	MaxAttempts    int
-}
-
-func NewMatchInfo() *MatchInfo {
-	return &MatchInfo{
-		CurrentRound: 0,
-	}
-}
-
 type Guess struct {
 	Word   string
 	Result []LetterFeedback

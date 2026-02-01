@@ -1,7 +1,6 @@
 package main
 
 import (
-	"guessh/internal/protocol"
 	"guessh/internal/screen"
 	"log"
 
@@ -24,7 +23,7 @@ const (
 
 type model struct {
 	width, height int
-	matchInfo     *protocol.MatchInfo
+	matchInfo     *screen.MatchInfo
 	confirm       *bool
 	screenID      ScreenID
 	form          *huh.Form
@@ -34,7 +33,7 @@ type model struct {
 func initialModel() model {
 	m := model{
 		screenID:  StartScreenID,
-		matchInfo: protocol.NewMatchInfo(),
+		matchInfo: screen.NewMatchInfo(),
 	}
 	m.form, m.confirm = screen.NewStartMenu(m.matchInfo)
 	return m
@@ -63,7 +62,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case screen.GameFinishedMsg:
 		m.screenID = StartScreenID
-		m.matchInfo = protocol.NewMatchInfo()
+		m.matchInfo = screen.NewMatchInfo()
 		m.form, m.confirm = screen.NewStartMenu(m.matchInfo)
 		return m, nil
 	}

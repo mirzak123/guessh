@@ -21,7 +21,7 @@ var GameModeLabels = map[protocol.GameMode]string{
 	protocol.MULTI_REMOTE: "Two player remote",
 }
 
-func NewStartMenu(matchInfo *protocol.MatchInfo) (*huh.Form, *bool) {
+func NewStartMenu(matchInfo *MatchInfo) (*huh.Form, *bool) {
 	confirm := true
 
 	form := huh.NewForm(
