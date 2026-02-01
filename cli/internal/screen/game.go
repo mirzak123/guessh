@@ -147,7 +147,7 @@ func (m model) View() string {
 	header += fmt.Sprintf("Round: %d/%s\n", m.matchInfo.CurrentRound, m.matchInfo.RawTotalRounds)
 	view = header + view
 
-	return lipgloss.NewStyle().Width(len(continueMsg)).Render(view)
+	return lipgloss.NewStyle().Render(view)
 }
 
 func (m model) handleEvent(eventMsg transport.EventMsg) (model, tea.Msg) {
