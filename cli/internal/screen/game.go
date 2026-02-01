@@ -79,7 +79,6 @@ func NewGame(matchInfo *MatchInfo) gameModel {
 	ti := textinput.New()
 	ti.CharLimit = matchInfo.wordLen
 	ti.Width = matchInfo.wordLen
-	ti.Focus()
 
 	return gameModel{
 		client:    c,
@@ -216,6 +215,7 @@ func (m gameModel) handleEvent(eventMsg transport.EventMsg) (gameModel, tea.Msg)
 	case protocol.ROUND_STARTED:
 		m.matchInfo.currentRound++
 		m.roundInfo = NewRoundInfo()
+		m.input.Focus()
 
 		roundStartedEvent := &protocol.RoundStartedMessage{}
 
@@ -248,6 +248,7 @@ func (m gameModel) handleEvent(eventMsg transport.EventMsg) (gameModel, tea.Msg)
 
 	case protocol.ROUND_FINISHED:
 		roundFinishedEvent := &protocol.RoundFinishedMessage{}
+		log.Print(roundFinishedEvent)
 
 		if err := json.Unmarshal(msg, roundFinishedEvent); err != nil {
 			log.Printf("[handleEvent] error unmarshaling RoundFinishedMessage: %v", err)
@@ -256,9 +257,10 @@ func (m gameModel) handleEvent(eventMsg transport.EventMsg) (gameModel, tea.Msg)
 
 		m.state = StateRoundFinished
 		m.uiPaused = true
-		log.Print(roundFinishedEvent)
 		m.roundInfo.word = roundFinishedEvent.Word
 		m.roundInfo.success = roundFinishedEvent.Success
+
+		m.input.Blur()
 
 		if roundFinishedEvent.Success {
 			m.matchInfo.roundsGuessed++
