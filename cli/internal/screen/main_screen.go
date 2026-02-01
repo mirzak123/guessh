@@ -73,7 +73,11 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.screenID = StartScreenID
 		m.matchInfo = NewMatchInfo()
 		m.form, m.confirm = NewStartMenu(m.matchInfo)
-		return m, nil
+
+		return m, tea.Batch(
+			tea.ClearScreen,
+			m.form.Init(),
+		)
 
 	case MatchFinishedMsg:
 		m.screenID = MatchResultsScreenID
