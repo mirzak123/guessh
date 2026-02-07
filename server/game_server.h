@@ -2,6 +2,7 @@
 #define GAME_SERVER_H
 
 #include "game_types.h"
+#include "room.h"
 #include <cjson/cJSON.h>
 #include <stddef.h>
 
@@ -69,6 +70,7 @@ Match *GS_get_match_by_client_fd(GameServer *gs, int player_fd);
 void GS_destroy(GameServer *gs);
 MessageType GS_parse_message(char *data, size_t size, cJSON **out);
 
+void GS_create_room(GameServer *gs);
 void GS_start_match(Match *match);
 void GS_start_round(Match *match);
 void GS_end_match(GameServer *gs, Match *match);
@@ -81,6 +83,7 @@ void GS_send_only_type(int client_fd, const char *type);
 void GS_send_error(int client_fd, const char *reason);
 
 // message handlers
+void GS_handle_create_room(GameServer *gs, int client_fd);
 void GS_handle_create_match(GameServer *gs, int client_fd, cJSON *json_request);
 void GS_handle_make_guess(GameServer *gs, int client_fd, cJSON *json_request);
 

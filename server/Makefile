@@ -26,7 +26,7 @@ debug-run: debug
 
 test:
 	# Note: test.c likely needs cJSON flags too if it uses the library
-	$(CC) test.c game_logic.c $(CFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(BUILD_TEST_NAME) && $(BUILD_DIR)/$(BUILD_TEST_NAME)
+	$(CC) test.c game_logic.c util.c $(CFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(BUILD_TEST_NAME) && $(BUILD_DIR)/$(BUILD_TEST_NAME)
 
 clean:
 	rm -rf $(BUILD_DIR)/*

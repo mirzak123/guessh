@@ -51,7 +51,7 @@ Find a better way to represent flow below 🙏🙏🙏
 
 | Type            | Content                                                                            |
 | --------------- | ---------------------------------------------------------------------------------- |
-| CREATE_ROOM     |                                                                                    |
+| CREATE_ROOM     | {"type": "CREATE_ROOM"}                                                            |
 | CREATE_MATCH    | {"type": "CREATE_MATCH", "mode": "SINGLE", "rounds": number, "wordLength": number} |
 | JOIN_ROOM       |                                                                                    |
 | MAKE_GUESS      | {"type": "MAKE_GUESS", "guess": string}                                            |

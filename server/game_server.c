@@ -1,6 +1,7 @@
 #include "game_server.h"
 #include "client.h"
 #include "game_logic.h"
+#include "game_types.h"
 #include "json_messages.h"
 #include <assert.h>
 #include <stdio.h>
@@ -110,7 +111,7 @@ void GS_handle_request(GameServer *gs, int client_fd, char *data, size_t size) {
     GS_handle_create_match(gs, client_fd, json_request);
     break;
   case CREATE_ROOM:
-    GS_send_error(client_fd, E_NOT_IMPLEMENTED);
+    GS_handle_create_room(gs, client_fd);
     break;
   case JOIN_ROOM:
     GS_send_error(client_fd, E_NOT_IMPLEMENTED);
@@ -130,6 +131,14 @@ void GS_handle_request(GameServer *gs, int client_fd, char *data, size_t size) {
   }
 
   cJSON_Delete(json_request);
+}
+
+void GS_handle_create_room(GameServer *gs, int client_fd) {
+  Room *room = Room_create();
+  cJSON *room_created_json = json_room_created(room->room_id);
+
+  GS_send_json(client_fd, room_created_json);
+  cJSON_Delete(room_created_json);
 }
 
 void GS_handle_create_match(GameServer *gs, int client_fd, cJSON *json_request) {
@@ -178,8 +187,10 @@ void GS_handle_create_match(GameServer *gs, int client_fd, cJSON *json_request) 
   }
 
   mode_str = cJSON_GetStringValue(mode_json);
-  if (!strcmp("SINGLE", mode_str)) { // TODO: Add support for other modes
+  if (!strcmp("SINGLE", mode_str)) {
     game_mode = SINGLE;
+  } else if (!strcmp("MULTI_REMOTE", mode_str)) {
+    game_mode = MULTI_REMOTE;
   } else {
     GS_send_error(client_fd, E_UNSUPPORTED_MODE);
     return;
