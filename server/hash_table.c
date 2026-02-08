@@ -1,5 +1,7 @@
 #include "hash_table.h"
 #include <_stdio.h>
+#include <_string.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -9,12 +11,13 @@
 #define INITIAL_CAPACITY 8
 #define TABLE_MAX_LOAD 0.75
 #define GROW_CAPACITY(capacity) ((capacity) < INITIAL_CAPACITY ? INITIAL_CAPACITY : (capacity) * 2)
-#define TOMBSTONE_VALUE (uintptr_t *)1
 
 static Entry *find_entry(Entry *entries, int capacity, Key *key);
 static void adjust_capacity(HashTable *table, int capacity);
-static uint32_t hash_key(Key k);
+static uint32_t hash_key(Key *key);
+static bool compare_keys(Key *k1, Key *k2);
 static inline bool is_empty(Entry *entry);
+static inline bool is_tombstone(Entry *entry);
 
 HashTable *HT_create(void) {
   HashTable *table = malloc(sizeof(HashTable));
@@ -42,9 +45,12 @@ void HT_set(HashTable *table, Key key, Value value) {
   }
 
   Entry *entry = find_entry(table->entries, table->capacity, &key);
-  if (is_empty(entry) && entry->value != TOMBSTONE_VALUE)
+  if (is_empty(entry))
     table->count++;
 
+  if (key.type == HT_KEY_STR) {
+    key.str = strdup(key.str);
+  }
   entry->key = key;
   entry->value = value;
 }
@@ -57,23 +63,20 @@ Value HT_get(HashTable *table, Key key) {
 void HT_delete(HashTable *table, Key key) {
   Entry *entry = find_entry(table->entries, table->capacity, &key);
   if (!is_empty(entry)) {
-    entry->key.data = NULL;
-    entry->key.size = 0;
-    entry->value = TOMBSTONE_VALUE;
+    entry->key.type = HT_KEY_TOMBSTONE;
+    entry->value = NULL;
   }
 }
 
 static Entry *find_entry(Entry *entries, int capacity, Key *key) {
-  int index = hash_key(*key) % capacity;
+  int index = hash_key(key) % capacity;
   Entry *tombstone = NULL;
 
   while (true) {
     Entry *entry = &entries[index];
-    bool empty = is_empty(entry);
-    if ((empty && entry->value != TOMBSTONE_VALUE) ||
-        (!empty && key->size == entry->key.size && !memcmp(key->data, entry->key.data, key->size))) {
+    if (is_empty(entry) || compare_keys(key, &entry->key)) {
       return entry;
-    } else if (empty && tombstone == NULL) {
+    } else if (is_tombstone(entry)) {
       tombstone = entry;
     }
 
@@ -87,7 +90,7 @@ static void adjust_capacity(HashTable *table, int capacity) {
   Entry *entries = malloc(sizeof(Entry) * capacity);
   for (int i = 0; i < capacity; i++) {
     Entry *entry = &entries[i];
-    entry->key = (Key){NULL, 0};
+    entry->key = (Key){.type = HT_KEY_EMPTY};
     entry->value = NULL;
   }
 
@@ -109,13 +112,45 @@ static void adjust_capacity(HashTable *table, int capacity) {
 }
 
 /* FNV-1a hashing algorithm */
-static uint32_t hash_key(Key key) {
+static uint32_t hash_key(Key *key) {
   uint32_t hash = 2166136261u;
-  for (size_t i = 0; i < key.size; i++) {
-    hash ^= key.data[i];
+  uint8_t *data = NULL;
+  int size = 0;
+
+  switch (key->type) {
+  case HT_KEY_INT:
+    data = (uint8_t *)&key->i64;
+    size = sizeof(key->i64);
+    break;
+  case HT_KEY_STR:
+    data = (uint8_t *)key->str;
+    size = strlen(key->str);
+    break;
+  case HT_KEY_EMPTY:
+  case HT_KEY_TOMBSTONE:
+    perror("trying to hash invalid key");
+    exit(1);
+  }
+
+  for (int i = 0; i < size; i++) {
+    hash ^= data[i];
     hash *= 16777619;
   }
   return hash;
 }
 
-static inline bool is_empty(Entry *entry) { return entry->key.data == NULL; }
+static bool compare_keys(Key *k1, Key *k2) {
+  if (k1->type != k2->type)
+    return false;
+  switch (k1->type) {
+  case HT_KEY_INT:
+    return k1->i64 == k2->i64;
+  case HT_KEY_STR:
+    return !strcmp(k1->str, k2->str);
+  default:
+    return true;
+  }
+}
+
+static inline bool is_empty(Entry *entry) { return entry->key.type == HT_KEY_EMPTY; }
+static inline bool is_tombstone(Entry *entry) { return entry->key.type == HT_KEY_EMPTY; }

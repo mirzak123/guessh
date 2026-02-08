@@ -81,16 +81,16 @@ void test_hash_table(void) {
   HashTable *table = HT_create();
   assert(table != NULL);
 
-  HT_set(table, KEY_STR("key"), &value_int);
+  HT_set(table, KEY("key"), &value_int);
   count++;
-  value = HT_get((table), KEY_STR("key"));
+  value = HT_get((table), KEY("key"));
   assert(*(int *)value == value_int);
   assert(table->capacity == 8);
 
   for (int i = count + 1; i < 10; i++) {
-    HT_set(table, KEY_INT(i), value_str);
+    HT_set(table, KEY(i), value_str);
     count++;
-    value = HT_get(table, KEY_INT(i));
+    value = HT_get(table, KEY(i));
     assert(!strcmp((char *)value, value_str));
 
     if (i <= 6)
@@ -100,13 +100,13 @@ void test_hash_table(void) {
   }
 
   int x = 7;
-  HT_set(table, KEY_INT(x), value_str);
-  assert(value_str == HT_get(table, KEY_INT(x)));
-  HT_delete(table, KEY_INT(x));
-  assert(NULL == HT_get(table, KEY_INT(x)));
+  HT_set(table, KEY(x), value_str);
+  assert(value_str == HT_get(table, KEY(x)));
+  HT_delete(table, KEY(x));
+  assert(NULL == HT_get(table, KEY(x)));
 
   // Find nonexistent
-  value = HT_get(table, KEY_STR("nonexistent"));
+  value = HT_get(table, KEY("nonexistent"));
   assert(value == NULL);
   assert(table->capacity == 16);
 
