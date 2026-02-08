@@ -1,6 +1,8 @@
 BREW_PREFIX := /opt/homebrew
+
 CFLAGS := -std=c17 -Wall -Wextra -pedantic -I$(BREW_PREFIX)/include
 LDFLAGS := -L$(BREW_PREFIX)/lib -lcjson
+ASAN_FLAGS := -g -O0 -fsanitize=address -fno-omit-frame-pointer
 
 BUILD_DIR := ../bin
 BUILD_NAME := server
@@ -15,14 +17,8 @@ all: build run
 build:
 	$(CC) $(SRC) $(CFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME)
 
-debug:
-	$(CC) -g -O0 $(CFLAGS) $(LDFLAGS) $(SRC) -o $(BUILD_DIR)/$(BUILD_NAME)_debug
-
 run:
 	$(BUILD_DIR)/$(BUILD_NAME)
-
-debug-run: debug
-	lldb -- $(BUILD_DIR)/$(BUILD_NAME)_debug
 
 test-build:
 	$(CC) -g -O0 $(TEST_SRC) $(CFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(BUILD_TEST_NAME)
@@ -30,8 +26,15 @@ test-build:
 test: test-build
 	$(BUILD_DIR)/$(BUILD_TEST_NAME)
 
-test-debug:
-	lldb -- $(BUILD_DIR)/$(BUILD_TEST_NAME)
-
 clean:
 	rm -rf $(BUILD_DIR)/*
+
+# Debug targets
+debug-build:
+	$(CC) -g -O0 $(CFLAGS) $(LDFLAGS) $(SRC) -o $(BUILD_DIR)/$(BUILD_NAME)_debug
+
+debug-run: debug-build
+	lldb -- $(BUILD_DIR)/$(BUILD_NAME)_debug
+
+test-debug: test-build
+	lldb -- $(BUILD_DIR)/$(BUILD_TEST_NAME)
