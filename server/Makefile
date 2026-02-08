@@ -6,6 +6,7 @@ BUILD_DIR := ../bin
 BUILD_NAME := server
 BUILD_TEST_NAME := server-test
 SRC := main.c network.c game_logic.c game_server.c game_types.c json_messages.c client.c util.c
+TEST_SRC := test.c game_logic.c hash_table.c
 
 CC := gcc
 
@@ -15,7 +16,6 @@ build:
 	$(CC) $(SRC) $(CFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(BUILD_NAME)
 
 debug:
-	# Add -g for debugging symbols and -O0 to disable optimization
 	$(CC) -g -O0 $(CFLAGS) $(LDFLAGS) $(SRC) -o $(BUILD_DIR)/$(BUILD_NAME)_debug
 
 run:
@@ -24,9 +24,14 @@ run:
 debug-run: debug
 	lldb -- $(BUILD_DIR)/$(BUILD_NAME)_debug
 
-test:
-	# Note: test.c likely needs cJSON flags too if it uses the library
-	$(CC) test.c game_logic.c $(CFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(BUILD_TEST_NAME) && $(BUILD_DIR)/$(BUILD_TEST_NAME)
+test-build:
+	$(CC) -g -O0 $(TEST_SRC) $(CFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(BUILD_TEST_NAME)
+
+test: test-build
+	$(BUILD_DIR)/$(BUILD_TEST_NAME)
+
+test-debug:
+	lldb -- $(BUILD_DIR)/$(BUILD_TEST_NAME)
 
 clean:
 	rm -rf $(BUILD_DIR)/*

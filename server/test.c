@@ -1,15 +1,21 @@
 #include "game_logic.h"
+#include "hash_table.h"
 #include <assert.h>
+#include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 #define WORD_LEN 5
 
 void test_evaluate_guess(void);
+void test_hash_table(void);
+
 void assert_feedback(LetterFeedback *feedback, LetterFeedback *expected);
 void print_feedback(LetterFeedback *feedback);
 
 int main(void) {
   test_evaluate_guess();
+  test_hash_table();
 
   return 0;
 }
@@ -65,6 +71,33 @@ void test_evaluate_guess(void) {
   r = evaluate_guess("tutti", "totem", feedback, WORD_LEN);
   assert_feedback(feedback, (LetterFeedback[]){2, 0, 2, 0, 0});
   assert(r == 0);
+}
+
+void test_hash_table(void) {
+  Key key;
+  Value value;
+  const char *string = "Hello world";
+  const int number = 1000;
+  HashTable *table = HT_create();
+  assert(table != NULL);
+
+  key = (Key){(uint8_t *)"key", 3};
+  HT_set(table, key, &number);
+  value = HT_get((table), key);
+  assert(*(int *)value == number);
+  assert(table->capacity == 8);
+
+  int x = 40;
+  key = (Key){(uint8_t *)&x, sizeof(int)};
+  HT_set(table, key, string);
+  value = HT_get(table, key);
+  assert(!strcmp((char *)value, string));
+
+  HT_set(table, key, &number);
+  value = HT_get(table, key);
+  assert(*(int *)value == number);
+
+  HT_destroy(table);
 }
 
 void assert_feedback(LetterFeedback *feedback, LetterFeedback *expected) {
