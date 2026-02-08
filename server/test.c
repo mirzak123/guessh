@@ -74,85 +74,41 @@ void test_evaluate_guess(void) {
 }
 
 void test_hash_table(void) {
-  Key key;
   Value value;
-  char *key_str, *value_str = "Hello world";
-  int key_int, value_int = 1000;
+  char *value_str = "Hello world";
+  int value_int = 1000, count = 0;
 
   HashTable *table = HT_create();
   assert(table != NULL);
 
-  key_str = "key";
-  key = (Key){(uint8_t *)key_str, strlen(key_str)};
-  HT_set(table, key, &value_int);
-  value = HT_get((table), key);
+  HT_set(table, KEY_STR("key"), &value_int);
+  count++;
+  value = HT_get((table), KEY_STR("key"));
   assert(*(int *)value == value_int);
   assert(table->capacity == 8);
 
-  key_int = 1;
-  key = (Key){(uint8_t *)&key_int, sizeof(int)};
-  HT_set(table, key, value_str);
-  value = HT_get(table, key);
-  assert(!strcmp((char *)value, value_str));
-  assert(table->capacity == 8);
+  for (int i = count + 1; i < 10; i++) {
+    HT_set(table, KEY_INT(i), value_str);
+    count++;
+    value = HT_get(table, KEY_INT(i));
+    assert(!strcmp((char *)value, value_str));
 
-  key_int = 2;
-  key = (Key){(uint8_t *)&key_int, sizeof(int)};
-  HT_set(table, key, value_str);
-  value = HT_get(table, key);
-  assert(!strcmp((char *)value, value_str));
-  assert(table->capacity == 8);
+    if (i <= 6)
+      assert(table->capacity == 8);
+    else
+      assert(table->capacity == 16);
+  }
 
-  key_int = 3;
-  key = (Key){(uint8_t *)&key_int, sizeof(int)};
-  HT_set(table, key, value_str);
-  value = HT_get(table, key);
-  assert(!strcmp((char *)value, value_str));
-  assert(table->capacity == 8);
+  int x = 7;
+  HT_set(table, KEY_INT(x), value_str);
+  assert(value_str == HT_get(table, KEY_INT(x)));
+  HT_delete(table, KEY_INT(x));
+  assert(NULL == HT_get(table, KEY_INT(x)));
 
-  key_int = 4;
-  value_int = key_int;
-  key = (Key){(uint8_t *)&key_int, sizeof(int)};
-  HT_set(table, key, &value_int);
-  value = HT_get(table, key);
-  assert(*(int *)value == value_int);
-  assert(table->capacity == 8);
-
-  key_int = 5;
-  value_int = key_int;
-  key = (Key){(uint8_t *)&key_int, sizeof(int)};
-  HT_set(table, key, &value_int);
-  value = HT_get(table, key);
-  assert(*(int *)value == value_int);
-  assert(table->capacity == 8);
-
-  key_int = 6;
-  value_int = key_int;
-  key = (Key){(uint8_t *)&key_int, sizeof(int)};
-  HT_set(table, key, &value_int);
-  value = HT_get(table, key);
-  assert(*(int *)value == value_int);
+  // Find nonexistent
+  value = HT_get(table, KEY_STR("nonexistent"));
+  assert(value == NULL);
   assert(table->capacity == 16);
-
-  key_int = 7;
-  value_int = key_int;
-  key = (Key){(uint8_t *)&key_int, sizeof(int)};
-  HT_set(table, key, &value_int);
-  value = HT_get(table, key);
-  assert(*(int *)value == value_int);
-  assert(table->capacity == 16);
-
-  key_int = 8;
-  value_int = key_int;
-  key = (Key){(uint8_t *)&key_int, sizeof(int)};
-  HT_set(table, key, &value_int);
-  value = HT_get(table, key);
-  assert(*(int *)value == value_int);
-  assert(table->capacity == 16);
-
-  HT_set(table, key, &value_int);
-  value = HT_get(table, key);
-  assert(*(int *)value == value_int);
 
   HT_destroy(table);
 }

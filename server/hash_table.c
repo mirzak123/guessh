@@ -1,6 +1,7 @@
 #include "hash_table.h"
 #include <_stdio.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,6 +9,7 @@
 #define INITIAL_CAPACITY 8
 #define TABLE_MAX_LOAD 0.75
 #define GROW_CAPACITY(capacity) ((capacity) < INITIAL_CAPACITY ? INITIAL_CAPACITY : (capacity) * 2)
+#define TOMBSTONE_VALUE (uintptr_t *)1
 
 static Entry *find_entry(Entry *entries, int capacity, Key *key);
 static void adjust_capacity(HashTable *table, int capacity);
@@ -40,7 +42,7 @@ void HT_set(HashTable *table, Key key, Value value) {
   }
 
   Entry *entry = find_entry(table->entries, table->capacity, &key);
-  if (is_empty(entry))
+  if (is_empty(entry) && entry->value != TOMBSTONE_VALUE)
     table->count++;
 
   entry->key = key;
@@ -52,17 +54,33 @@ Value HT_get(HashTable *table, Key key) {
   return entry == NULL ? NULL : entry->value;
 }
 
+void HT_delete(HashTable *table, Key key) {
+  Entry *entry = find_entry(table->entries, table->capacity, &key);
+  if (!is_empty(entry)) {
+    entry->key.data = NULL;
+    entry->key.size = 0;
+    entry->value = TOMBSTONE_VALUE;
+  }
+}
+
 static Entry *find_entry(Entry *entries, int capacity, Key *key) {
   int index = hash_key(*key) % capacity;
+  Entry *tombstone = NULL;
 
   while (true) {
     Entry *entry = &entries[index];
-    if (is_empty(entry) || !strcmp((char *)key->data, (char *)entry->key.data)) {
+    bool empty = is_empty(entry);
+    if ((empty && entry->value != TOMBSTONE_VALUE) ||
+        (!empty && key->size == entry->key.size && !memcmp(key->data, entry->key.data, key->size))) {
       return entry;
+    } else if (empty && tombstone == NULL) {
+      tombstone = entry;
     }
 
     index = (index + 1) % capacity;
   }
+
+  return tombstone;
 }
 
 static void adjust_capacity(HashTable *table, int capacity) {
@@ -73,6 +91,8 @@ static void adjust_capacity(HashTable *table, int capacity) {
     entry->value = NULL;
   }
 
+  table->count = 0;
+
   for (int i = 0; i < table->capacity; i++) {
     Entry *entry = &table->entries[i];
     if (is_empty(entry))
@@ -81,6 +101,7 @@ static void adjust_capacity(HashTable *table, int capacity) {
     Entry *new_entry = find_entry(entries, capacity, &entry->key);
     new_entry->key = entry->key;
     new_entry->value = entry->value;
+    table->count++;
   }
   table->capacity = capacity;
   free(table->entries);
