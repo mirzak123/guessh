@@ -12,6 +12,7 @@
 static Entry *find_entry(Entry *entries, int capacity, Key *key);
 static void adjust_capacity(HashTable *table, int capacity);
 static uint32_t hash_key(Key k);
+static inline bool is_empty(Entry *entry);
 
 HashTable *HT_create(void) {
   HashTable *table = malloc(sizeof(HashTable));
@@ -39,6 +40,9 @@ void HT_set(HashTable *table, Key key, Value value) {
   }
 
   Entry *entry = find_entry(table->entries, table->capacity, &key);
+  if (is_empty(entry))
+    table->count++;
+
   entry->key = key;
   entry->value = value;
 }
@@ -53,7 +57,7 @@ static Entry *find_entry(Entry *entries, int capacity, Key *key) {
 
   while (true) {
     Entry *entry = &entries[index];
-    if (entry->key.data == NULL || !strcmp((char *)key->data, (char *)entry->key.data)) {
+    if (is_empty(entry) || !strcmp((char *)key->data, (char *)entry->key.data)) {
       return entry;
     }
 
@@ -71,7 +75,7 @@ static void adjust_capacity(HashTable *table, int capacity) {
 
   for (int i = 0; i < table->capacity; i++) {
     Entry *entry = &table->entries[i];
-    if (entry->key.data == NULL)
+    if (is_empty(entry))
       continue;
 
     Entry *new_entry = find_entry(entries, capacity, &entry->key);
@@ -92,3 +96,5 @@ static uint32_t hash_key(Key key) {
   }
   return hash;
 }
+
+static inline bool is_empty(Entry *entry) { return entry->key.data == NULL; }

@@ -76,26 +76,78 @@ void test_evaluate_guess(void) {
 void test_hash_table(void) {
   Key key;
   Value value;
-  const char *string = "Hello world";
-  const int number = 1000;
+  char *key_str, *value_str = "Hello world";
+  int key_int, value_int = 1000;
+
   HashTable *table = HT_create();
   assert(table != NULL);
 
-  key = (Key){(uint8_t *)"key", 3};
-  HT_set(table, key, &number);
+  key_str = "key";
+  key = (Key){(uint8_t *)key_str, strlen(key_str)};
+  HT_set(table, key, &value_int);
   value = HT_get((table), key);
-  assert(*(int *)value == number);
+  assert(*(int *)value == value_int);
   assert(table->capacity == 8);
 
-  int x = 40;
-  key = (Key){(uint8_t *)&x, sizeof(int)};
-  HT_set(table, key, string);
+  key_int = 1;
+  key = (Key){(uint8_t *)&key_int, sizeof(int)};
+  HT_set(table, key, value_str);
   value = HT_get(table, key);
-  assert(!strcmp((char *)value, string));
+  assert(!strcmp((char *)value, value_str));
+  assert(table->capacity == 8);
 
-  HT_set(table, key, &number);
+  key_int = 2;
+  key = (Key){(uint8_t *)&key_int, sizeof(int)};
+  HT_set(table, key, value_str);
   value = HT_get(table, key);
-  assert(*(int *)value == number);
+  assert(!strcmp((char *)value, value_str));
+  assert(table->capacity == 8);
+
+  key_int = 3;
+  key = (Key){(uint8_t *)&key_int, sizeof(int)};
+  HT_set(table, key, value_str);
+  value = HT_get(table, key);
+  assert(!strcmp((char *)value, value_str));
+  assert(table->capacity == 8);
+
+  key_int = 4;
+  key = (Key){(uint8_t *)&key_int, sizeof(int)};
+  HT_set(table, key, value_str);
+  value = HT_get(table, key);
+  assert(!strcmp((char *)value, value_str));
+  assert(table->capacity == 8);
+
+  key_int = 5;
+  key = (Key){(uint8_t *)&key_int, sizeof(int)};
+  HT_set(table, key, value_str);
+  value = HT_get(table, key);
+  assert(!strcmp((char *)value, value_str));
+  assert(table->capacity == 8);
+
+  key_int = 6;
+  key = (Key){(uint8_t *)&key_int, sizeof(int)};
+  HT_set(table, key, value_str);
+  value = HT_get(table, key);
+  assert(!strcmp((char *)value, value_str));
+  assert(table->capacity == 16);
+
+  key_int = 7;
+  key = (Key){(uint8_t *)&key_int, sizeof(int)};
+  HT_set(table, key, value_str);
+  value = HT_get(table, key);
+  assert(!strcmp((char *)value, value_str));
+  assert(table->capacity == 16);
+
+  key_int = 8;
+  key = (Key){(uint8_t *)&key_int, sizeof(int)};
+  HT_set(table, key, value_str);
+  value = HT_get(table, key);
+  assert(!strcmp((char *)value, value_str));
+  assert(table->capacity == 16);
+
+  HT_set(table, key, &value_int);
+  value = HT_get(table, key);
+  assert(*(int *)value == value_int);
 
   HT_destroy(table);
 }
