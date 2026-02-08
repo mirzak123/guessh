@@ -19,7 +19,7 @@ typedef struct {
   KeyType type;
   union {
     int64_t i64;
-    const char *str;
+    char *str;
   };
 } Key;
 
@@ -43,6 +43,6 @@ Value HT_get(HashTable *table, Key key);
 void HT_delete(HashTable *table, Key key);
 
 static inline Key _ht_internal_key_int(int64_t v) { return (Key){.type = HT_KEY_INT, .i64 = v}; }
-static inline Key _ht_internal_key_str(const char *s) { return (Key){.type = HT_KEY_STR, .str = s}; }
+static inline Key _ht_internal_key_str(char *s) { return (Key){.type = HT_KEY_STR, .str = s}; }
 
 #endif
