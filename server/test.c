@@ -111,38 +111,43 @@ void test_hash_table(void) {
   assert(table->capacity == 8);
 
   key_int = 4;
+  value_int = key_int;
   key = (Key){(uint8_t *)&key_int, sizeof(int)};
-  HT_set(table, key, value_str);
+  HT_set(table, key, &value_int);
   value = HT_get(table, key);
-  assert(!strcmp((char *)value, value_str));
+  assert(*(int *)value == value_int);
   assert(table->capacity == 8);
 
   key_int = 5;
+  value_int = key_int;
   key = (Key){(uint8_t *)&key_int, sizeof(int)};
-  HT_set(table, key, value_str);
+  HT_set(table, key, &value_int);
   value = HT_get(table, key);
-  assert(!strcmp((char *)value, value_str));
+  assert(*(int *)value == value_int);
   assert(table->capacity == 8);
 
   key_int = 6;
+  value_int = key_int;
   key = (Key){(uint8_t *)&key_int, sizeof(int)};
-  HT_set(table, key, value_str);
+  HT_set(table, key, &value_int);
   value = HT_get(table, key);
-  assert(!strcmp((char *)value, value_str));
+  assert(*(int *)value == value_int);
   assert(table->capacity == 16);
 
   key_int = 7;
+  value_int = key_int;
   key = (Key){(uint8_t *)&key_int, sizeof(int)};
-  HT_set(table, key, value_str);
+  HT_set(table, key, &value_int);
   value = HT_get(table, key);
-  assert(!strcmp((char *)value, value_str));
+  assert(*(int *)value == value_int);
   assert(table->capacity == 16);
 
   key_int = 8;
+  value_int = key_int;
   key = (Key){(uint8_t *)&key_int, sizeof(int)};
-  HT_set(table, key, value_str);
+  HT_set(table, key, &value_int);
   value = HT_get(table, key);
-  assert(!strcmp((char *)value, value_str));
+  assert(*(int *)value == value_int);
   assert(table->capacity == 16);
 
   HT_set(table, key, &value_int);
