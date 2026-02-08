@@ -30,7 +30,7 @@ var (
 			Foreground(lipgloss.Color(gray))
 )
 
-func ViewGuess(g *protocol.Guess) string {
+func ViewGuessedRow(g *protocol.Guess) string {
 	blocks := make([]string, len(g.Word))
 
 	for i, r := range g.Word {
@@ -51,7 +51,7 @@ func ViewGuess(g *protocol.Guess) string {
 	return lipgloss.JoinHorizontal(lipgloss.Center, blocks...)
 }
 
-func ViewWordInput(input string, length int) string {
+func ViewWordInputRow(input string, length int) string {
 	blocks := make([]string, length)
 
 	for i := range blocks {
@@ -72,11 +72,11 @@ func ViewGuessGrid(guesses []*protocol.Guess, input string, maxAttempts int, wor
 
 	for i := range maxAttempts {
 		if i < len(guesses) {
-			grid[i] = ViewGuess(guesses[i])
+			grid[i] = ViewGuessedRow(guesses[i])
 		} else if i == len(guesses) {
-			grid[i] = ViewWordInput(input, wordLen)
+			grid[i] = ViewWordInputRow(input, wordLen)
 		} else {
-			grid[i] = ViewWordInput("", wordLen)
+			grid[i] = ViewWordInputRow("", wordLen)
 		}
 	}
 
