@@ -2,7 +2,7 @@ package screen
 
 import (
 	"fmt"
-	"log"
+	"guessh/internal/logger"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -24,7 +24,7 @@ func (m matchResultsModel) Init() tea.Cmd {
 }
 
 func (m matchResultsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	log.Printf("Update(%v)", msg)
+	logger.Debug("Update(%v)", msg)
 	switch msg.(type) {
 	case tea.KeyMsg:
 		return m, func() tea.Msg { return StartGameMsg{} }
@@ -33,7 +33,7 @@ func (m matchResultsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m matchResultsModel) View() string {
-	log.Printf("View()")
+	logger.Debug("View()")
 	return fmt.Sprintf(
 		"Rounds played: %d\nRounds guessed correctly: %d",
 		m.roundsPlayed,

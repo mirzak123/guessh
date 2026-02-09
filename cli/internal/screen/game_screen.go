@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"guessh/internal/client"
+	"guessh/internal/logger"
 	"guessh/internal/protocol"
 	"guessh/internal/transport"
 	"guessh/internal/ui"
-	"log"
 	"net"
+	"os"
 	"strconv"
 	"strings"
 
@@ -71,7 +72,8 @@ type gameModel struct {
 func NewGame(matchInfo *MatchInfo) gameModel {
 	conn, err := net.Dial("tcp", "localhost:2480")
 	if err != nil {
-		log.Fatalf("net.Dial error: %v", err)
+		logger.Error("net.Dial error: %v", err)
+		os.Exit(1)
 	}
 
 	c := client.NewClient(conn)
@@ -92,11 +94,12 @@ func NewGame(matchInfo *MatchInfo) gameModel {
 }
 
 func (m gameModel) Init() tea.Cmd {
-	log.Printf("[Game Init] matchInfo.Mode: %s", m.matchInfo.mode)
+	logger.Info("[Game Init] matchInfo.Mode: %s", m.matchInfo.mode)
 	var err error
 
 	if m.matchInfo.totalRounds, err = strconv.Atoi(m.matchInfo.rawTotalRounds); err != nil {
-		log.Fatalf("[Client.CreateMatch] Failed to convert matchInfo.RawTotalRounds after it passed validation: %v", err)
+		logger.Error("[Client.CreateMatch] Failed to convert matchInfo.RawTotalRounds after it passed validation: %v", err)
+		os.Exit(1)
 	}
 
 	m.client.CreateMatch(m.matchInfo.mode, m.matchInfo.wordLen, m.matchInfo.totalRounds)
@@ -108,13 +111,13 @@ func (m gameModel) Init() tea.Cmd {
 }
 
 func (m gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	log.Printf("Update(%v)", msg)
+	logger.Debug("Update(%v)", msg)
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
 
 	case tea.WindowSizeMsg:
-		log.Print("[Update] Window resizing...")
+		logger.Debug("[Update] Window resizing...")
 		m.width = msg.Width
 		m.height = msg.Height
 		return m, nil
@@ -139,8 +142,8 @@ func (m gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case transport.EventMsg:
-		log.Printf("State: %d", m.state)
-		log.Printf("New event received: %s\n", string(msg))
+		logger.Debug("State: %d", m.state)
+		logger.Info("New event received: %s\n", string(msg))
 
 		m, msgFromEvent := m.handleEvent(msg)
 		if msgFromEvent != nil {
@@ -163,7 +166,7 @@ func (m gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m gameModel) View() string {
-	log.Print("View()")
+	logger.Debug("View()")
 	var body, header, footer string
 
 	guessGrid := ui.ViewGuessGrid(m.guesses, m.input.Value(), m.matchInfo.maxAttempts, m.matchInfo.wordLen)
@@ -205,9 +208,11 @@ func (m gameModel) handleEvent(eventMsg transport.EventMsg) (gameModel, tea.Msg)
 	event := &protocol.EnvelopeMessage{}
 
 	if err := json.Unmarshal(msg, event); err != nil {
-		log.Printf("[handleEvent] error unmarshaling EnvelopeMessage: %s", err)
+		logger.Error("[handleEvent] error unmarshaling EnvelopeMessage: %s", err)
 		return m, nil
 	}
+
+	logger.Info("[handleEvent] Event type: %s", event.Type)
 
 	switch event.Type {
 
@@ -222,7 +227,7 @@ func (m gameModel) handleEvent(eventMsg transport.EventMsg) (gameModel, tea.Msg)
 		roundStartedEvent := &protocol.RoundStartedMessage{}
 
 		if err := json.Unmarshal(msg, roundStartedEvent); err != nil {
-			log.Printf("[handleEvent] error unmarshaling RoundStartedMessage: %v", err)
+			logger.Error("[handleEvent] error unmarshaling RoundStartedMessage: %v", err)
 			return m, nil
 		}
 		m.state = StateMatchStarted
@@ -242,7 +247,7 @@ func (m gameModel) handleEvent(eventMsg transport.EventMsg) (gameModel, tea.Msg)
 		guessResultEvent := &protocol.GuessResultMessage{}
 
 		if err := json.Unmarshal(msg, guessResultEvent); err != nil {
-			log.Printf("[handleEvent] error unmarshaling GuessResultMessage: %v", err)
+			logger.Error("[handleEvent] error unmarshaling GuessResultMessage: %v", err)
 			return m, nil
 		}
 
@@ -250,10 +255,9 @@ func (m gameModel) handleEvent(eventMsg transport.EventMsg) (gameModel, tea.Msg)
 
 	case protocol.ROUND_FINISHED:
 		roundFinishedEvent := &protocol.RoundFinishedMessage{}
-		log.Print(roundFinishedEvent)
 
 		if err := json.Unmarshal(msg, roundFinishedEvent); err != nil {
-			log.Printf("[handleEvent] error unmarshaling RoundFinishedMessage: %v", err)
+			logger.Error("[handleEvent] error unmarshaling RoundFinishedMessage: %v", err)
 			return m, nil
 		}
 
@@ -277,6 +281,5 @@ func (m gameModel) handleEvent(eventMsg transport.EventMsg) (gameModel, tea.Msg)
 		}
 	}
 
-	log.Printf("[handleEvent] Event type: %s", event.Type)
 	return m, nil
 }

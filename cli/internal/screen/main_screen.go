@@ -1,7 +1,7 @@
 package screen
 
 import (
-	"log"
+	"guessh/internal/logger"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
@@ -52,19 +52,19 @@ func (m mainModel) Init() tea.Cmd {
 }
 
 func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	log.Printf("Update(%v)", msg)
+	logger.Debug("Update(%v)", msg)
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyCtrlC:
-			log.Print("Program quitting...")
+			logger.Debug("Program quitting...")
 			return m, tea.Quit
 		}
 
 	case tea.WindowSizeMsg:
-		log.Print("[Update] Window resizing...")
+		logger.Debug("[Update] Window resizing...")
 		m.width = msg.Width
 		m.height = msg.Height
 		return m, nil
@@ -123,7 +123,7 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m mainModel) View() string {
-	log.Print("View()")
+	logger.Debug("View()")
 	var content string
 
 	switch m.screenID {
