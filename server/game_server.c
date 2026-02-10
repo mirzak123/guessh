@@ -1,6 +1,8 @@
 #include "game_server.h"
 #include "client.h"
 #include "game_logic.h"
+#include "game_types.h"
+#include "hash_table.h"
 #include "json_messages.h"
 #include <assert.h>
 #include <stdio.h>
@@ -17,8 +19,9 @@ GameServer *GS_create(void) {
     exit(1);
   }
 
-  gs->match_head = NULL;
-  gs->clients = calloc(MAX_CLIENTS, sizeof(Client *));
+  gs->match_by_id = HT_create();
+  gs->match_by_client = HT_create();
+  gs->clients = HT_create();
 
   return gs;
 }
@@ -210,14 +213,8 @@ void GS_handle_create_match(GameServer *gs, int client_fd, cJSON *json_request) 
     return;
   }
 
-  if (gs->match_head == NULL) {
-    printf("[GS_handle_create_match] No existing matches, setting gs->match_head to (%p)\n", (void *)match);
-    gs->match_head = match;
-  } else {
-    printf("[GS_handle_create_match] Chaining matches...\n");
-    match->next = gs->match_head;
-    gs->match_head = match;
-  }
+  printf("[GS_handle_create_match] Chaining match with id: %s\n", match->id);
+  HT_set(gs->match_by_id, KEY(match->id), match);
 
   // TODO: make GS_add_player_to_match return an indicator whether we can start the match,
   // and start the match here explicitly.
@@ -225,7 +222,7 @@ void GS_handle_create_match(GameServer *gs, int client_fd, cJSON *json_request) 
 }
 
 void GS_add_player_to_match(GameServer *gs, Match *match, int client_fd) {
-  Client *client = gs->clients[client_fd];
+  Client *client = (Client *)HT_get(gs->clients, KEY(client_fd));
   Player *player = new_player(client, match);
 
   if (player == NULL) {
@@ -250,6 +247,8 @@ void GS_add_player_to_match(GameServer *gs, Match *match, int client_fd) {
     printf("[GS_add_player_to_match] error: trying to add a player to a match that has 2 players\n");
     return;
   }
+
+  HT_set(gs->match_by_client, KEY(client_fd), match);
 }
 
 void GS_handle_make_guess(GameServer *gs, int client_fd, cJSON *json_request) {
@@ -261,9 +260,6 @@ void GS_handle_make_guess(GameServer *gs, int client_fd, cJSON *json_request) {
   bool success;
   LetterFeedback *feedback;
 
-  // BUG: Client one starts match before client two. Client two finishes match.
-  // Once client one tries to send another guess, they get an error saying they
-  // are not part of an active match.
   match = GS_get_match_by_client_fd(gs, client_fd);
 
   if (match == NULL) {
@@ -350,7 +346,6 @@ void GS_end_round(GameServer *gs, Match *match, Player *player, Player *opponent
 }
 
 void GS_end_match(GameServer *gs, Match *match) {
-  Match *current = NULL;
   cJSON *match_finished_json = json_match_finished("unknown"); // TODO: resolve the winner
 
   printf("[GS_end_match] Ending match: (%s)...\n", match->id);
@@ -362,25 +357,7 @@ void GS_end_match(GameServer *gs, Match *match) {
   }
   cJSON_Delete(match_finished_json);
 
-  /* Delete match */
-  // 1 match
-  if (gs->match_head == match) {
-    printf("[GS_end_match] Only one match left, deleting gs->match_head: (%p)\n", (void *)gs->match_head);
-    gs->match_head = NULL;
-    printf("[GS_end_match] New gs->head: (%p)\n", (void *)gs->match_head);
-    delete_match(match);
-    return;
-  }
-
-  // More than 1 match
-  current = gs->match_head;
-  while (current) {
-    if (current->next == match) {
-      current->next = match->next;
-      break;
-    }
-    current = current->next;
-  }
+  HT_delete(gs->match_by_id, KEY(match->id));
   delete_match(match);
 }
 
@@ -454,24 +431,7 @@ void delete_match(Match *match) {
 }
 
 Match *GS_get_match_by_client_fd(GameServer *gs, int client_fd) {
-  Match *match = gs->match_head;
-
-  printf("[GS_get_match_by_player_fd] getting match by player_fd: %d\n", client_fd);
-  while (match != NULL) {
-
-    if (match->player1->client->fd == client_fd) {
-      return match;
-    }
-
-    // MULTI_REMOTE
-    if (match->player2 != NULL && match->player2->client->fd == client_fd)
-      return match;
-
-    match = match->next;
-  }
-
-  printf("[GS_get_match_by_player_fd] player is not in a match\n");
-  return NULL;
+  return (Match *)HT_get(gs->match_by_client, KEY(client_fd));
 }
 
 void GS_send_json(int client_fd, cJSON *json) {
@@ -514,17 +474,7 @@ void GS_send_error(int client_fd, const char *reason) {
 }
 
 void GS_destroy(GameServer *gs) {
-  Match *match = gs->match_head, *next = NULL;
-  while (match != NULL) {
-    next = match->next;
-    delete_match(match);
-    match = next;
-  }
-
-  for (int i = 0; i < MAX_CLIENTS; i++) {
-    if (gs->clients[i] == NULL)
-      continue;
-    delete_client(gs->clients[i]);
-  }
-  free(gs);
+  HT_destroy(gs->match_by_id);
+  HT_destroy(gs->match_by_client);
+  HT_destroy(gs->clients);
 }

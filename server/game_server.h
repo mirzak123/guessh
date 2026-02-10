@@ -2,6 +2,7 @@
 #define GAME_SERVER_H
 
 #include "game_types.h"
+#include "hash_table.h"
 #include <cjson/cJSON.h>
 #include <stddef.h>
 
@@ -59,8 +60,9 @@ typedef enum {
 } MessageType;
 
 typedef struct {
-  Match *match_head;
-  Client **clients; // TODO: Replace with actual map
+  HashTable *match_by_id;
+  HashTable *match_by_client;
+  HashTable *clients;
 } GameServer;
 
 GameServer *GS_create(void);
