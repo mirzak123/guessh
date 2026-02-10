@@ -4,10 +4,10 @@ CFLAGS := -std=c17 -Wall -Wextra -pedantic -I$(BREW_PREFIX)/include
 LDFLAGS := -L$(BREW_PREFIX)/lib -lcjson
 ASAN_FLAGS := -g -O0 -fsanitize=address -fno-omit-frame-pointer
 
-BUILD_DIR := ../bin
+BUILD_DIR := bin
 BUILD_NAME := server
 BUILD_TEST_NAME := server-test
-SRC := main.c network.c game_logic.c game_server.c game_types.c json_messages.c client.c util.c
+SRC := main.c network.c game_logic.c game_server.c game_types.c json_messages.c client.c util.c hash_table.c
 TEST_SRC := test.c game_logic.c hash_table.c
 
 CC := gcc
@@ -33,7 +33,7 @@ clean:
 debug-build:
 	$(CC) -g -O0 $(CFLAGS) $(LDFLAGS) $(SRC) -o $(BUILD_DIR)/$(BUILD_NAME)_debug
 
-debug-run: debug-build
+debug: debug-build
 	lldb -- $(BUILD_DIR)/$(BUILD_NAME)_debug
 
 test-debug: test-build
