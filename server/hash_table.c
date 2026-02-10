@@ -34,6 +34,10 @@ HashTable *HT_create(void) {
 }
 
 void HT_destroy(HashTable *table) {
+  for (int i = 0; i < table->capacity; i++)
+    if (table->entries[i].key.type == HT_KEY_STR)
+      free(table->entries[i].key.str);
+
   free(table->entries);
   free(table);
 }
@@ -56,6 +60,8 @@ void HT_set(HashTable *table, Key key, Value value) {
 }
 
 Value HT_get(HashTable *table, Key key) {
+  if (table->count == 0)
+    return NULL;
   Entry *entry = find_entry(table->entries, table->capacity, &key);
   return entry == NULL ? NULL : entry->value;
 }
