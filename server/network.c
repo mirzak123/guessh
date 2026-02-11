@@ -137,7 +137,7 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
   char incoming_buf[BUFSIZE];
 
   int client_fd = pfds[*pfd_i].fd;
-  Client *client = gs->clients[client_fd];
+  Client *client = GS_get_client(gs, client_fd);
 
   int nbytes = recv(client_fd, incoming_buf, BUFSIZE, 0);
 
@@ -151,13 +151,17 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
     close(client_fd);
     del_from_pfds(pfds, *pfd_i, fd_count);
 
+    Match *match = client->player->match;
     // Delete match if it exists
-    Match *match = GS_get_match_by_client_fd(gs, client_fd);
     if (match != NULL) {
       // TODO: Handle premature match end for multiplayer games better by notifying
       // the other client correctly on why the match ended
       GS_end_match(gs, match);
     }
+
+    free(client);
+    HT_delete(gs->clients, KEY(client_fd));
+    del_from_pfds(pfds, *pfd_i, fd_count);
 
     // re-examine slot as it contains a new fd after deletion
     (*pfd_i)--;
@@ -169,13 +173,14 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
 
   if ((client->buf_len + nbytes) - (client->buf_start - client->buffer) > BUFSIZE) {
     printf("[handle_client_data] error: buffer overflow\n");
-    close(client_fd);
-    del_from_pfds(pfds, *pfd_i, fd_count);
 
-    Match *match = GS_get_match_by_client_fd(gs, client_fd);
+    Match *match = client->player->match;
     if (match != NULL) {
       GS_end_match(gs, match);
     }
+
+    close(client_fd);
+    del_from_pfds(pfds, *pfd_i, fd_count);
     (*pfd_i)--;
     return;
   }

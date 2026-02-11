@@ -1,6 +1,7 @@
 #ifndef CLIENT_H
 #define CLIENT_H
 
+#include "game_types.h"
 #include <stddef.h>
 #include <stdint.h>
 
@@ -18,6 +19,7 @@ typedef struct {
   char *buf_start;
   size_t buf_len;
   uint32_t payload_size;
+  Player *player;
 } Client;
 
 Client *new_client(int client_fd);

@@ -1,7 +1,6 @@
 #ifndef GAME_TYPES_H
 #define GAME_TYPES_H
 
-#include "client.h"
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -15,16 +14,13 @@ typedef enum {
   MULTI_REMOTE,
 } GameMode;
 
-// BUG: Identifying playrs by file descriptor will produce issues since file descriptors are
-// reused after one player disconnects and another one joins.
-// Ideally should create a system to interact with players only through playerId, and
-// resolve the file descriptor at the last minute, when sending a message.
 typedef struct {
-  Client *client;
   struct Match *match;
+  char *name;
+  int client_fd;
 } Player;
 
-Player *new_player(Client *client, struct Match *match);
+Player *new_player(struct Match *match, char *name);
 void delete_player(Player *player);
 
 typedef struct {

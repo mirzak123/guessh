@@ -71,16 +71,18 @@ void delete_word_challenge(WordChallenge *wc) {
   free(wc);
 }
 
-Player *new_player(Client *client, Match *match) {
+Player *new_player(Match *match, char *name) {
   Player *player = malloc(sizeof(Player));
   if (player == NULL) {
     perror("malloc");
     return NULL;
   }
-
-  player->client = client;
   player->match = match;
+  player->name = name;
   return player;
 }
 
-void delete_player(Player *player) { free(player); }
+void delete_player(Player *player) {
+  free(player);
+  free(player->name);
+}
