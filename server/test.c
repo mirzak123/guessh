@@ -1,4 +1,5 @@
 #include "game_logic.h"
+#include "hash_table.h"
 #include "util.h"
 #include <assert.h>
 #include <stdint.h>

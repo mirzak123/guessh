@@ -86,7 +86,7 @@ void delete_word_challenge(WordChallenge *wc) {
   free(wc);
 }
 
-Player *new_player(int client_fd, char *name, Match *match) {
+Player *new_player(int client_fd, char *name) {
   Player *player = malloc(sizeof(Player));
   if (player == NULL) {
     perror("malloc");
@@ -94,7 +94,7 @@ Player *new_player(int client_fd, char *name, Match *match) {
   }
   player->client_fd = client_fd;
   player->name = name;
-  player->match = match;
+  player->match = NULL;
   return player;
 }
 

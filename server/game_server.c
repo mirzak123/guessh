@@ -87,7 +87,7 @@ void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request)
 
   printf("[GS_handle_create_match] json_request: %s\n", cJSON_PrintUnformatted(json_request));
 
-  if (client->player != NULL || client->player->match != NULL) {
+  if (client->player != NULL) {
     send_error(client->fd, E_ALREADY_IN_MATCH);
     return;
   }
@@ -158,10 +158,13 @@ void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request)
     return;
   }
 
+  Player *player = new_player(client->fd, "dummy"); // TODO: Resolve real name
+  client->player = player;
+
   if (match->mode == MULTI_REMOTE) {
     create_room(gs, match, client);
   }
-  add_player_to_match(match, client->player); // implicitly starts the match
+  add_player_to_match(match, player); // implicitly starts the match
 }
 
 static MessageType parse_message(char *data, size_t size, cJSON **json_out) {
@@ -273,13 +276,16 @@ void GS_handle_join_room(GameServer *gs, Client *client, cJSON *json_request) {
     send_error(client->fd, E_ROOM_FULL);
     return;
   }
-  room->player2 = client->player;
+
+  Player *player = new_player(client->fd, "dummy2");
+  client->player = player;
+  room->player2 = player;
 
   cJSON *room_joined_json = json_room_joined(room_id);
   send_json(client->fd, room_joined_json);
   cJSON_Delete(room_joined_json);
 
-  add_player_to_match(room->match, room->player2);
+  add_player_to_match(room->match, player);
 }
 
 static void add_player_to_match(Match *match, Player *player) {
@@ -303,6 +309,7 @@ static void add_player_to_match(Match *match, Player *player) {
     break;
   }
 
+  player->match = match;
   if (can_start) {
     start_match(match);
   }
@@ -447,7 +454,7 @@ static void start_match(Match *match) {
     send_json(match->player2->client_fd, match_started_json);
   case SINGLE:
     assert(match->player1 != NULL);
-    send_json(match->player2->client_fd, match_started_json);
+    send_json(match->player1->client_fd, match_started_json);
   }
 
   cJSON_Delete(match_started_json);

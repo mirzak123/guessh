@@ -19,7 +19,7 @@ typedef struct {
   struct Match *match;
 } Player;
 
-Player *new_player(int client_fd, char *name, struct Match *match);
+Player *new_player(int client_fd, char *name);
 void delete_player(Player *player);
 
 typedef struct {

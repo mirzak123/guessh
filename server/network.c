@@ -155,6 +155,9 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
     if (match != NULL) {
       // TODO: Handle premature match end for multiplayer games better by notifying
       // the other client correctly on why the match ended
+
+      // TODO: Don't send to the client that just disconnected.
+      // "send: bad file descriptor"
       GS_end_match(match);
     }
 
