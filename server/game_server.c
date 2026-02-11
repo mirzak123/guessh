@@ -16,6 +16,7 @@ static void start_match(Match *match);
 static void start_round(Match *match);
 static void end_round(Match *match);
 static void add_player_to_match(Match *match, Player *player);
+static void create_room(GameServer *gs, Match *match, Client *client);
 
 GameServer *GS_create(void) {
   GameServer *gs;
@@ -55,13 +56,10 @@ void GS_handle_request(GameServer *gs, Client *client) {
     send_error(client->fd, E_MALFORMED_MESSAGE);
     return;
   case CREATE_MATCH:
-    GS_handle_create_match(client, json_request);
-    break;
-  case CREATE_ROOM:
-    GS_handle_create_room(gs, client);
+    GS_handle_create_match(gs, client, json_request);
     break;
   case JOIN_ROOM:
-    send_error(client->fd, E_NOT_IMPLEMENTED);
+    GS_handle_join_room(gs, client, json_request);
     break;
   case MAKE_GUESS:
     GS_handle_make_guess(client, json_request);
@@ -80,7 +78,7 @@ void GS_handle_request(GameServer *gs, Client *client) {
   cJSON_Delete(json_request);
 }
 
-void GS_handle_create_match(Client *client, cJSON *json_request) {
+void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request) {
   Match *match = NULL;
   cJSON *rounds_json = NULL, *mode_json = NULL, *word_len_json = NULL;
   size_t rounds, word_len;
@@ -160,6 +158,9 @@ void GS_handle_create_match(Client *client, cJSON *json_request) {
     return;
   }
 
+  if (match->mode == MULTI_REMOTE) {
+    create_room(gs, match, client);
+  }
   add_player_to_match(match, client->player); // implicitly starts the match
 }
 
@@ -189,8 +190,6 @@ static MessageType parse_message(char *data, size_t size, cJSON **json_out) {
 
   if (!strcmp("BYE", type)) {
     mt = BYE;
-  } else if (!strcmp("CREATE_ROOM", type)) {
-    mt = CREATE_ROOM;
   } else if (!strcmp("CREATE_MATCH", type)) {
     mt = CREATE_MATCH;
   } else if (!strcmp("JOIN_ROOM", type)) {
@@ -232,15 +231,50 @@ static MessageType parse_message(char *data, size_t size, cJSON **json_out) {
   return mt;
 }
 
-void GS_handle_create_room(GameServer *gs, Client *client) {
+void create_room(GameServer *gs, Match *match, Client *client) {
   Room *room = new_room();
+  printf("[create_room] room created with id: %s", room->id);
   HT_set(gs->rooms, KEY(room->id), room);
+
+  room->match = match;
   room->player1 = client->player;
-  printf("[GS_handle_create_room] room created with id: %s", room->id);
 
   cJSON *room_created_json = json_room_created(room->id);
   send_json(client->fd, room_created_json);
   cJSON_Delete(room_created_json);
+}
+
+void GS_handle_join_room(GameServer *gs, Client *client, cJSON *json_request) {
+  Room *room;
+  char *room_id;
+  cJSON *room_id_json = cJSON_GetObjectItem(json_request, "roomId");
+  if (room_id_json == NULL) {
+    send_error(client->fd, E_MISSING_FIELD("roomId"));
+    return;
+  }
+
+  if (!cJSON_IsString(room_id_json)) {
+    send_error(client->fd, E_INVALID_TYPE("roomId", STRING));
+    return;
+  }
+
+  room_id = cJSON_GetStringValue(room_id_json);
+  room = (Room *)HT_get(gs->rooms, KEY(room_id));
+
+  if (room == NULL) {
+    cJSON *room_join_failed_json = json_room_join_failed(room_id, E_ROOM_NOT_FOUND);
+    send_json(client->fd, room_join_failed_json);
+    cJSON_Delete(room_join_failed_json);
+    return;
+  }
+
+  assert(room->player1 != NULL);
+  if (room->player2 != NULL) {
+    send_error(client->fd, E_ROOM_FULL);
+    return;
+  }
+  room->player2 = client->player;
+  add_player_to_match(room->match, room->player2);
 }
 
 static void add_player_to_match(Match *match, Player *player) {

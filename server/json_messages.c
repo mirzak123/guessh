@@ -18,6 +18,21 @@ cJSON *json_room_created(const char *room_id) {
   return json;
 }
 
+cJSON *json_room_joined(const char *room_id) {
+  cJSON *json = cJSON_CreateObject();
+  cJSON_AddStringToObject(json, "type", STR(ROOM_JOINED));
+  cJSON_AddStringToObject(json, "roomId", room_id);
+  return json;
+}
+
+cJSON *json_room_join_failed(const char *room_id, const char *reason) {
+  cJSON *json = cJSON_CreateObject();
+  cJSON_AddStringToObject(json, "type", STR(ROOM_CREATED));
+  cJSON_AddStringToObject(json, "roomId", room_id);
+  cJSON_AddStringToObject(json, "reason", reason);
+  return json;
+}
+
 cJSON *json_match_started(const char *match_id, int rounds, size_t word_len) {
   cJSON *json = cJSON_CreateObject();
   cJSON_AddStringToObject(json, "type", STR(MATCH_STARTED));

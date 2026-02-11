@@ -8,6 +8,7 @@ typedef struct {
   char *id;
   Player *player1;
   Player *player2;
+  Match *match;
 } Room;
 
 Room *new_room(void);

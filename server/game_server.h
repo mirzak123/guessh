@@ -30,13 +30,14 @@
 #define E_NOT_ON_TURN "Opponent is currently on turn"
 #define E_UNSUPPORTED_MODE "Unsupported mode"
 #define E_PLAYER_NOT_IN_MATCH "Player is not in an active match"
+#define E_ROOM_FULL "Room is full"
+#define E_ROOM_NOT_FOUND "Room could not be found"
 
 typedef enum {
   MALFORMED_MESSAGE = -1,
   UNSUPPORTED_MESSAGE_TYPE,
 
   // Client
-  CREATE_ROOM,
   CREATE_MATCH,
   JOIN_ROOM,
   MAKE_GUESS,
@@ -69,9 +70,9 @@ GameServer *GS_create(void);
 void GS_destroy(GameServer *gs);
 
 void GS_handle_request(GameServer *gs, Client *client);
-void GS_handle_create_room(GameServer *gs, Client *client);
-void GS_handle_create_match(Client *client, cJSON *json_request);
+void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request);
 void GS_handle_make_guess(Client *client, cJSON *json_request);
+void GS_handle_join_room(GameServer *gs, Client *client, cJSON *json_request);
 void GS_end_match(Match *match); // TODO: There is probably a better place for this
 
 #endif // !GAME_SERVER_H

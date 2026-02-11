@@ -4,13 +4,13 @@
 
 Room *new_room(void) {
   Room *room = malloc(sizeof(Room));
-  room->room_id = generate_random_string(ROOM_ID_LEN);
+  room->id = generate_random_string(ROOM_ID_LEN);
   room->player1 = NULL;
   room->player2 = NULL;
   return room;
 }
 
 void delete_room(Room *room) {
-  free(room->room_id);
+  free(room->id);
   free(room);
 }
