@@ -274,6 +274,11 @@ void GS_handle_join_room(GameServer *gs, Client *client, cJSON *json_request) {
     return;
   }
   room->player2 = client->player;
+
+  cJSON *room_joined_json = json_room_joined(room_id);
+  send_json(client->fd, room_joined_json);
+  cJSON_Delete(room_joined_json);
+
   add_player_to_match(room->match, room->player2);
 }
 
