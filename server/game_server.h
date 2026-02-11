@@ -61,35 +61,16 @@ typedef enum {
 } MessageType;
 
 typedef struct {
-  HashTable *match_by_id;
   HashTable *clients;
 } GameServer;
-// TODO: Update all functions to receive 'Client *client' instead of 'int client_fd'
 
 GameServer *GS_create(void);
-void GS_handle_request(GameServer *gs, int client_fd, char *data, size_t size);
 void GS_destroy(GameServer *gs);
-MessageType GS_parse_message(char *data, size_t size, cJSON **out);
 
-// TODO: Should these two be in GameServer if they don't require a GS instance?
-void GS_start_match(Match *match);
-void GS_start_round(Match *match);
-
-void GS_end_match(GameServer *gs, Match *match);
-void GS_end_round(GameServer *gs, Match *match, Player *player, Player *opponent);
-void GS_add_player_client(GameServer *gs, Match *match, int client_fd);
-void GS_add_player_to_match(GameServer *gs, Match *match, int client_fd);
-
-// send message
-void GS_send_json(int client_fd, cJSON *json);
-void GS_send_only_type(int client_fd, const char *type);
-void GS_send_error(int client_fd, const char *reason);
-
-// message handlers
-void GS_handle_create_room(GameServer *gs, int client_fd);
-void GS_handle_create_match(GameServer *gs, int client_fd, cJSON *json_request);
-void GS_handle_make_guess(GameServer *gs, int client_fd, cJSON *json_request);
-
-Client *GS_get_client(GameServer *gs, int client_fd);
+void GS_handle_request(GameServer *gs, Client *client);
+void GS_handle_create_room(GameServer *gs, Client *client);
+void GS_handle_create_match(Client *client, cJSON *json_request);
+void GS_handle_make_guess(Client *client, cJSON *json_request);
+void GS_end_match(Match *match); // TODO: There is probably a better place for this
 
 #endif // !GAME_SERVER_H

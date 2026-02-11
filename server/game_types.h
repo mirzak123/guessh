@@ -14,12 +14,12 @@ typedef enum {
 } GameMode;
 
 typedef struct {
-  struct Match *match;
-  char *name;
   int client_fd;
+  char *name;
+  struct Match *match;
 } Player;
 
-Player *new_player(struct Match *match, char *name);
+Player *new_player(int client_fd, char *name, struct Match *match);
 void delete_player(Player *player);
 
 typedef struct {

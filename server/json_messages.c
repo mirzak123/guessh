@@ -61,6 +61,7 @@ cJSON *json_round_finished(bool success, const char *word) {
 cJSON *json_match_finished(const char *winner) {
   cJSON *json = cJSON_CreateObject();
   cJSON_AddStringToObject(json, "type", STR(MATCH_FINISHED));
+  // TODO: Add outcome field
   cJSON_AddStringToObject(json, "winner", winner);
   return json;
 }

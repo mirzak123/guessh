@@ -137,7 +137,7 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
   char incoming_buf[BUFSIZE];
 
   int client_fd = pfds[*pfd_i].fd;
-  Client *client = GS_get_client(gs, client_fd);
+  Client *client = (Client *)HT_get(gs->clients, KEY(client_fd));
 
   int nbytes = recv(client_fd, incoming_buf, BUFSIZE, 0);
 
@@ -155,7 +155,7 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
     if (match != NULL) {
       // TODO: Handle premature match end for multiplayer games better by notifying
       // the other client correctly on why the match ended
-      GS_end_match(gs, match);
+      GS_end_match(match);
     }
 
     free(client);
@@ -175,7 +175,7 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
 
     Match *match = client->player->match;
     if (match != NULL) {
-      GS_end_match(gs, match);
+      GS_end_match(match);
     }
 
     close(client_fd);
@@ -218,7 +218,7 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
         break;
       }
 
-      GS_handle_request(gs, client_fd, client->buf_start, client->payload_size);
+      GS_handle_request(gs, client);
 
       client->buf_start += client->payload_size;
       client->buf_len -= client->payload_size;
