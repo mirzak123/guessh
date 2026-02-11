@@ -19,6 +19,7 @@ GameServer *GS_create(void) {
   }
 
   gs->match_by_id = HT_create();
+  gs->match_by_client = HT_create();
   gs->clients = HT_create();
 
   return gs;
@@ -224,14 +225,8 @@ void GS_handle_create_match(GameServer *gs, int client_fd, cJSON *json_request) 
     return;
   }
 
-  if (gs->match_head == NULL) {
-    printf("[GS_handle_create_match] No existing matches, setting gs->match_head to (%p)\n", (void *)match);
-    gs->match_head = match;
-  } else {
-    printf("[GS_handle_create_match] Chaining matches...\n");
-    match->next = gs->match_head;
-    gs->match_head = match;
-  }
+  printf("[GS_handle_create_match] Chaining match with id: %s\n", match->id);
+  HT_set(gs->match_by_id, KEY(match->id), match);
 
   // TODO: make GS_add_player_to_match return an indicator whether we can start the match,
   // and start the match here explicitly.
@@ -244,7 +239,7 @@ void GS_add_player_client(GameServer *gs, Match *match, int client_fd) {
 
 void GS_add_player_to_match(GameServer *gs, Match *match, int client_fd) {
   Client *client = (Client *)HT_get(gs->clients, KEY(client_fd));
-  Player *player = new_player(match, "unknown"); // TODO: Add username
+  Player *player = new_player(client, match);
 
   if (player == NULL) {
     printf("[GS_add_player_to_match] error: new_player() returned NULL\n");
@@ -270,6 +265,8 @@ void GS_add_player_to_match(GameServer *gs, Match *match, int client_fd) {
     printf("[GS_add_player_to_match] error: trying to add a player to a match that has 2 players\n");
     return;
   }
+
+  HT_set(gs->match_by_client, KEY(client_fd), match);
 }
 
 void GS_handle_make_guess(GameServer *gs, int client_fd, cJSON *json_request) {
@@ -374,7 +371,6 @@ void GS_end_round(GameServer *gs, Match *match, Player *player, Player *opponent
 }
 
 void GS_end_match(GameServer *gs, Match *match) {
-  Match *current = NULL;
   cJSON *match_finished_json = json_match_finished("unknown"); // TODO: resolve the winner
 
   printf("[GS_end_match] Ending match: (%s)...\n", match->id);
@@ -386,25 +382,7 @@ void GS_end_match(GameServer *gs, Match *match) {
   }
   cJSON_Delete(match_finished_json);
 
-  /* Delete match */
-  // 1 match
-  if (gs->match_head == match) {
-    printf("[GS_end_match] Only one match left, deleting gs->match_head: (%p)\n", (void *)gs->match_head);
-    gs->match_head = NULL;
-    printf("[GS_end_match] New gs->head: (%p)\n", (void *)gs->match_head);
-    delete_match(match);
-    return;
-  }
-
-  // More than 1 match
-  current = gs->match_head;
-  while (current) {
-    if (current->next == match) {
-      current->next = match->next;
-      break;
-    }
-    current = current->next;
-  }
+  HT_delete(gs->match_by_id, KEY(match->id));
   delete_match(match);
 }
 

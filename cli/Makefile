@@ -1,5 +1,5 @@
-BUILD_DIR=../bin
-BUILD_NAME=guessh-cli
+BUILD_DIR = bin
+BUILD_NAME = guessh-cli
 
 all: build run
 

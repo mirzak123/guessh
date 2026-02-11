@@ -2,10 +2,11 @@ package client
 
 import (
 	"encoding/json"
+	"guessh/internal/logger"
 	"guessh/internal/protocol"
 	"guessh/internal/transport"
-	"log"
 	"net"
+	"os"
 )
 
 type Client struct {
@@ -26,7 +27,8 @@ func (c *Client) CreateMatch(mode protocol.GameMode, wordLen, rounds int) {
 
 	createMatchMsg := protocol.NewCreateMatchMessage(mode, wordLen, rounds)
 	if msg, err = json.Marshal(createMatchMsg); err != nil {
-		log.Fatalf("[Client.CreateMatch] Failed to marshal CreateMatchMessage: %v", err)
+		logger.Error("[Client.CreateMatch] Failed to marshal CreateMatchMessage: %v", err)
+		os.Exit(1)
 	}
 
 	c.send(msg)
@@ -40,15 +42,16 @@ func (c *Client) MakeGuess(guess string) {
 
 	makeGuessMsg := protocol.NewMakeGuessMessage(guess)
 	if msg, err = json.Marshal(makeGuessMsg); err != nil {
-		log.Fatalf("[Client.MakeGuess] Failed to marshal CreateMatchMessage: %v", err)
+		logger.Error("[Client.MakeGuess] Failed to marshal CreateMatchMessage: %v", err)
+		os.Exit(1)
 	}
 
 	c.send(msg)
 }
 
 func (c *Client) send(payload []byte) {
-	log.Printf("[Client.send] Sending message: %s", payload)
+	logger.Info("[Client.send] Sending message: %s", payload)
 	if _, err := transport.SendMessage(c.Conn, payload); err != nil {
-		log.Printf("[Client.send] Failed to send message: %v", err)
+		logger.Error("[Client.send] Failed to send message: %v", err)
 	}
 }

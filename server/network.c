@@ -2,6 +2,7 @@
 #include "client.h"
 #include "game_server.h"
 #include "game_types.h"
+#include "hash_table.h"
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -127,7 +128,7 @@ void handle_new_connection(GameServer *gs, int listen_fd, int *fd_size, int *fd_
 
   add_to_pfds(pfds, client_fd, fd_size, fd_count);
 
-  gs->clients[client_fd] = new_client(client_fd);
+  HT_set(gs->clients, KEY(client_fd), new_client(client_fd));
 }
 
 /*
@@ -149,7 +150,6 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
     }
 
     close(client_fd);
-    del_from_pfds(pfds, *pfd_i, fd_count);
 
     Match *match = client->player->match;
     // Delete match if it exists

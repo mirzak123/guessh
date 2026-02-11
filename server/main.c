@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/errno.h>
 #include <sys/poll.h>
 #include <sys/socket.h>
 #include <time.h>
@@ -35,6 +36,9 @@ int main(void) {
     int poll_count = poll(pfds, fd_count, -1);
 
     if (poll_count == -1) {
+      if (errno == EINTR)
+        // HACK: Stop poll crashing program while inserting a breakpoint when debugging
+        continue;
       perror("poll");
       exit(1);
     }

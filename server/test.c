@@ -1,6 +1,7 @@
 #include "game_logic.h"
 #include "util.h"
 #include <assert.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,6 +10,8 @@
 #define WORD_LEN 5
 
 void test_evaluate_guess(void);
+void test_hash_table(void);
+
 void assert_feedback(LetterFeedback *feedback, LetterFeedback *expected);
 void print_feedback(LetterFeedback *feedback);
 void test_generate_random_string(void);
@@ -16,6 +19,7 @@ void test_generate_random_string(void);
 int main(void) {
   srand(time(NULL));
   test_evaluate_guess();
+  test_hash_table();
 
   return 0;
 }
@@ -77,6 +81,46 @@ void test_evaluate_guess(void) {
   r = evaluate_guess("tutti", "totem", feedback, WORD_LEN);
   assert_feedback(feedback, (LetterFeedback[]){2, 0, 2, 0, 0});
   assert(r == 0);
+}
+
+void test_hash_table(void) {
+  Value value;
+  char *value_str = "Hello world";
+  int value_int = 1000, count = 0;
+
+  HashTable *table = HT_create();
+  assert(table != NULL);
+
+  HT_set(table, KEY("key"), &value_int);
+  count++;
+  value = HT_get((table), KEY("key"));
+  assert(*(int *)value == value_int);
+  assert(table->capacity == 8);
+
+  for (int i = count + 1; i < 10; i++) {
+    HT_set(table, KEY(i), value_str);
+    count++;
+    value = HT_get(table, KEY(i));
+    assert(!strcmp((char *)value, value_str));
+
+    if (i <= 6)
+      assert(table->capacity == 8);
+    else
+      assert(table->capacity == 16);
+  }
+
+  int x = 7;
+  HT_set(table, KEY(x), value_str);
+  assert(value_str == HT_get(table, KEY(x)));
+  HT_delete(table, KEY(x));
+  assert(NULL == HT_get(table, KEY(x)));
+
+  // Find nonexistent
+  value = HT_get(table, KEY("nonexistent"));
+  assert(value == NULL);
+  assert(table->capacity == 16);
+
+  HT_destroy(table);
 }
 
 void assert_feedback(LetterFeedback *feedback, LetterFeedback *expected) {
