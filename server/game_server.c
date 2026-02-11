@@ -337,7 +337,7 @@ void GS_handle_make_guess(GameServer *gs, int client_fd, cJSON *json_request) {
   free(feedback);
 
   if (!success && !(round->wc->attempt_count >= round->wc->max_attempts)) {
-    if (match->mode == MULTI_REMOTE) { // TODO: Maybe also for MULTI_LOCAL?
+    if (match->mode == MULTI_REMOTE) {
       round->on_turn = opponent;
     }
     return;

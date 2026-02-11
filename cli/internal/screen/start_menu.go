@@ -17,7 +17,6 @@ const (
 
 var GameModeLabels = map[protocol.GameMode]string{
 	protocol.SINGLE:       "Single player",
-	protocol.MULTI_LOCAL:  "Two player local",
 	protocol.MULTI_REMOTE: "Two player remote",
 }
 
@@ -30,13 +29,12 @@ func NewStartMenu(matchInfo *MatchInfo) (*huh.Form, *bool) {
 				Title("Are you lonely?").
 				Options(
 					huh.NewOption(GameModeLabels[protocol.SINGLE], protocol.SINGLE),
-					huh.NewOption(GameModeLabels[protocol.MULTI_LOCAL], protocol.MULTI_LOCAL),
 					huh.NewOption(GameModeLabels[protocol.MULTI_REMOTE], protocol.MULTI_REMOTE),
 				).
 				Value(&matchInfo.mode),
 
 			huh.NewSelect[int]().
-				Title("How many letters are we feeling?").
+				Title("How many letters?").
 				Options(
 					huh.NewOption("Five", 5),
 					huh.NewOption("Six", 6),

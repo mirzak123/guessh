@@ -10,7 +10,6 @@ typedef enum { TIE, PLAYER1_WINS, PLAYER2_WINS } Outcome;
 
 typedef enum {
   SINGLE,
-  MULTI_LOCAL,
   MULTI_REMOTE,
 } GameMode;
 

@@ -3,7 +3,7 @@
 
 #include "client.h"
 #include "game_types.h"
-#include "room.h"
+#include "hash_table.h"
 #include <cjson/cJSON.h>
 #include <stddef.h>
 

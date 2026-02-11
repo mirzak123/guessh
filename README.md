@@ -33,17 +33,15 @@ Find a better way to represent flow below 🙏🙏🙏
     - Single player
       1. How many rounds? (number input)
       2. How many letters? (number input)
-    - Multi player
-      1. Choose mode
-         - Local (same terminal session)
-           1. How many rounds? (number input)
-           2. How many letters? (number input)
-         - Remote
-           1. Session:
-              - Join existing room (room code input)
-              - Create new room
-                1. How many rounds? (number input)
-                2. How many letters? (number input)
+    - Two player remote
+      1. Session:
+         - Join existing room
+           1. Name (string input)
+           2. Room key (string input)
+         - Create new room
+           1. Name (string input)
+           2. How many rounds? (number input)
+           3. How many letters? (number input)
 
 ## Client-Server Protocol
 

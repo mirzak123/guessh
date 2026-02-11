@@ -1,6 +1,5 @@
 #include "network.h"
 #include "client.h"
-#include "game_server.h"
 #include "game_types.h"
 #include "hash_table.h"
 #include <arpa/inet.h>
