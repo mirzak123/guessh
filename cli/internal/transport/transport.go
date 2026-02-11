@@ -2,8 +2,8 @@ package transport
 
 import (
 	"encoding/binary"
+	"guessh/internal/logger"
 	"io"
-	"log"
 	"net"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -18,14 +18,14 @@ func ListenForActivity(conn net.Conn, msg chan EventMsg) tea.Cmd {
 		for {
 			var length uint32
 			if err := binary.Read(conn, binary.BigEndian, &length); err != nil {
-				log.Printf("[ListenForActivity] error: %v", err)
+				logger.Error("[ListenForActivity] error: %v", err)
 				return err
 			}
 
 			buffer := make([]byte, length)
 
 			if _, err := io.ReadFull(conn, buffer); err != nil {
-				log.Printf("[ListenForActivity] error: %v", err)
+				logger.Error("[ListenForActivity] error: %v", err)
 				return err
 			}
 			msg <- EventMsg(buffer)

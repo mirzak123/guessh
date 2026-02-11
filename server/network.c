@@ -2,6 +2,7 @@
 #include "client.h"
 #include "game_server.h"
 #include "game_types.h"
+#include "hash_table.h"
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -127,7 +128,7 @@ void handle_new_connection(GameServer *gs, int listen_fd, int *fd_size, int *fd_
 
   add_to_pfds(pfds, client_fd, fd_size, fd_count);
 
-  gs->clients[client_fd] = new_client(client_fd);
+  HT_set(gs->clients, KEY(client_fd), new_client(client_fd));
 }
 
 /*
@@ -137,7 +138,7 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
   char incoming_buf[BUFSIZE];
 
   int client_fd = pfds[*pfd_i].fd;
-  Client *client = gs->clients[client_fd];
+  Client *client = (Client *)HT_get(gs->clients, KEY(client_fd));
 
   int nbytes = recv(client_fd, incoming_buf, BUFSIZE, 0);
 
@@ -149,7 +150,6 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
     }
 
     close(client_fd);
-    del_from_pfds(pfds, *pfd_i, fd_count);
 
     // Delete match if it exists
     Match *match = GS_get_match_by_client_fd(gs, client_fd);
@@ -158,6 +158,10 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
       // the other client correctly on why the match ended
       GS_end_match(gs, match);
     }
+
+    free((Client *)HT_get(gs->clients, KEY(client_fd)));
+    HT_delete(gs->clients, KEY(client_fd));
+    del_from_pfds(pfds, *pfd_i, fd_count);
 
     // re-examine slot as it contains a new fd after deletion
     (*pfd_i)--;
