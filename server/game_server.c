@@ -2,7 +2,9 @@
 #include "client.h"
 #include "game_logic.h"
 #include "game_types.h"
+#include "hash_table.h"
 #include "json_messages.h"
+#include "room.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,11 +27,13 @@ GameServer *GS_create(void) {
   }
 
   gs->clients = HT_create();
+  gs->rooms = HT_create();
 
   return gs;
 }
 
 void GS_destroy(GameServer *gs) {
+  HT_destroy(gs->rooms);
   HT_destroy(gs->clients);
   free(gs);
 }
@@ -54,7 +58,7 @@ void GS_handle_request(GameServer *gs, Client *client) {
     GS_handle_create_match(client, json_request);
     break;
   case CREATE_ROOM:
-    // GS_handle_create_room(gs, client);
+    GS_handle_create_room(gs, client);
     break;
   case JOIN_ROOM:
     send_error(client->fd, E_NOT_IMPLEMENTED);
@@ -228,13 +232,16 @@ static MessageType parse_message(char *data, size_t size, cJSON **json_out) {
   return mt;
 }
 
-// void GS_handle_create_room(GameServer *gs, int client_fd) {
-//   Room *room = Room_create();
-//   cJSON *room_created_json = json_room_created(room->room_id);
-//
-//   send_json(client_fd, room_created_json);
-//   cJSON_Delete(room_created_json);
-// }
+void GS_handle_create_room(GameServer *gs, Client *client) {
+  Room *room = new_room();
+  HT_set(gs->rooms, KEY(room->id), room);
+  room->player1 = client->player;
+  printf("[GS_handle_create_room] room created with id: %s", room->id);
+
+  cJSON *room_created_json = json_room_created(room->id);
+  send_json(client->fd, room_created_json);
+  cJSON_Delete(room_created_json);
+}
 
 static void add_player_to_match(Match *match, Player *player) {
   int can_start = 0;

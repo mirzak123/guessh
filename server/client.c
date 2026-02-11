@@ -17,6 +17,7 @@ Client *new_client(int client_fd) {
   client->buf_len = 0;
   client->payload_size = 0;
   client->state = READING_LENGTH;
+  client->player = NULL;
 
   return client;
 }

@@ -62,6 +62,7 @@ typedef enum {
 
 typedef struct {
   HashTable *clients;
+  HashTable *rooms;
 } GameServer;
 
 GameServer *GS_create(void);
