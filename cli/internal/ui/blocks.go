@@ -8,26 +8,22 @@ import (
 )
 
 var (
-	green  = "46"
-	yellow = "226"
-	gray   = "7"
-
 	baseLetterStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			Bold(true).
 			Padding(0, 1)
 
 	correctStyle = baseLetterStyle.
-			BorderForeground(lipgloss.Color(green)).
-			Foreground(lipgloss.Color(green))
+			BorderForeground(lipgloss.Color(Green)).
+			Foreground(lipgloss.Color(Green))
 
 	presentStyle = baseLetterStyle.
-			BorderForeground(lipgloss.Color(yellow)).
-			Foreground(lipgloss.Color(yellow))
+			BorderForeground(lipgloss.Color(Yellow)).
+			Foreground(lipgloss.Color(Yellow))
 
 	absentStyle = baseLetterStyle.
-			BorderForeground(lipgloss.Color(gray)).
-			Foreground(lipgloss.Color(gray))
+			BorderForeground(lipgloss.Color(Gray)).
+			Foreground(lipgloss.Color(Gray))
 )
 
 func ViewGuessedRow(g *protocol.Guess) string {
