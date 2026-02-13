@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"guessh/internal/protocol"
+	"guessh/internal/ui"
 	"strconv"
 
 	"github.com/charmbracelet/huh"
@@ -58,17 +59,51 @@ func NewStartMenu(matchInfo *MatchInfo) (*huh.Form, *bool) {
 		),
 
 		huh.NewGroup(
+			huh.NewInput().Title("Player name ").Value(&matchInfo.playerName),
+			huh.NewInput().Title("Room ID ").Value(&matchInfo.roomID).Description("Creates a new room if left empty"),
+		).WithHideFunc(func() bool {
+			return matchInfo.mode != protocol.MULTI_REMOTE
+		}),
+
+		huh.NewGroup(
 			huh.NewConfirm().
-				Title("Start match?").
-				DescriptionFunc(func() string {
-					return fmt.Sprintf(
-						"mode:             \t%s\n"+
-							"word length:      \t%d\n"+
-							"number of rounds: \t%s",
-						GameModeLabels[matchInfo.mode], matchInfo.wordLen, matchInfo.rawTotalRounds)
+				TitleFunc(func() string {
+					if matchInfo.mode == protocol.MULTI_REMOTE {
+						if matchInfo.roomID != "" {
+							return fmt.Sprintf("Join room %s ?", lipgloss.NewStyle().Foreground(lipgloss.Color(ui.Gray)).Render(matchInfo.roomID))
+						} else {
+							return "Create new room?"
+						}
+					} else {
+						return "Start match?"
+					}
 				}, nil).
 				Value(&confirm).WithButtonAlignment(lipgloss.Left),
-		).WithHeight(6),
+
+			huh.NewNote().
+				Title("Summary").
+				DescriptionFunc(func() string {
+					labelStyle := lipgloss.NewStyle().Bold(true)
+					valueStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(ui.Gray))
+
+					line := func(label, value string) string {
+						return labelStyle.Render(label) + valueStyle.Render(value)
+					}
+
+					var lines []string
+					lines = append(lines, line("Mode: ", GameModeLabels[matchInfo.mode]))
+					lines = append(lines, line("Word length: ", fmt.Sprintf("%d", matchInfo.wordLen)))
+					lines = append(lines, line("Rounds: ", matchInfo.rawTotalRounds))
+
+					if matchInfo.mode == protocol.MULTI_REMOTE {
+						lines = append(lines, line("Player name: ", matchInfo.playerName))
+						lines = append(lines, line("Room ID: ", matchInfo.roomID))
+					}
+
+					return lipgloss.JoinVertical(lipgloss.Left, lines...)
+
+				}, &matchInfo.roomID).Height(10),
+		),
 	)
 
 	return form, &confirm

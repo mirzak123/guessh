@@ -36,6 +36,7 @@ bool evaluate_guess(const char *guess_word, const char *target_word, LetterFeedb
   return 0;
 }
 
+// TODO: Open all word files once and reuse them
 char *get_random_word(int word_len) {
   int fd, offset;
   char *word;

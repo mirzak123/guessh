@@ -39,6 +39,9 @@ type MatchInfo struct {
 	totalRounds    int
 	maxAttempts    int
 	roundsWon      int
+	playerName     string
+	roomID         string
+	joinExisting   bool
 }
 
 func NewMatchInfo() *MatchInfo {
