@@ -6,6 +6,7 @@ import (
 	"guessh/internal/protocol"
 	"guessh/internal/ui"
 	"strconv"
+	"strings"
 
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
@@ -59,8 +60,28 @@ func NewStartMenu(matchInfo *MatchInfo) (*huh.Form, *bool) {
 		),
 
 		huh.NewGroup(
-			huh.NewInput().Title("Player name ").Value(&matchInfo.playerName),
-			huh.NewInput().Title("Room ID ").Value(&matchInfo.roomID).Description("Creates a new room if left empty"),
+			huh.NewInput().
+				Title("Player name ").
+				Value(&matchInfo.playerName).
+				Validate(func(str string) error {
+					if matchInfo.playerName == "" {
+						return errors.New("name must not be empty")
+					}
+					return nil
+				}),
+			huh.NewInput().
+				Title("Room ID ").
+				Value(&matchInfo.roomID).
+				Description("Creates a new room if left empty").
+				Validate(func(str string) error {
+					matchInfo.roomID = strings.ToUpper(str)
+
+					if len(str) != protocol.ROOM_ID_LENGTH {
+						return fmt.Errorf("room ID must be %d characters long", protocol.ROOM_ID_LENGTH)
+					}
+					return nil
+				}).
+				CharLimit(protocol.ROOM_ID_LENGTH),
 		).WithHideFunc(func() bool {
 			return matchInfo.mode != protocol.MULTI_REMOTE
 		}),
@@ -78,7 +99,8 @@ func NewStartMenu(matchInfo *MatchInfo) (*huh.Form, *bool) {
 						return "Start match?"
 					}
 				}, nil).
-				Value(&confirm).WithButtonAlignment(lipgloss.Left),
+				Value(&confirm).
+				WithButtonAlignment(lipgloss.Left),
 
 			huh.NewNote().
 				Title("Summary").
