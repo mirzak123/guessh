@@ -114,7 +114,6 @@ func (m gameModel) Init() tea.Cmd {
 }
 
 func (m gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	logger.Debug("Update(%v)", msg)
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
@@ -145,7 +144,6 @@ func (m gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case transport.EventMsg:
-		logger.Debug("State: %d", m.state)
 		logger.Info("New event received: %s\n", string(msg))
 
 		m, msgFromEvent := m.handleEvent(msg)
@@ -169,7 +167,6 @@ func (m gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m gameModel) View() string {
-	logger.Debug("View()")
 	var body, header, footer string
 
 	guessGrid := ui.ViewGuessGrid(m.guesses, m.input.Value(), m.matchInfo.maxAttempts, m.matchInfo.wordLen)
@@ -282,6 +279,19 @@ func (m gameModel) handleEvent(eventMsg transport.EventMsg) (gameModel, tea.Msg)
 			roundsPlayed: m.matchInfo.totalRounds,
 			roundsWon:    m.matchInfo.roundsWon,
 		}
+
+	case protocol.ROOM_CREATED:
+		roomCreatedEvent := &protocol.RoomCreatedMessage{}
+
+		if err := json.Unmarshal(msg, roomCreatedEvent); err != nil {
+			logger.Error("[handleEvent] error unmarshaling RoomCreatedMessage: %v", err)
+			return m, nil
+		}
+
+		return m, RoomCreatedMsg{
+			roomID: roomCreatedEvent.RoomID,
+		}
+
 	}
 
 	return m, nil

@@ -5,7 +5,6 @@ type MessageType string
 const (
 	CREATE_MATCH        MessageType = "CREATE_MATCH"
 	JOIN_ROOM           MessageType = "JOIN_ROOM"
-	CREATE_ROOM         MessageType = "CREATE_ROOM"
 	MAKE_GUESS          MessageType = "MAKE_GUESS"
 	REQUEST_REMATCH     MessageType = "REQUEST_REMATCH"
 	LEAVE_MATCH         MessageType = "LEAVE_MATCH"
@@ -107,4 +106,9 @@ type RoundFinishedMessage struct {
 type MatchFinishedMessage struct {
 	Type   MessageType `json:"type"`
 	Winner string      `json:"winner"`
+}
+
+type RoomCreatedMessage struct {
+	Type   MessageType `json:"type"`
+	RoomID string      `json:"roomId"`
 }
