@@ -30,6 +30,10 @@ type MatchFinishedMsg struct {
 
 type StartGameMsg struct{}
 
+type RoomCreatedMsg struct {
+	roomID string
+}
+
 type mainModel struct {
 	width, height   int
 	matchInfo       *MatchInfo
@@ -55,7 +59,6 @@ func (m mainModel) Init() tea.Cmd {
 }
 
 func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	logger.Debug("Update(%v)", msg)
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
@@ -85,6 +88,9 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case MatchFinishedMsg:
 		m.screenID = MatchResultsScreenID
 		m.matchResults = NewMatchResults(msg.roundsPlayed, msg.roundsWon)
+
+	case RoomCreatedMsg:
+		m.matchInfo.roomID = msg.roomID
 	}
 
 	switch m.screenID {
@@ -102,21 +108,21 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, tea.ClearScreen
 			}
 
+			m.game = NewGame(m.matchInfo)
+
 			switch m.matchInfo.mode {
 			case protocol.MULTI_REMOTE:
 				if m.matchInfo.joinExisting {
 					m.screenID = GameScreenID
-					m.game = NewGame(m.matchInfo)
 					return m, tea.Batch(cmd, m.game.Init())
 				} else {
 					m.screenID = WaitingOpponentScreenID
-
 					m.waitingOpponent = NewWaitingOpponentModel(m.matchInfo.roomID)
-					return m, tea.Batch(cmd, m.waitingOpponent.Init())
+
+					return m, tea.Batch(cmd, m.game.Init(), m.waitingOpponent.Init())
 				}
 			case protocol.SINGLE:
 				m.screenID = GameScreenID
-				m.game = NewGame(m.matchInfo)
 				return m, tea.Batch(cmd, m.game.Init())
 			}
 		}
@@ -144,7 +150,6 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m mainModel) View() string {
-	logger.Debug("View()")
 	var content string
 
 	switch m.screenID {

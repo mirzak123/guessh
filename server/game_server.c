@@ -420,7 +420,11 @@ void GS_end_match(Match *match) {
   assert(match->player1 != NULL);
   switch (match->mode) {
   case MULTI_REMOTE:
-    send_json(match->player2->client_fd, match_finished_json);
+    if (match->player2 != NULL) {
+      send_json(match->player2->client_fd, match_finished_json);
+    }
+    // TODO: Delete the room
+
   case SINGLE:
     send_json(match->player1->client_fd, match_finished_json);
   }
