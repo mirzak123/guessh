@@ -76,7 +76,7 @@ func NewStartMenu(matchInfo *MatchInfo) (*huh.Form, *bool) {
 				Validate(func(str string) error {
 					matchInfo.roomID = strings.ToUpper(str)
 
-					if len(str) != protocol.ROOM_ID_LENGTH {
+					if str != "" && len(str) != protocol.ROOM_ID_LENGTH {
 						return fmt.Errorf("room ID must be %d characters long", protocol.ROOM_ID_LENGTH)
 					}
 					return nil
@@ -119,7 +119,9 @@ func NewStartMenu(matchInfo *MatchInfo) (*huh.Form, *bool) {
 
 					if matchInfo.mode == protocol.MULTI_REMOTE {
 						lines = append(lines, line("Player name: ", matchInfo.playerName))
-						lines = append(lines, line("Room ID: ", matchInfo.roomID))
+						if matchInfo.roomID != "" {
+							lines = append(lines, line("Room ID: ", matchInfo.roomID))
+						}
 					}
 
 					return lipgloss.JoinVertical(lipgloss.Left, lines...)
