@@ -47,7 +47,7 @@ Round *new_round(WordChallenge *word_challenge, Player *starting_player);
 void delete_round(Round *round);
 
 typedef struct Match {
-  char *id; // TODO: Remove: Unused
+  char *id;
   int round_idx;
   size_t round_capacity; /* total amount of rounds */
   Round **rounds;

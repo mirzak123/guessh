@@ -236,7 +236,7 @@ static MessageType parse_message(char *data, size_t size, cJSON **json_out) {
 
 void create_room(GameServer *gs, Match *match, Client *client) {
   Room *room = new_room();
-  printf("[create_room] room created with id: %s", room->id);
+  printf("[create_room] room created with id: %s\n", room->id);
   HT_set(gs->rooms, KEY(room->id), room);
 
   room->match = match;
@@ -289,22 +289,28 @@ void GS_handle_join_room(GameServer *gs, Client *client, cJSON *json_request) {
 }
 
 static void add_player_to_match(Match *match, Player *player) {
-  int can_start = 0;
+  bool can_start = false;
   switch (match->mode) {
   case MULTI_REMOTE:
-    if (match->player2 != NULL) {
-      printf("[add_player_to_match] error: trying to add a player to a match that has 2 players\n");
-    } else {
+    if (match->player1 == NULL) {
+      assert(match->player2 == NULL);
+      match->player1 = player;
+    } else if (match->player2 == NULL) {
+      assert(match->player1 != NULL);
       match->player2 = player;
-      can_start = 1;
+      can_start = true;
+    } else {
+      printf("[add_player_to_match] error: trying to add a player to a match that has 2 players\n");
+      return;
     }
     break;
   case SINGLE:
     if (match->player1 != NULL) {
       printf("[add_player_to_match] error: trying to add second player to a match in SINGLE mode\n");
+      return;
     } else {
       match->player1 = player;
-      can_start = 1;
+      can_start = true;
     }
     break;
   }
