@@ -47,7 +47,7 @@ char *get_random_word(int word_len) {
   fd = open(ws->file, O_RDONLY);
   if (fd == -1) {
     perror("open");
-    exit(EXIT_FAILURE); // TODO: Maybe shouldn't kill program entirely
+    exit(EXIT_FAILURE);
   }
 
   word = malloc(word_len * sizeof(char));

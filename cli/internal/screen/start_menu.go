@@ -72,7 +72,7 @@ func NewStartMenu(matchInfo *MatchInfo) (*huh.Form, *bool) {
 			huh.NewInput().
 				Title("Room ID ").
 				Value(&matchInfo.roomID).
-				Description("Creates a new room if left empty").
+				Description("Leave empty to create a new room").
 				Validate(func(str string) error {
 					matchInfo.roomID = strings.ToUpper(str)
 
