@@ -3,6 +3,7 @@ package screen
 import (
 	"errors"
 	"fmt"
+	"guessh/internal/game"
 	"guessh/internal/protocol"
 	"guessh/internal/ui"
 	"strconv"
@@ -22,7 +23,7 @@ var GameModeLabels = map[protocol.GameMode]string{
 	protocol.MULTI_REMOTE: "Two player remote",
 }
 
-func NewStartMenu(matchInfo *MatchInfo) (*huh.Form, *bool) {
+func NewStartMenu(matchInfo *game.MatchInfo) (*huh.Form, *bool) {
 	confirm := true
 
 	form := huh.NewForm(
@@ -33,7 +34,7 @@ func NewStartMenu(matchInfo *MatchInfo) (*huh.Form, *bool) {
 					huh.NewOption(GameModeLabels[protocol.SINGLE], protocol.SINGLE),
 					huh.NewOption(GameModeLabels[protocol.MULTI_REMOTE], protocol.MULTI_REMOTE),
 				).
-				Value(&matchInfo.mode),
+				Value(&matchInfo.Mode),
 
 			huh.NewSelect[int]().
 				Title("How many letters?").
@@ -42,7 +43,7 @@ func NewStartMenu(matchInfo *MatchInfo) (*huh.Form, *bool) {
 					huh.NewOption("Six", 6),
 					huh.NewOption("Seven", 7),
 				).
-				Value(&matchInfo.wordLen),
+				Value(&matchInfo.WordLen),
 
 			huh.NewInput().
 				Title(fmt.Sprintf("How many rounds? (%d - %d)", minRounds, maxRounds)).
@@ -56,25 +57,25 @@ func NewStartMenu(matchInfo *MatchInfo) (*huh.Form, *bool) {
 					}
 					return nil
 				}).
-				Value(&matchInfo.rawTotalRounds),
+				Value(&matchInfo.RawTotalRounds),
 		),
 
 		huh.NewGroup(
 			huh.NewInput().
 				Title("Player name ").
-				Value(&matchInfo.playerName).
+				Value(&matchInfo.PlayerName).
 				Validate(func(str string) error {
-					if matchInfo.playerName == "" {
+					if matchInfo.PlayerName == "" {
 						return errors.New("name must not be empty")
 					}
 					return nil
 				}),
 			huh.NewInput().
 				Title("Room ID ").
-				Value(&matchInfo.roomID).
+				Value(&matchInfo.RoomID).
 				Description("Leave empty to create a new room").
 				Validate(func(str string) error {
-					matchInfo.roomID = strings.ToUpper(str)
+					matchInfo.RoomID = strings.ToUpper(str)
 
 					if str != "" && len(str) != protocol.ROOM_ID_LENGTH {
 						return fmt.Errorf("room ID must be %d characters long", protocol.ROOM_ID_LENGTH)
@@ -83,15 +84,15 @@ func NewStartMenu(matchInfo *MatchInfo) (*huh.Form, *bool) {
 				}).
 				CharLimit(protocol.ROOM_ID_LENGTH),
 		).WithHideFunc(func() bool {
-			return matchInfo.mode != protocol.MULTI_REMOTE
+			return matchInfo.Mode != protocol.MULTI_REMOTE
 		}),
 
 		huh.NewGroup(
 			huh.NewConfirm().
 				TitleFunc(func() string {
-					if matchInfo.mode == protocol.MULTI_REMOTE {
-						if matchInfo.roomID != "" {
-							return fmt.Sprintf("Join room %s ?", lipgloss.NewStyle().Foreground(lipgloss.Color(ui.Gray)).Render(matchInfo.roomID))
+					if matchInfo.Mode == protocol.MULTI_REMOTE {
+						if matchInfo.RoomID != "" {
+							return fmt.Sprintf("Join room %s ?", lipgloss.NewStyle().Foreground(lipgloss.Color(ui.Gray)).Render(matchInfo.RoomID))
 						} else {
 							return "Create new room?"
 						}
@@ -113,20 +114,20 @@ func NewStartMenu(matchInfo *MatchInfo) (*huh.Form, *bool) {
 					}
 
 					var lines []string
-					lines = append(lines, line("Mode: ", GameModeLabels[matchInfo.mode]))
-					lines = append(lines, line("Word length: ", fmt.Sprintf("%d", matchInfo.wordLen)))
-					lines = append(lines, line("Rounds: ", matchInfo.rawTotalRounds))
+					lines = append(lines, line("Mode: ", GameModeLabels[matchInfo.Mode]))
+					lines = append(lines, line("Word length: ", fmt.Sprintf("%d", matchInfo.WordLen)))
+					lines = append(lines, line("Rounds: ", matchInfo.RawTotalRounds))
 
-					if matchInfo.mode == protocol.MULTI_REMOTE {
-						lines = append(lines, line("Player name: ", matchInfo.playerName))
-						if matchInfo.roomID != "" {
-							lines = append(lines, line("Room ID: ", matchInfo.roomID))
+					if matchInfo.Mode == protocol.MULTI_REMOTE {
+						lines = append(lines, line("Player name: ", matchInfo.PlayerName))
+						if matchInfo.RoomID != "" {
+							lines = append(lines, line("Room ID: ", matchInfo.RoomID))
 						}
 					}
 
 					return lipgloss.JoinVertical(lipgloss.Left, lines...)
 
-				}, &matchInfo.roomID).Height(10),
+				}, &matchInfo.RoomID).Height(10),
 		),
 	)
 

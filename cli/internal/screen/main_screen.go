@@ -1,8 +1,13 @@
 package screen
 
 import (
+	"guessh/internal/client"
+	"guessh/internal/game"
 	"guessh/internal/logger"
 	"guessh/internal/protocol"
+	"guessh/internal/transport"
+	"net"
+	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
@@ -28,16 +33,17 @@ type MatchFinishedMsg struct {
 	roundsWon    int
 }
 
-type StartGameMsg struct{}
-
 type RoomCreatedMsg struct {
 	roomID string
 }
 
 type mainModel struct {
+	client          *client.Client
+	msg             chan transport.EventMsg
 	width, height   int
-	matchInfo       *MatchInfo
+	matchInfo       *game.MatchInfo
 	confirm         *bool
+	eventsPaused    bool
 	screenID        ScreenID
 	form            *huh.Form
 	game            tea.Model
@@ -46,16 +52,31 @@ type mainModel struct {
 }
 
 func InitialModel() mainModel {
+	conn, err := net.Dial("tcp", "localhost:2480")
+	if err != nil {
+		logger.Error("net.Dial error: %v", err)
+		os.Exit(1)
+	}
+
+	c := client.NewClient(conn)
+
 	m := mainModel{
 		screenID:  StartScreenID,
-		matchInfo: NewMatchInfo(),
+		matchInfo: game.NewMatchInfo(),
+		client:    c,
+		msg:       make(chan transport.EventMsg),
 	}
 	m.form, m.confirm = NewStartMenu(m.matchInfo)
 	return m
 }
 
 func (m mainModel) Init() tea.Cmd {
-	return tea.EnterAltScreen
+
+	return tea.Batch(
+		tea.EnterAltScreen,
+		transport.ListenForActivity(m.client.Conn, m.msg),
+		transport.WaitForEvent(m.msg),
+	)
 }
 
 func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -75,9 +96,9 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 		return m, nil
 
-	case StartGameMsg:
+	case game.StartGameIntent:
 		m.screenID = StartScreenID
-		m.matchInfo = NewMatchInfo()
+		m.matchInfo = game.NewMatchInfo()
 		m.form, m.confirm = NewStartMenu(m.matchInfo)
 
 		return m, tea.Batch(
@@ -90,7 +111,19 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.matchResults = NewMatchResults(msg.roundsPlayed, msg.roundsWon)
 
 	case RoomCreatedMsg:
-		m.matchInfo.roomID = msg.roomID
+		m.matchInfo.RoomID = msg.roomID
+
+	case game.CreateMatchIntent:
+		m.client.CreateMatch(msg.Mode, msg.WordLen, msg.Rounds)
+
+	case game.MakeGuessIntent:
+		m.client.MakeGuess(msg.Guess)
+
+	case game.PauseIntent:
+		m.eventsPaused = true
+
+	case game.ContinueIntent:
+		m.eventsPaused = false
 	}
 
 	switch m.screenID {
@@ -110,14 +143,14 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			m.game = NewGame(m.matchInfo)
 
-			switch m.matchInfo.mode {
+			switch m.matchInfo.Mode {
 			case protocol.MULTI_REMOTE:
-				if m.matchInfo.joinExisting {
+				if m.matchInfo.JoinExisting {
 					m.screenID = GameScreenID
 					return m, tea.Batch(cmd, m.game.Init())
 				} else {
 					m.screenID = WaitingOpponentScreenID
-					m.waitingOpponent = NewWaitingOpponentModel(m.matchInfo.roomID)
+					m.waitingOpponent = NewWaitingOpponentModel(m.matchInfo.RoomID)
 
 					return m, tea.Batch(cmd, m.game.Init(), m.waitingOpponent.Init())
 				}
@@ -129,6 +162,7 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 
 	case GameScreenID:
+		logger.Debug("calling game update")
 		updatedModel, gameCmd := m.game.Update(msg)
 		m.game = updatedModel
 
@@ -146,7 +180,10 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, matchResultsCmd
 	}
 
-	return m, nil
+	if m.eventsPaused {
+		return m, nil
+	}
+	return m, transport.WaitForEvent(m.msg)
 }
 
 func (m mainModel) View() string {

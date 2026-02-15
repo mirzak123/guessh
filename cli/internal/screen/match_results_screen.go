@@ -2,6 +2,7 @@ package screen
 
 import (
 	"fmt"
+	"guessh/internal/game"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -25,7 +26,7 @@ func (m matchResultsModel) Init() tea.Cmd {
 func (m matchResultsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg.(type) {
 	case tea.KeyMsg:
-		return m, func() tea.Msg { return StartGameMsg{} }
+		return m, emit(game.StartGameIntent{})
 	}
 	return m, nil
 }

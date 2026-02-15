@@ -37,19 +37,19 @@ func Init(out io.Writer, level LogLevel) {
 }
 
 func Info(msg string, args ...any) {
-	logf(infoLogger, 2, msg, args...)
+	logf(infoLogger, 3, msg, args...)
 }
 
 func Debug(msg string, args ...any) {
-	logf(debugLogger, 2, msg, args...)
+	logf(debugLogger, 3, msg, args...)
 }
 
 func Warn(msg string, args ...any) {
-	logf(warnLogger, 2, msg, args...)
+	logf(warnLogger, 3, msg, args...)
 }
 
 func Error(msg string, args ...any) {
-	logf(errorLogger, 2, msg, args...)
+	logf(errorLogger, 3, msg, args...)
 }
 
 func logf(l *log.Logger, depth int, format string, v ...any) {
