@@ -150,7 +150,10 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
 
     close(client_fd);
 
-    Match *match = client->player->match;
+    Match *match = NULL;
+    if (client->player != NULL)
+      match = client->player->match;
+
     // Delete match if it exists
     if (match != NULL) {
       // TODO: Handle premature match end for multiplayer games better by notifying
