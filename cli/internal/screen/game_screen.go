@@ -29,6 +29,7 @@ func NewGame(matchInfo *game.MatchInfo) *gameModel {
 	ti := textinput.New()
 	ti.CharLimit = matchInfo.WordLen
 	ti.Width = matchInfo.WordLen
+	ti.Blur()
 
 	return &gameModel{
 		matchInfo: matchInfo,

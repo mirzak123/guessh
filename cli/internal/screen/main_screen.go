@@ -273,7 +273,6 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 	case protocol.ROUND_STARTED:
 		m.matchInfo.CurrentRound++
 		m.game.roundInfo = game.NewRoundInfo()
-		m.game.input.Focus()
 
 		roundStartedEvent := &protocol.RoundStartedMessage{}
 
@@ -286,9 +285,11 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 
 	case protocol.WAIT_GUESS:
 		m.game.state = game.StateWaitGuess
+		m.game.input.Focus()
 
 	case protocol.WAIT_OPPONENT_GUESS:
 		m.game.state = game.StateWaitOpponentGuess
+		m.game.input.Blur()
 
 	case protocol.WAIT_OPPONENT_JOIN:
 		m.game.state = game.StateWaitOpponentJoin
@@ -314,7 +315,6 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 		m.game.state = game.StateRoundFinished
 		m.game.roundInfo.Word = roundFinishedEvent.Word
 		m.game.roundInfo.Success = roundFinishedEvent.Success
-
 		m.game.input.Blur()
 
 		if roundFinishedEvent.Success {
