@@ -2,11 +2,13 @@ package screen
 
 import (
 	"encoding/json"
+	"fmt"
 	"guessh/internal/client"
 	"guessh/internal/game"
 	"guessh/internal/logger"
 	"guessh/internal/protocol"
 	"guessh/internal/transport"
+	"guessh/internal/ui"
 	"net"
 	"os"
 
@@ -14,11 +16,6 @@ import (
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 )
-
-var contentStyle = lipgloss.NewStyle().
-	Border(lipgloss.RoundedBorder()).
-	BorderForeground(lipgloss.Color("63")).
-	Padding(1, 2)
 
 type ScreenID int
 
@@ -235,13 +232,13 @@ func (m mainModel) View() string {
 
 	switch m.screenID {
 	case StartScreenID:
-		content = contentStyle.Render(m.form.View())
+		content = ui.MainContentStyle.Render(m.form.View())
 	case GameScreenID:
-		content = contentStyle.Render(m.game.View())
+		content = ui.MainContentStyle.Render(m.game.View())
 	case WaitingOpponentScreenID:
-		content = contentStyle.Render(m.waitingOpponent.View())
+		content = ui.MainContentStyle.Render(m.waitingOpponent.View())
 	case MatchResultsScreenID:
-		content = contentStyle.Render(m.matchResults.View())
+		content = ui.MainContentStyle.Render(m.matchResults.View())
 	}
 
 	return lipgloss.Place(
@@ -269,6 +266,17 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 	case protocol.MATCH_STARTED:
 		m.game.state = game.StateMatchStarted
 		m.screenID = GameScreenID
+
+		matchStartedEvent := &protocol.MatchStartedMessage{}
+
+		if err := json.Unmarshal(msg, matchStartedEvent); err != nil {
+			logger.Error("[handleEvent] error unmarshaling RoundStartedMessage: %v", err)
+			return nil
+		}
+
+		m.matchInfo.WordLen = matchStartedEvent.WordLength
+		m.matchInfo.TotalRounds = matchStartedEvent.Rounds
+		m.matchInfo.RawTotalRounds = fmt.Sprintf("%d", matchStartedEvent.Rounds)
 
 	case protocol.ROUND_STARTED:
 		m.matchInfo.CurrentRound++

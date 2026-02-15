@@ -7,25 +7,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-var (
-	baseLetterStyle = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			Bold(true).
-			Padding(0, 1)
-
-	correctStyle = baseLetterStyle.
-			BorderForeground(lipgloss.Color(Green)).
-			Foreground(lipgloss.Color(Green))
-
-	presentStyle = baseLetterStyle.
-			BorderForeground(lipgloss.Color(Yellow)).
-			Foreground(lipgloss.Color(Yellow))
-
-	absentStyle = baseLetterStyle.
-			BorderForeground(lipgloss.Color(Gray)).
-			Foreground(lipgloss.Color(Gray))
-)
-
 func ViewGuessedRow(g *protocol.Guess) string {
 	blocks := make([]string, len(g.Word))
 
@@ -47,8 +28,15 @@ func ViewGuessedRow(g *protocol.Guess) string {
 	return lipgloss.JoinHorizontal(lipgloss.Center, blocks...)
 }
 
-func ViewWordInputRow(input string, length int) string {
+func ViewWordInputRow(input string, length int, isActive bool) string {
 	blocks := make([]string, length)
+	var style lipgloss.Style
+
+	if isActive {
+		style = activeInputStyle
+	} else {
+		style = baseLetterStyle
+	}
 
 	for i := range blocks {
 		var char string
@@ -57,22 +45,23 @@ func ViewWordInputRow(input string, length int) string {
 		} else {
 			char = " "
 		}
-		blocks[i] = baseLetterStyle.Render(char)
+
+		blocks[i] = style.Render(char)
 	}
 
 	return lipgloss.JoinHorizontal(lipgloss.Center, blocks...)
 }
 
-func ViewGuessGrid(guesses []*protocol.Guess, input string, maxAttempts int, wordLen int) string {
+func ViewGuessGrid(guesses []*protocol.Guess, input string, maxAttempts int, wordLen int, onTurn bool) string {
 	grid := make([]string, maxAttempts)
 
 	for i := range maxAttempts {
 		if i < len(guesses) {
 			grid[i] = ViewGuessedRow(guesses[i])
 		} else if i == len(guesses) {
-			grid[i] = ViewWordInputRow(input, wordLen)
+			grid[i] = ViewWordInputRow(input, wordLen, onTurn)
 		} else {
-			grid[i] = ViewWordInputRow("", wordLen)
+			grid[i] = ViewWordInputRow("", wordLen, false)
 		}
 	}
 

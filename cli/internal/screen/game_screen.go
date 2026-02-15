@@ -106,7 +106,13 @@ func (m *gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m *gameModel) View() string {
 	var body, header, footer string
 
-	guessGrid := ui.ViewGuessGrid(m.guesses, m.input.Value(), m.matchInfo.MaxAttempts, m.matchInfo.WordLen)
+	guessGrid := ui.ViewGuessGrid(
+		m.guesses,
+		m.input.Value(),
+		m.matchInfo.MaxAttempts,
+		m.matchInfo.WordLen,
+		m.input.Focused(),
+	)
 	continueMsg := "Press enter to continue..."
 
 	header += fmt.Sprintf(
