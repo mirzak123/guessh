@@ -28,6 +28,8 @@ func ListenForActivity(conn net.Conn, msg chan EventMsg) tea.Cmd {
 				logger.Error("[ListenForActivity] error: %v", err)
 				return err
 			}
+
+			logger.Debug("Received network data: %s", buffer)
 			msg <- EventMsg(buffer)
 		}
 	}

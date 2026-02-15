@@ -49,6 +49,21 @@ func (c *Client) MakeGuess(guess string) {
 	c.send(msg)
 }
 
+func (c *Client) JoinRoom(roomID string) {
+	var (
+		msg []byte
+		err error
+	)
+
+	joinRoomMsg := protocol.NewJoinRoomMessage(roomID)
+	if msg, err = json.Marshal(joinRoomMsg); err != nil {
+		logger.Error("[Client.MakeGuess] Failed to marshal JoinRoomMessage: %v", err)
+		os.Exit(1)
+	}
+
+	c.send(msg)
+}
+
 func (c *Client) send(payload []byte) {
 	logger.Info("[Client.send] Sending message: %s", payload)
 	if _, err := transport.SendMessage(c.Conn, payload); err != nil {

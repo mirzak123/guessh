@@ -12,8 +12,8 @@ type matchResultsModel struct {
 	roundsWon    int
 }
 
-func NewMatchResults(roundsPlayed, roundsWon int) matchResultsModel {
-	return matchResultsModel{
+func NewMatchResults(roundsPlayed, roundsWon int) *matchResultsModel {
+	return &matchResultsModel{
 		roundsPlayed: roundsPlayed,
 		roundsWon:    roundsWon,
 	}

@@ -1,12 +1,10 @@
 package screen
 
 import (
-	"encoding/json"
 	"fmt"
 	"guessh/internal/game"
 	"guessh/internal/logger"
 	"guessh/internal/protocol"
-	"guessh/internal/transport"
 	"guessh/internal/ui"
 	"os"
 	"strconv"
@@ -49,18 +47,25 @@ func (m *gameModel) Init() tea.Cmd {
 		os.Exit(1)
 	}
 
-	return tea.Batch(
-		textinput.Blink,
-		emit(game.CreateMatchIntent{
+	var cmd tea.Cmd
+
+	if m.matchInfo.JoinExisting {
+		cmd = emit(game.JoinRoom{RoomId: m.matchInfo.RoomID})
+	} else {
+		cmd = emit(game.CreateMatchIntent{
 			Mode:    m.matchInfo.Mode,
 			WordLen: m.matchInfo.WordLen,
 			Rounds:  m.matchInfo.TotalRounds,
-		}),
+		})
+	}
+
+	return tea.Batch(
+		textinput.Blink,
+		cmd,
 	)
 }
 
 func (m *gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	logger.Debug("Game State %d", m.state)
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
@@ -84,18 +89,9 @@ func (m *gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				if len(v) == m.matchInfo.WordLen { // do nothing if not enough letters
 					m.input.SetValue("")
-					return m, emit(game.MakeGuessIntent{Guess: m.input.Value()})
+					return m, emit(game.MakeGuessIntent{Guess: v})
 				}
 			}
-
-		}
-
-	case transport.EventMsg:
-		logger.Info("New event received: %s\n", string(msg))
-
-		msgFromEvent := m.handleEvent(msg)
-		if msgFromEvent != nil {
-			return m, emit(msgFromEvent)
 		}
 
 	case error:
@@ -130,7 +126,7 @@ func (m *gameModel) View() string {
 	if m.state == game.StateRoundFinished {
 		if m.roundInfo.Success {
 			footer = continueMsg
-		} else {
+		} else { // BUG: This is not rendered as we move too quickly out of StateRoundFinished
 			footer = fmt.Sprintf("Correct word: %s\n%s", m.roundInfo.Word, continueMsg)
 		}
 	}
@@ -141,100 +137,6 @@ func (m *gameModel) View() string {
 		Width(m.width).
 		AlignHorizontal(lipgloss.Center).
 		Render(view)
-}
-
-func (m *gameModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
-	msg := []byte(eventMsg)
-	event := &protocol.EnvelopeMessage{}
-
-	if err := json.Unmarshal(msg, event); err != nil {
-		logger.Error("[handleEvent] error unmarshaling EnvelopeMessage: %s", err)
-		return nil
-	}
-
-	logger.Info("[handleEvent] Event type: %s", event.Type)
-
-	switch event.Type {
-
-	case protocol.MATCH_STARTED:
-		logger.Debug("Changing state to StateMatchStarted")
-		m.state = game.StateMatchStarted
-
-	case protocol.ROUND_STARTED:
-		m.matchInfo.CurrentRound++
-		m.roundInfo = game.NewRoundInfo()
-		m.input.Focus()
-
-		roundStartedEvent := &protocol.RoundStartedMessage{}
-
-		if err := json.Unmarshal(msg, roundStartedEvent); err != nil {
-			logger.Error("[handleEvent] error unmarshaling RoundStartedMessage: %v", err)
-			return nil
-		}
-		m.matchInfo.MaxAttempts = roundStartedEvent.MaxAttempts
-		m.guesses = nil
-
-	case protocol.WAIT_GUESS:
-		m.state = game.StateWaitGuess
-
-	case protocol.WAIT_OPPONENT_GUESS:
-		m.state = game.StateWaitOpponentGuess
-
-	case protocol.WAIT_OPPONENT_JOIN:
-		m.state = game.StateWaitOpponentJoin
-
-	case protocol.GUESS_RESULT:
-		guessResultEvent := &protocol.GuessResultMessage{}
-
-		if err := json.Unmarshal(msg, guessResultEvent); err != nil {
-			logger.Error("[handleEvent] error unmarshaling GuessResultMessage: %v", err)
-			return nil
-		}
-
-		m.guesses = append(m.guesses, protocol.NewGuess(guessResultEvent.Guess, guessResultEvent.Feedback))
-
-	case protocol.ROUND_FINISHED:
-		roundFinishedEvent := &protocol.RoundFinishedMessage{}
-
-		if err := json.Unmarshal(msg, roundFinishedEvent); err != nil {
-			logger.Error("[handleEvent] error unmarshaling RoundFinishedMessage: %v", err)
-			return nil
-		}
-
-		m.state = game.StateRoundFinished
-		m.roundInfo.Word = roundFinishedEvent.Word
-		m.roundInfo.Success = roundFinishedEvent.Success
-
-		m.input.Blur()
-
-		if roundFinishedEvent.Success {
-			m.matchInfo.RoundsWon++
-		}
-
-		return game.PauseIntent{}
-
-	case protocol.MATCH_FINISHED:
-		m.state = game.StateMatchFinished
-		return MatchFinishedMsg{
-			roundsPlayed: m.matchInfo.TotalRounds,
-			roundsWon:    m.matchInfo.RoundsWon,
-		}
-
-	case protocol.ROOM_CREATED:
-		roomCreatedEvent := &protocol.RoomCreatedMessage{}
-
-		if err := json.Unmarshal(msg, roomCreatedEvent); err != nil {
-			logger.Error("[handleEvent] error unmarshaling RoomCreatedMessage: %v", err)
-			return nil
-		}
-
-		return RoomCreatedMsg{
-			roomID: roomCreatedEvent.RoomID,
-		}
-
-	}
-
-	return nil
 }
 
 func emit(msg tea.Msg) tea.Cmd {

@@ -62,6 +62,18 @@ type LeaveMatchMessage struct {
 	Type MessageType `json:"type"`
 }
 
+type JoinRoomMessage struct {
+	Type   MessageType `json:"type"`
+	RoomID string      `json:"roomId"`
+}
+
+func NewJoinRoomMessage(roomID string) *JoinRoomMessage {
+	return &JoinRoomMessage{
+		Type:   JOIN_ROOM,
+		RoomID: roomID,
+	}
+}
+
 /* Server Types */
 
 type ErrorMessage struct {

@@ -127,7 +127,7 @@ func NewStartMenu(matchInfo *game.MatchInfo) (*huh.Form, *bool) {
 
 					return lipgloss.JoinVertical(lipgloss.Left, lines...)
 
-				}, &matchInfo.RoomID).Height(10),
+				}, &matchInfo.RoomID).Height(10), // BUG: Rerender this if other fields change, not only RoomID
 		),
 	)
 
