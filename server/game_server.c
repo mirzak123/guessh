@@ -378,18 +378,28 @@ void GS_handle_make_guess(Client *client, cJSON *json_request) {
   success = evaluate_guess(guess, round->wc->word, feedback, match->word_len);
   guess_result_json = json_guess_result(success, guess, feedback, match->word_len);
 
-  send_json(player->client_fd, guess_result_json);
-  if (opponent) {
-    send_json(opponent->client_fd, guess_result_json); // TODO: Send more appropriate message
+  bool is_round_finished = success || (round->wc->attempt_count >= round->wc->max_attempts);
+
+  switch (match->mode) {
+  case MULTI_REMOTE:
+    send_json(player->client_fd, guess_result_json);
+    send_json(opponent->client_fd, guess_result_json);
+
+    if (!is_round_finished) {
+      send_only_type(opponent->client_fd, STR(WAIT_GUESS));
+      send_only_type(player->client_fd, STR(WAIT_OPPONENT_GUESS));
+      round->on_turn = opponent;
+    }
+    break;
+  case SINGLE:
+    send_json(player->client_fd, guess_result_json);
+    send_only_type(player->client_fd, STR(WAIT_GUESS));
+    break;
   }
   free(feedback);
 
-  if (!success && !(round->wc->attempt_count >= round->wc->max_attempts)) {
-    if (match->mode == MULTI_REMOTE) {
-      round->on_turn = opponent;
-    }
+  if (!is_round_finished)
     return;
-  }
 
   if (success) {
     round->outcome = player == match->player1 ? PLAYER1_WINS : PLAYER2_WINS;
