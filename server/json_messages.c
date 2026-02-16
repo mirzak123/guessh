@@ -27,7 +27,7 @@ cJSON *json_room_joined(const char *room_id) {
 
 cJSON *json_room_join_failed(const char *room_id, const char *reason) {
   cJSON *json = cJSON_CreateObject();
-  cJSON_AddStringToObject(json, "type", STR(ROOM_CREATED));
+  cJSON_AddStringToObject(json, "type", STR(ROOM_JOIN_FAILED));
   cJSON_AddStringToObject(json, "roomId", room_id);
   cJSON_AddStringToObject(json, "reason", reason);
   return json;
