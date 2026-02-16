@@ -35,7 +35,21 @@ func NewStartMenu(matchInfo *game.MatchInfo) (*huh.Form, *bool) {
 					huh.NewOption(GameModeLabels[protocol.MULTI_REMOTE], protocol.MULTI_REMOTE),
 				).
 				Value(&matchInfo.Mode),
+		),
 
+		huh.NewGroup(
+			huh.NewSelect[bool]().
+				Title("Create or join?").
+				Options(
+					huh.NewOption("Create new match", false),
+					huh.NewOption("Join existing match", true),
+				).
+				Value(&matchInfo.JoinExisting),
+		).WithHideFunc(func() bool {
+			return matchInfo.Mode != protocol.MULTI_REMOTE
+		}),
+
+		huh.NewGroup(
 			huh.NewSelect[int]().
 				Title("How many letters?").
 				Options(
@@ -58,7 +72,9 @@ func NewStartMenu(matchInfo *game.MatchInfo) (*huh.Form, *bool) {
 					return nil
 				}).
 				Value(&matchInfo.RawTotalRounds),
-		),
+		).WithHideFunc(func() bool {
+			return matchInfo.JoinExisting
+		}),
 
 		huh.NewGroup(
 			huh.NewInput().
@@ -73,7 +89,7 @@ func NewStartMenu(matchInfo *game.MatchInfo) (*huh.Form, *bool) {
 			huh.NewInput().
 				Title("Room ID ").
 				Value(&matchInfo.RoomID).
-				Description("Leave empty to create a new room").
+				Description("Enter the Room ID shared with you").
 				Validate(func(str string) error {
 					matchInfo.RoomID = strings.ToUpper(str)
 
@@ -84,7 +100,21 @@ func NewStartMenu(matchInfo *game.MatchInfo) (*huh.Form, *bool) {
 				}).
 				CharLimit(protocol.ROOM_ID_LENGTH),
 		).WithHideFunc(func() bool {
-			return matchInfo.Mode != protocol.MULTI_REMOTE
+			return matchInfo.Mode != protocol.MULTI_REMOTE || !matchInfo.JoinExisting
+		}),
+
+		huh.NewGroup(
+			huh.NewInput().
+				Title("Player name ").
+				Value(&matchInfo.PlayerName).
+				Validate(func(str string) error {
+					if matchInfo.PlayerName == "" {
+						return errors.New("name must not be empty")
+					}
+					return nil
+				}),
+		).WithHideFunc(func() bool {
+			return matchInfo.Mode != protocol.MULTI_REMOTE || matchInfo.JoinExisting
 		}),
 
 		huh.NewGroup(

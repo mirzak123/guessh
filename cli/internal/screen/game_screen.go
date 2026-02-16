@@ -43,9 +43,11 @@ func (m *gameModel) Init() tea.Cmd {
 	logger.Info("[Game Init] matchInfo.Mode: %s", m.matchInfo.Mode)
 	var err error
 
-	if m.matchInfo.TotalRounds, err = strconv.Atoi(m.matchInfo.RawTotalRounds); err != nil {
-		logger.Error("[Client.CreateMatch] Failed to convert matchInfo.RawTotalRounds after it passed validation: %v", err)
-		os.Exit(1)
+	if !m.matchInfo.JoinExisting {
+		if m.matchInfo.TotalRounds, err = strconv.Atoi(m.matchInfo.RawTotalRounds); err != nil {
+			logger.Error("[Client.CreateMatch] Failed to convert matchInfo.RawTotalRounds after it passed validation: %v", err)
+			os.Exit(1)
+		}
 	}
 
 	var cmd tea.Cmd
