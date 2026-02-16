@@ -351,6 +351,8 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 			roomID: roomCreatedEvent.RoomID,
 		}
 
+	default:
+		logger.Info("Ignoring event: %s", event.Type)
 	}
 
 	return nil
