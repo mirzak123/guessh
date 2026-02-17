@@ -298,6 +298,13 @@ static void add_player_to_match(Match *match, Player *player) {
     } else if (match->player2 == NULL) {
       assert(match->player1 != NULL);
       match->player2 = player;
+
+      if (rand() % 2) {
+        match->on_turn = match->player1;
+      } else {
+        match->on_turn = match->player2;
+      }
+
       can_start = true;
     } else {
       printf("[add_player_to_match] error: trying to add a player to a match that has 2 players\n");
@@ -346,7 +353,7 @@ void GS_handle_make_guess(Client *client, cJSON *json_request) {
 
   assert(round->wc->attempt_count < round->wc->max_attempts);
 
-  if (player != round->on_turn) {
+  if (player != match->on_turn) {
     send_error(client->fd, E_NOT_ON_TURN);
     return;
   }
@@ -388,8 +395,8 @@ void GS_handle_make_guess(Client *client, cJSON *json_request) {
     if (!is_round_finished) {
       send_only_type(opponent->client_fd, STR(WAIT_GUESS));
       send_only_type(player->client_fd, STR(WAIT_OPPONENT_GUESS));
-      round->on_turn = opponent;
     }
+    match->on_turn = opponent;
     break;
   case SINGLE:
     send_json(player->client_fd, guess_result_json);
@@ -492,7 +499,7 @@ static void start_round(Match *match) {
     return;
   }
 
-  Round *round = new_round(wc, match->player1);
+  Round *round = new_round(wc);
   if (round == NULL) {
     printf("[start_match] error: new_round() returned NULL\n");
     return;
@@ -509,13 +516,13 @@ static void start_round(Match *match) {
     send_json(match->player1->client_fd, round_started_json);
 
     Player *not_on_turn;
-    if (match->player1 == round->on_turn) {
+    if (match->player1 == match->on_turn) {
       not_on_turn = match->player2;
     } else {
       not_on_turn = match->player1;
     }
 
-    send_only_type(round->on_turn->client_fd, STR(WAIT_GUESS));
+    send_only_type(match->on_turn->client_fd, STR(WAIT_GUESS));
     send_only_type(not_on_turn->client_fd, STR(WAIT_OPPONENT_GUESS));
 
     break;

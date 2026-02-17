@@ -40,14 +40,13 @@ void delete_match(Match *match) {
   free(match);
 }
 
-Round *new_round(WordChallenge *word_challenge, Player *starting_player) {
+Round *new_round(WordChallenge *word_challenge) {
   Round *round = malloc(sizeof(Round));
   if (round == NULL) {
     perror("malloc");
     return NULL;
   }
 
-  round->on_turn = starting_player;
   round->wc = word_challenge;
 
   return round;

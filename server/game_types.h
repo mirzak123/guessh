@@ -40,22 +40,22 @@ typedef struct {
    * of WordChallenge structs */
   WordChallenge *wc;
   Outcome outcome;
-  Player *on_turn;
 } Round;
 
-Round *new_round(WordChallenge *word_challenge, Player *starting_player);
+Round *new_round(WordChallenge *word_challenge);
 void delete_round(Round *round);
 
 typedef struct Match {
   char *id;
   int round_idx;
+  size_t word_len;
   size_t round_capacity; /* total amount of rounds */
   Round **rounds;
   GameMode mode;
   Outcome outcome;
   Player *player1;
   Player *player2;
-  size_t word_len;
+  Player *on_turn;
   struct Match *next;
 } Match;
 
