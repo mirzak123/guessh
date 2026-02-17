@@ -1,6 +1,7 @@
 #ifndef GAME_SERVER_H
 #define GAME_SERVER_H
 
+#include "client.h"
 #include "game_types.h"
 #include "hash_table.h"
 #include <cjson/cJSON.h>
@@ -29,13 +30,14 @@
 #define E_NOT_ON_TURN "Opponent is currently on turn"
 #define E_UNSUPPORTED_MODE "Unsupported mode"
 #define E_PLAYER_NOT_IN_MATCH "Player is not in an active match"
+#define E_ROOM_FULL "Room is full"
+#define E_ROOM_NOT_FOUND "Room could not be found"
 
 typedef enum {
   MALFORMED_MESSAGE = -1,
   UNSUPPORTED_MESSAGE_TYPE,
 
   // Client
-  CREATE_ROOM,
   CREATE_MATCH,
   JOIN_ROOM,
   MAKE_GUESS,
@@ -60,30 +62,17 @@ typedef enum {
 } MessageType;
 
 typedef struct {
-  HashTable *match_by_id;
-  HashTable *match_by_client;
   HashTable *clients;
+  HashTable *rooms;
 } GameServer;
 
 GameServer *GS_create(void);
-void GS_handle_request(GameServer *gs, int client_fd, char *data, size_t size);
-Match *GS_get_match_by_client_fd(GameServer *gs, int player_fd);
 void GS_destroy(GameServer *gs);
-MessageType GS_parse_message(char *data, size_t size, cJSON **out);
 
-void GS_start_match(Match *match);
-void GS_start_round(Match *match);
-void GS_end_match(GameServer *gs, Match *match);
-void GS_end_round(GameServer *gs, Match *match, Player *player, Player *opponent);
-void GS_add_player_to_match(GameServer *gs, Match *match, int client_fd);
-
-// send message
-void GS_send_json(int client_fd, cJSON *json);
-void GS_send_only_type(int client_fd, const char *type);
-void GS_send_error(int client_fd, const char *reason);
-
-// message handlers
-void GS_handle_create_match(GameServer *gs, int client_fd, cJSON *json_request);
-void GS_handle_make_guess(GameServer *gs, int client_fd, cJSON *json_request);
+void GS_handle_request(GameServer *gs, Client *client);
+void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request);
+void GS_handle_make_guess(Client *client, cJSON *json_request);
+void GS_handle_join_room(GameServer *gs, Client *client, cJSON *json_request);
+void GS_end_match(Match *match); // TODO: There is probably a better place for this
 
 #endif // !GAME_SERVER_H

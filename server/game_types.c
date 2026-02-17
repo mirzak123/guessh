@@ -25,14 +25,28 @@ Match *new_match(size_t round_capacity, GameMode mode, size_t word_len) {
   return match;
 }
 
-Round *new_round(WordChallenge *word_challenge, Player *starting_player) {
+void delete_match(Match *match) {
+  free(match->id);
+  if (match->player1 != NULL)
+    delete_player(match->player1);
+  if (match->player2 != NULL)
+    delete_player(match->player2);
+
+  for (int i = 0; i <= match->round_idx; i++) {
+    printf("Deleting round idx: %d\n", i);
+    delete_round(match->rounds[i]);
+  }
+  free(match->rounds);
+  free(match);
+}
+
+Round *new_round(WordChallenge *word_challenge) {
   Round *round = malloc(sizeof(Round));
   if (round == NULL) {
     perror("malloc");
     return NULL;
   }
 
-  round->on_turn = starting_player;
   round->wc = word_challenge;
 
   return round;
@@ -71,16 +85,19 @@ void delete_word_challenge(WordChallenge *wc) {
   free(wc);
 }
 
-Player *new_player(Client *client, Match *match) {
+Player *new_player(int client_fd, char *name) {
   Player *player = malloc(sizeof(Player));
   if (player == NULL) {
     perror("malloc");
     return NULL;
   }
-
-  player->client = client;
-  player->match = match;
+  player->client_fd = client_fd;
+  player->name = name;
+  player->match = NULL;
   return player;
 }
 
-void delete_player(Player *player) { free(player); }
+void delete_player(Player *player) {
+  free(player->name);
+  free(player);
+}

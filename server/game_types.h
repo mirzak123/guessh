@@ -1,7 +1,6 @@
 #ifndef GAME_TYPES_H
 #define GAME_TYPES_H
 
-#include "client.h"
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -11,20 +10,16 @@ typedef enum { TIE, PLAYER1_WINS, PLAYER2_WINS } Outcome;
 
 typedef enum {
   SINGLE,
-  MULTI_LOCAL,
   MULTI_REMOTE,
 } GameMode;
 
-// BUG: Identifying playrs by file descriptor will produce issues since file descriptors are
-// reused after one player disconnects and another one joins.
-// Ideally should create a system to interact with players only through playerId, and
-// resolve the file descriptor at the last minute, when sending a message.
 typedef struct {
-  Client *client;
+  int client_fd;
+  char *name;
   struct Match *match;
 } Player;
 
-Player *new_player(Client *client, struct Match *match);
+Player *new_player(int client_fd, char *name);
 void delete_player(Player *player);
 
 typedef struct {
@@ -45,22 +40,22 @@ typedef struct {
    * of WordChallenge structs */
   WordChallenge *wc;
   Outcome outcome;
-  Player *on_turn;
 } Round;
 
-Round *new_round(WordChallenge *word_challenge, Player *starting_player);
+Round *new_round(WordChallenge *word_challenge);
 void delete_round(Round *round);
 
 typedef struct Match {
-  char *id; // TODO: Remove: Unused
+  char *id;
   int round_idx;
+  size_t word_len;
   size_t round_capacity; /* total amount of rounds */
   Round **rounds;
   GameMode mode;
   Outcome outcome;
   Player *player1;
   Player *player2;
-  size_t word_len;
+  Player *on_turn;
   struct Match *next;
 } Match;
 

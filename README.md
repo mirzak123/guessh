@@ -33,17 +33,15 @@ Find a better way to represent flow below 🙏🙏🙏
     - Single player
       1. How many rounds? (number input)
       2. How many letters? (number input)
-    - Multi player
-      1. Choose mode
-         - Local (same terminal session)
-           1. How many rounds? (number input)
-           2. How many letters? (number input)
-         - Remote
-           1. Session:
-              - Join existing room (room code input)
-              - Create new room
-                1. How many rounds? (number input)
-                2. How many letters? (number input)
+    - Two player remote
+      1. Session:
+         - Join existing room
+           1. Name (string input)
+           2. Room key (string input)
+         - Create new room
+           1. Name (string input)
+           2. How many rounds? (number input)
+           3. How many letters? (number input)
 
 ## Client-Server Protocol
 
@@ -51,9 +49,8 @@ Find a better way to represent flow below 🙏🙏🙏
 
 | Type            | Content                                                                            |
 | --------------- | ---------------------------------------------------------------------------------- |
-| CREATE_ROOM     |                                                                                    |
 | CREATE_MATCH    | {"type": "CREATE_MATCH", "mode": "SINGLE", "rounds": number, "wordLength": number} |
-| JOIN_ROOM       |                                                                                    |
+| JOIN_ROOM       | {"type": "JOIN_ROOM", "roomId": string}                                            |
 | MAKE_GUESS      | {"type": "MAKE_GUESS", "guess": string}                                            |
 | REQUEST_REMATCH |                                                                                    |
 | LEAVE_MATCH     | {"type": "LEAVE_MATCH"}                                                            |
@@ -65,8 +62,8 @@ Find a better way to represent flow below 🙏🙏🙏
 | ERROR               | {"type": "ERROR", "reason": string}                                                  |                                                                         |
 | CONNECTED           |                                                                                      |                                                                         |
 | ROOM_CREATED        | {"type": "ROOM_CREATED", "roomId": string}                                           |                                                                         |
-| ROOM_JOINED         | {"type": "ROOM_JOINED"}                                                              |                                                                         |
-| ROOM_JOIN_FAILED    | {"type": "ROOM_JOIN_FAILED"}                                                         | Room full                                                               |
+| ROOM_JOINED         | {"type": "ROOM_JOINED", "roomId": string}                                            |                                                                         |
+| ROOM_JOIN_FAILED    | {"type": "ROOM_JOIN_FAILED", "roomId": string, "reason": string}                                       | Room full or invalid room ID                                            |
 | WAIT_OPPONENT_JOIN  | {"type": "WAIT_OPPONENT_JOIN"}                                                       |                                                                         |
 | MATCH_STARTED       | {"type": "MATCH_STARTED", "matchId": string, "rounds": number, "wordLength": number} |                                                                         |
 | ROUND_STARTED       | {"type": "ROUND_STARTED", "roundNumber": number, "maxAttempts": number}              |                                                                         |

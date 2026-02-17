@@ -36,6 +36,7 @@ bool evaluate_guess(const char *guess_word, const char *target_word, LetterFeedb
   return 0;
 }
 
+// TODO: Open all word files once and reuse them
 char *get_random_word(int word_len) {
   int fd, offset;
   char *word;
@@ -46,7 +47,7 @@ char *get_random_word(int word_len) {
   fd = open(ws->file, O_RDONLY);
   if (fd == -1) {
     perror("open");
-    exit(EXIT_FAILURE); // TODO: Maybe shouldn't kill program entirely
+    exit(EXIT_FAILURE);
   }
 
   word = malloc(word_len * sizeof(char));

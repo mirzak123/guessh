@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"fmt"
 	"io"
 	"log"
 )
@@ -36,17 +37,21 @@ func Init(out io.Writer, level LogLevel) {
 }
 
 func Info(msg string, args ...any) {
-	infoLogger.Printf(msg, args...)
+	logf(infoLogger, 3, msg, args...)
 }
 
 func Debug(msg string, args ...any) {
-	debugLogger.Printf(msg, args...)
+	logf(debugLogger, 3, msg, args...)
 }
 
 func Warn(msg string, args ...any) {
-	warnLogger.Printf(msg, args...)
+	logf(warnLogger, 3, msg, args...)
 }
 
 func Error(msg string, args ...any) {
-	errorLogger.Printf(msg, args...)
+	logf(errorLogger, 3, msg, args...)
+}
+
+func logf(l *log.Logger, depth int, format string, v ...any) {
+	_ = l.Output(depth, fmt.Sprintf(format, v...))
 }

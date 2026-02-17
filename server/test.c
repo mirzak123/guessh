@@ -1,9 +1,12 @@
 #include "game_logic.h"
 #include "hash_table.h"
+#include "util.h"
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #define WORD_LEN 5
 
@@ -12,12 +15,20 @@ void test_hash_table(void);
 
 void assert_feedback(LetterFeedback *feedback, LetterFeedback *expected);
 void print_feedback(LetterFeedback *feedback);
+void test_generate_random_string(void);
 
 int main(void) {
+  srand(time(NULL));
   test_evaluate_guess();
   test_hash_table();
 
   return 0;
+}
+
+void test_generate_random_string(void) {
+  char *s = generate_random_string(7);
+  printf("%lu: |%s|\n", strlen(s), s);
+  free(s);
 }
 
 void test_evaluate_guess(void) {

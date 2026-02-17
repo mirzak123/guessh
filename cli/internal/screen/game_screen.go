@@ -1,14 +1,11 @@
 package screen
 
 import (
-	"encoding/json"
 	"fmt"
-	"guessh/internal/client"
+	"guessh/internal/game"
 	"guessh/internal/logger"
 	"guessh/internal/protocol"
-	"guessh/internal/transport"
 	"guessh/internal/ui"
-	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -18,100 +15,60 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-type GameState int
-
-const (
-	StateInit GameState = iota
-	StateMatchStarted
-	StateWaitGuess
-	StateWaitingGuessResult
-	StateWaitOpponentJoin
-	StateWaitOpponentGuess
-	StateRoundFinished
-	StateMatchFinished
-)
-
-type MatchInfo struct {
-	mode           protocol.GameMode
-	wordLen        int
-	currentRound   int
-	rawTotalRounds string
-	totalRounds    int
-	maxAttempts    int
-	roundsWon      int
-}
-
-func NewMatchInfo() *MatchInfo {
-	return &MatchInfo{
-		currentRound: 0,
-	}
-}
-
-type RoundInfo struct {
-	word    string
-	success bool
-}
-
-func NewRoundInfo() *RoundInfo {
-	return &RoundInfo{}
-}
-
 type gameModel struct {
 	width, height int
-	client        *client.Client
-	matchInfo     *MatchInfo
+	matchInfo     *game.MatchInfo
 	input         textinput.Model
 	guesses       []*protocol.Guess
-	state         GameState
-	msg           chan transport.EventMsg
-	err           error
-	roundInfo     *RoundInfo
-	uiPaused      bool
+	state         game.GameState
+	roundInfo     *game.RoundInfo
 }
 
-func NewGame(matchInfo *MatchInfo) gameModel {
-	conn, err := net.Dial("tcp", "localhost:2480")
-	if err != nil {
-		logger.Error("net.Dial error: %v", err)
-		os.Exit(1)
-	}
-
-	c := client.NewClient(conn)
-
+func NewGame(matchInfo *game.MatchInfo) *gameModel {
+	logger.Debug("Calling NewGame")
 	ti := textinput.New()
-	ti.CharLimit = matchInfo.wordLen
-	ti.Width = matchInfo.wordLen
+	ti.CharLimit = matchInfo.WordLen
+	ti.Width = matchInfo.WordLen
+	ti.Blur()
 
-	return gameModel{
-		client:    c,
+	return &gameModel{
 		matchInfo: matchInfo,
 		input:     ti,
-		state:     StateInit,
-		msg:       make(chan transport.EventMsg),
-		err:       nil,
-		roundInfo: NewRoundInfo(),
+		state:     game.StateInit,
+		roundInfo: game.NewRoundInfo(),
 	}
 }
 
-func (m gameModel) Init() tea.Cmd {
-	logger.Info("[Game Init] matchInfo.Mode: %s", m.matchInfo.mode)
+func (m *gameModel) Init() tea.Cmd {
+	logger.Info("[Game Init] matchInfo.Mode: %s", m.matchInfo.Mode)
 	var err error
 
-	if m.matchInfo.totalRounds, err = strconv.Atoi(m.matchInfo.rawTotalRounds); err != nil {
-		logger.Error("[Client.CreateMatch] Failed to convert matchInfo.RawTotalRounds after it passed validation: %v", err)
-		os.Exit(1)
+	if !m.matchInfo.JoinExisting {
+		if m.matchInfo.TotalRounds, err = strconv.Atoi(m.matchInfo.RawTotalRounds); err != nil {
+			logger.Error("[Client.CreateMatch] Failed to convert matchInfo.RawTotalRounds after it passed validation: %v", err)
+			os.Exit(1)
+		}
 	}
 
-	m.client.CreateMatch(m.matchInfo.mode, m.matchInfo.wordLen, m.matchInfo.totalRounds)
+	var cmd tea.Cmd
+
+	if m.matchInfo.JoinExisting {
+		cmd = emit(game.JoinRoom{RoomId: m.matchInfo.RoomID})
+	} else {
+		cmd = emit(game.CreateMatchIntent{
+			Mode:    m.matchInfo.Mode,
+			WordLen: m.matchInfo.WordLen,
+			Rounds:  m.matchInfo.TotalRounds,
+		})
+	}
 
 	return tea.Batch(
 		textinput.Blink,
-		transport.ListenForActivity(m.client.Conn, m.msg),
-		transport.WaitForEvent(m.msg))
+		cmd,
+	)
 }
 
-func (m gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	logger.Debug("Update(%v)", msg)
+func (m *gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
@@ -127,37 +84,20 @@ func (m gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyCtrlC, tea.KeyEsc:
 			return m, tea.Quit
 		case tea.KeyEnter:
-			if m.uiPaused {
-				// Resume processing events
-				m.uiPaused = false
-				return m, transport.WaitForEvent(m.msg)
+			switch m.state {
+			case game.StateRoundFinished:
+				return m, emit(game.ContinueIntent{})
+			case game.StateWaitGuess:
+				v := m.input.Value()
+
+				if len(v) == m.matchInfo.WordLen { // do nothing if not enough letters
+					m.input.SetValue("")
+					return m, emit(game.MakeGuessIntent{Guess: v})
+				}
 			}
-
-			v := m.input.Value()
-
-			if len(v) == m.matchInfo.wordLen { // do nothing if not enough letters
-				m.client.MakeGuess(m.input.Value())
-				m.input.SetValue("")
-			}
 		}
-
-	case transport.EventMsg:
-		logger.Debug("State: %d", m.state)
-		logger.Info("New event received: %s\n", string(msg))
-
-		m, msgFromEvent := m.handleEvent(msg)
-		if msgFromEvent != nil {
-			return m, func() tea.Msg { return msgFromEvent } // TODO: This is ugly, fix this
-		}
-
-		if m.uiPaused {
-			// Pause processing events from channel
-			return m, nil
-		}
-		return m, transport.WaitForEvent(m.msg)
 
 	case error:
-		m.err = msg
 		return m, nil
 	}
 
@@ -165,18 +105,23 @@ func (m gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m gameModel) View() string {
-	logger.Debug("View()")
+func (m *gameModel) View() string {
 	var body, header, footer string
 
-	guessGrid := ui.ViewGuessGrid(m.guesses, m.input.Value(), m.matchInfo.maxAttempts, m.matchInfo.wordLen)
+	guessGrid := ui.ViewGuessGrid(
+		m.guesses,
+		m.input.Value(),
+		m.matchInfo.MaxAttempts,
+		m.matchInfo.WordLen,
+		m.input.Focused(),
+	)
 	continueMsg := "Press enter to continue..."
 
 	header += fmt.Sprintf(
 		"Round: %d/%s\tGuessed correctly: %d\n",
-		m.matchInfo.currentRound,
-		m.matchInfo.rawTotalRounds,
-		m.matchInfo.roundsWon,
+		m.matchInfo.CurrentRound,
+		m.matchInfo.RawTotalRounds,
+		m.matchInfo.RoundsWon,
 	)
 
 	centeredGrid := lipgloss.PlaceHorizontal(
@@ -187,11 +132,11 @@ func (m gameModel) View() string {
 
 	body = centeredGrid
 
-	if m.uiPaused {
-		if m.roundInfo.success {
+	if m.state == game.StateRoundFinished {
+		if m.roundInfo.Success {
 			footer = continueMsg
-		} else {
-			footer = fmt.Sprintf("Correct word: %s\n%s", m.roundInfo.word, continueMsg)
+		} else { // BUG: This is not rendered as we move too quickly out of StateRoundFinished
+			footer = fmt.Sprintf("Correct word: %s\n%s", m.roundInfo.Word, continueMsg)
 		}
 	}
 
@@ -203,83 +148,8 @@ func (m gameModel) View() string {
 		Render(view)
 }
 
-func (m gameModel) handleEvent(eventMsg transport.EventMsg) (gameModel, tea.Msg) {
-	msg := []byte(eventMsg)
-	event := &protocol.EnvelopeMessage{}
-
-	if err := json.Unmarshal(msg, event); err != nil {
-		logger.Error("[handleEvent] error unmarshaling EnvelopeMessage: %s", err)
-		return m, nil
+func emit(msg tea.Msg) tea.Cmd {
+	return func() tea.Msg {
+		return msg
 	}
-
-	logger.Info("[handleEvent] Event type: %s", event.Type)
-
-	switch event.Type {
-
-	case protocol.MATCH_STARTED:
-		m.state = StateMatchStarted
-
-	case protocol.ROUND_STARTED:
-		m.matchInfo.currentRound++
-		m.roundInfo = NewRoundInfo()
-		m.input.Focus()
-
-		roundStartedEvent := &protocol.RoundStartedMessage{}
-
-		if err := json.Unmarshal(msg, roundStartedEvent); err != nil {
-			logger.Error("[handleEvent] error unmarshaling RoundStartedMessage: %v", err)
-			return m, nil
-		}
-		m.state = StateMatchStarted
-		m.matchInfo.maxAttempts = roundStartedEvent.MaxAttempts
-		m.guesses = nil
-
-	case protocol.WAIT_GUESS:
-		m.state = StateWaitGuess
-
-	case protocol.WAIT_OPPONENT_GUESS:
-		m.state = StateWaitOpponentGuess
-
-	case protocol.WAIT_OPPONENT_JOIN:
-		m.state = StateWaitOpponentJoin
-
-	case protocol.GUESS_RESULT:
-		guessResultEvent := &protocol.GuessResultMessage{}
-
-		if err := json.Unmarshal(msg, guessResultEvent); err != nil {
-			logger.Error("[handleEvent] error unmarshaling GuessResultMessage: %v", err)
-			return m, nil
-		}
-
-		m.guesses = append(m.guesses, protocol.NewGuess(guessResultEvent.Guess, guessResultEvent.Feedback))
-
-	case protocol.ROUND_FINISHED:
-		roundFinishedEvent := &protocol.RoundFinishedMessage{}
-
-		if err := json.Unmarshal(msg, roundFinishedEvent); err != nil {
-			logger.Error("[handleEvent] error unmarshaling RoundFinishedMessage: %v", err)
-			return m, nil
-		}
-
-		m.state = StateRoundFinished
-		m.uiPaused = true
-		m.roundInfo.word = roundFinishedEvent.Word
-		m.roundInfo.success = roundFinishedEvent.Success
-
-		m.input.Blur()
-
-		if roundFinishedEvent.Success {
-			m.matchInfo.roundsWon++
-		}
-
-	case protocol.MATCH_FINISHED:
-		m.state = StateMatchFinished
-		m.uiPaused = true
-		return m, MatchFinishedMsg{
-			roundsPlayed: m.matchInfo.totalRounds,
-			roundsWon:    m.matchInfo.roundsWon,
-		}
-	}
-
-	return m, nil
 }

@@ -1,6 +1,5 @@
 #include "network.h"
 #include "client.h"
-#include "game_server.h"
 #include "game_types.h"
 #include "hash_table.h"
 #include <arpa/inet.h>
@@ -151,15 +150,21 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
 
     close(client_fd);
 
+    Match *match = NULL;
+    if (client->player != NULL)
+      match = client->player->match;
+
     // Delete match if it exists
-    Match *match = GS_get_match_by_client_fd(gs, client_fd);
     if (match != NULL) {
       // TODO: Handle premature match end for multiplayer games better by notifying
       // the other client correctly on why the match ended
-      GS_end_match(gs, match);
+
+      // TODO: Don't send to the client that just disconnected.
+      // "send: bad file descriptor"
+      GS_end_match(match);
     }
 
-    free((Client *)HT_get(gs->clients, KEY(client_fd)));
+    free(client);
     HT_delete(gs->clients, KEY(client_fd));
     del_from_pfds(pfds, *pfd_i, fd_count);
 
@@ -173,13 +178,14 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
 
   if ((client->buf_len + nbytes) - (client->buf_start - client->buffer) > BUFSIZE) {
     printf("[handle_client_data] error: buffer overflow\n");
+
+    Match *match = client->player->match;
+    if (match != NULL) {
+      GS_end_match(match);
+    }
+
     close(client_fd);
     del_from_pfds(pfds, *pfd_i, fd_count);
-
-    Match *match = GS_get_match_by_client_fd(gs, client_fd);
-    if (match != NULL) {
-      GS_end_match(gs, match);
-    }
     (*pfd_i)--;
     return;
   }
@@ -218,7 +224,7 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
         break;
       }
 
-      GS_handle_request(gs, client_fd, client->buf_start, client->payload_size);
+      GS_handle_request(gs, client);
 
       client->buf_start += client->payload_size;
       client->buf_len -= client->payload_size;

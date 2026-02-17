@@ -1,14 +1,14 @@
 package protocol
 
 type GameMode string
+type LetterFeedback int
+
+const ROOM_ID_LENGTH = 5
 
 const (
 	SINGLE       GameMode = "SINGLE"
-	MULTI_LOCAL  GameMode = "MULTI_LOCAL"
 	MULTI_REMOTE GameMode = "MULTI_REMOTE"
 )
-
-type LetterFeedback int
 
 const (
 	LETTER_ABSENT LetterFeedback = iota
