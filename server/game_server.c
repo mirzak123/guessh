@@ -87,7 +87,7 @@ void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request)
 
   printf("[GS_handle_create_match] json_request: %s\n", cJSON_PrintUnformatted(json_request));
 
-  if (client->player != NULL) {
+  if (client->player != NULL && client->player->match != NULL) {
     send_error(client->fd, E_ALREADY_IN_MATCH);
     return;
   }
@@ -353,7 +353,7 @@ void GS_handle_make_guess(Client *client, cJSON *json_request) {
 
   assert(round->wc->attempt_count < round->wc->max_attempts);
 
-  if (player != match->on_turn) {
+  if (match->mode == MULTI_REMOTE && player != match->on_turn) {
     send_error(client->fd, E_NOT_ON_TURN);
     return;
   }
@@ -386,6 +386,8 @@ void GS_handle_make_guess(Client *client, cJSON *json_request) {
   guess_result_json = json_guess_result(success, guess, feedback, match->word_len);
 
   bool is_round_finished = success || (round->wc->attempt_count >= round->wc->max_attempts);
+  printf("is_round_finished: %d; success: %d; round->wc->attempt_count: %lu; round->wc->max_attempts: %lu", is_round_finished,
+         success, round->wc->attempt_count, round->wc->max_attempts);
 
   switch (match->mode) {
   case MULTI_REMOTE:
@@ -400,7 +402,9 @@ void GS_handle_make_guess(Client *client, cJSON *json_request) {
     break;
   case SINGLE:
     send_json(player->client_fd, guess_result_json);
-    send_only_type(player->client_fd, STR(WAIT_GUESS));
+    if (!is_round_finished) {
+      send_only_type(player->client_fd, STR(WAIT_GUESS));
+    }
     break;
   }
   free(feedback);
@@ -416,7 +420,7 @@ void GS_handle_make_guess(Client *client, cJSON *json_request) {
   end_round(match);
 }
 
-void GS_end_match(Match *match) {
+void GS_end_match(Match *match, Player *disconnected_player) {
   char *winner_name;
   switch (match->outcome) {
   case TIE:
@@ -437,13 +441,17 @@ void GS_end_match(Match *match) {
   assert(match->player1 != NULL);
   switch (match->mode) {
   case MULTI_REMOTE:
-    if (match->player2 != NULL) {
+    if (match->player2 != NULL && match->player2 != disconnected_player) {
+      match->player2->match = NULL;
       send_json(match->player2->client_fd, match_finished_json);
     }
     // TODO: Delete the room
 
   case SINGLE:
-    send_json(match->player1->client_fd, match_finished_json);
+    if (match->player1 != disconnected_player) {
+      send_json(match->player1->client_fd, match_finished_json);
+      match->player1->match = NULL;
+    }
   }
   cJSON_Delete(match_finished_json);
 }
@@ -465,7 +473,7 @@ static void end_round(Match *match) {
   if (match->round_idx + 1 < (int)match->round_capacity) {
     start_round(match);
   } else {
-    GS_end_match(match);
+    GS_end_match(match, NULL);
   }
 }
 
@@ -506,7 +514,7 @@ static void start_round(Match *match) {
   }
 
   match->rounds[++(match->round_idx)] = round;
-  round_started_json = json_round_started(match->round_idx, round->wc->max_attempts);
+  round_started_json = json_round_started(match->round_idx + 1, round->wc->max_attempts);
 
   switch (match->mode) {
   case MULTI_REMOTE:

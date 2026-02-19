@@ -78,10 +78,7 @@ func (m mainModel) Init() tea.Cmd {
 }
 
 func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var baseCmd tea.Cmd
-	if !m.eventsPaused {
-		baseCmd = transport.WaitForEvent(m.msg)
-	}
+	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -95,18 +92,16 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		logger.Debug("[Update] Window resizing...")
 		m.width = msg.Width
 		m.height = msg.Height
-		return m, baseCmd
+		return m, tea.Batch(cmds...)
 
 	case game.StartGameIntent:
 		m.screenID = StartScreenID
 		m.matchInfo = game.NewMatchInfo()
 		m.form, m.confirm = NewStartMenu(m.matchInfo)
 
-		return m, tea.Batch(
-			tea.ClearScreen,
-			m.form.Init(),
-			baseCmd,
-		)
+		m.eventsPaused = false
+
+		return m, tea.Batch(tea.ClearScreen, m.form.Init(), transport.WaitForEvent(m.msg))
 
 	case MatchFinishedMsg:
 		m.screenID = MatchResultsScreenID
@@ -133,13 +128,16 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case game.ContinueIntent:
 		logger.Debug("Continuing Events")
 		m.eventsPaused = false
+		cmds = append(cmds, transport.WaitForEvent(m.msg))
 
 	case transport.EventMsg:
-		logger.Info("New event received: %s\n", string(msg))
+		if !m.eventsPaused {
+			cmds = append(cmds, transport.WaitForEvent(m.msg))
+		}
 
 		msgFromEvent := m.handleEvent(msg)
 		if msgFromEvent != nil {
-			return m, emit(msgFromEvent)
+			cmds = append(cmds, emit(msgFromEvent))
 		}
 	}
 
@@ -149,16 +147,14 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		updatedModel, formCmd := m.form.Update(msg)
 		m.form = updatedModel.(*huh.Form)
 
+		cmds = append(cmds, formCmd)
+
 		if m.form.State == huh.StateCompleted {
 			if !*m.confirm {
 				m.screenID = StartScreenID
 				m.form, m.confirm = NewStartMenu(m.matchInfo)
 
-				return m, tea.Batch(
-					tea.ClearScreen,
-					formCmd,
-					baseCmd,
-				)
+				return m, tea.Batch(tea.ClearScreen, formCmd)
 			}
 
 			if m.matchInfo.RoomID != "" {
@@ -171,60 +167,34 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case protocol.MULTI_REMOTE:
 				if m.matchInfo.JoinExisting {
 					m.screenID = GameScreenID
-					return m, tea.Batch(
-						m.game.Init(),
-						baseCmd,
-					)
+					cmds = append(cmds, m.game.Init())
 				} else {
 					m.screenID = WaitingOpponentScreenID
 					m.waitingOpponent = NewWaitingOpponentModel(m.matchInfo.RoomID)
-
-					return m, tea.Batch(
-						m.game.Init(),
-						m.waitingOpponent.Init(),
-						baseCmd,
-					)
+					cmds = append(cmds, m.game.Init(), m.waitingOpponent.Init())
 				}
 			case protocol.SINGLE:
 				m.screenID = GameScreenID
-				return m, tea.Batch(
-					m.game.Init(),
-					baseCmd,
-				)
+				cmds = append(cmds, m.game.Init())
 			}
 		}
-		return m, tea.Batch(
-			formCmd,
-			baseCmd,
-		)
 
 	case GameScreenID:
 		_, gameCmd := m.game.Update(msg)
-
-		return m, tea.Batch(
-			gameCmd,
-			baseCmd,
-		)
+		cmds = append(cmds, gameCmd)
 
 	case WaitingOpponentScreenID:
 		// BUG: ROOM_CREATED event gets passed to waiting opponent screen instead of game screen, meaning it's never processed.
 		// Solution: move handleEvent to main screen and pass events to the screen that needs them
 		_, waitingOpponentCmd := m.waitingOpponent.Update(msg)
-		return m, tea.Batch(
-			waitingOpponentCmd,
-			baseCmd,
-		)
+		cmds = append(cmds, waitingOpponentCmd)
 
 	case MatchResultsScreenID:
 		_, matchResultsCmd := m.matchResults.Update(msg)
-
-		return m, tea.Batch(
-			matchResultsCmd,
-			baseCmd,
-		)
+		cmds = append(cmds, matchResultsCmd)
 	}
 
-	return m, baseCmd
+	return m, tea.Batch(cmds...)
 }
 
 func (m mainModel) View() string {
@@ -279,7 +249,6 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 		m.matchInfo.RawTotalRounds = fmt.Sprintf("%d", matchStartedEvent.Rounds)
 
 	case protocol.ROUND_STARTED:
-		m.matchInfo.CurrentRound++
 		m.game.roundInfo = game.NewRoundInfo()
 
 		roundStartedEvent := &protocol.RoundStartedMessage{}
@@ -289,6 +258,7 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 			return nil
 		}
 		m.matchInfo.MaxAttempts = roundStartedEvent.MaxAttempts
+		m.matchInfo.CurrentRound = roundStartedEvent.RoundNumber
 		m.game.guesses = nil
 
 	case protocol.WAIT_GUESS:
@@ -326,7 +296,10 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 		m.game.input.Blur()
 
 		if roundFinishedEvent.Success {
+			logger.Debug("Incrementing correct guess count: %d", m.matchInfo.RoundsWon)
 			m.matchInfo.RoundsWon++
+		} else {
+			logger.Debug("Round not successful, not incrementing") // TODO: Remove
 		}
 
 		return game.PauseIntent{}

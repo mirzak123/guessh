@@ -144,7 +144,7 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
   if (nbytes <= 0) {
     if (nbytes == 0) { // client hang up
       printf("socket %d hangup\n", client_fd);
-    } else { // error
+    } else {
       perror("recv");
     }
 
@@ -159,9 +159,7 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
       // TODO: Handle premature match end for multiplayer games better by notifying
       // the other client correctly on why the match ended
 
-      // TODO: Don't send to the client that just disconnected.
-      // "send: bad file descriptor"
-      GS_end_match(match);
+      GS_end_match(match, client->player);
     }
 
     free(client);
@@ -181,7 +179,7 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
 
     Match *match = client->player->match;
     if (match != NULL) {
-      GS_end_match(match);
+      GS_end_match(match, NULL);
     }
 
     close(client_fd);

@@ -135,7 +135,7 @@ func (m *gameModel) View() string {
 	if m.state == game.StateRoundFinished {
 		if m.roundInfo.Success {
 			footer = continueMsg
-		} else { // BUG: This is not rendered as we move too quickly out of StateRoundFinished
+		} else {
 			footer = fmt.Sprintf("Correct word: %s\n%s", m.roundInfo.Word, continueMsg)
 		}
 	}

@@ -73,6 +73,6 @@ void GS_handle_request(GameServer *gs, Client *client);
 void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request);
 void GS_handle_make_guess(Client *client, cJSON *json_request);
 void GS_handle_join_room(GameServer *gs, Client *client, cJSON *json_request);
-void GS_end_match(Match *match); // TODO: There is probably a better place for this
+void GS_end_match(Match *match, Player *disconnected_player);
 
 #endif // !GAME_SERVER_H
