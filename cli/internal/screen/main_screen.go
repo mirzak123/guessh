@@ -36,13 +36,14 @@ type RoomCreatedMsg struct {
 }
 
 type mainModel struct {
+	width, height   int
 	client          *client.Client
 	event           chan transport.EventMsg
-	width, height   int
-	matchInfo       *game.MatchInfo
-	confirm         *bool
+	eventBuffer     []transport.EventMsg
 	eventsPaused    bool
 	screenID        ScreenID
+	matchInfo       *game.MatchInfo
+	confirm         *bool
 	form            *huh.Form
 	game            *gameModel
 	waitingOpponent *waitingOpponentModel
@@ -108,7 +109,7 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.matchResults = NewMatchResults(msg.roundsPlayed, msg.roundsWon)
 
 	case RoomCreatedMsg:
-		logger.Debug("setting room ID: %s", msg.roomID)
+		logger.Debug("Setting room ID: %s", msg.roomID)
 		m.matchInfo.RoomID = msg.roomID
 		m.waitingOpponent.roomID = msg.roomID
 
@@ -126,18 +127,28 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.eventsPaused = true
 
 	case game.ContinueIntent:
-		logger.Debug("Continuing Events")
+		logger.Debug("Continuing events, flushing buffer")
 		m.eventsPaused = false
-		cmds = append(cmds, transport.WaitForEvent(m.event))
+
+		for _, bufferedEvent := range m.eventBuffer {
+			msgFromEvent := m.handleEvent(bufferedEvent)
+			if msgFromEvent != nil {
+				cmds = append(cmds, emit(msgFromEvent))
+			}
+		}
+		m.eventBuffer = nil
 
 	case transport.EventMsg:
-		if !m.eventsPaused {
-			cmds = append(cmds, transport.WaitForEvent(m.event))
-		}
+		cmds = append(cmds, transport.WaitForEvent(m.event))
 
-		msgFromEvent := m.handleEvent(msg)
-		if msgFromEvent != nil {
-			cmds = append(cmds, emit(msgFromEvent))
+		if m.eventsPaused {
+			logger.Debug("UI paused, buffering event")
+			m.eventBuffer = append(m.eventBuffer, msg)
+		} else {
+			msgFromEvent := m.handleEvent(msg)
+			if msgFromEvent != nil {
+				cmds = append(cmds, emit(msgFromEvent))
+			}
 		}
 	}
 
