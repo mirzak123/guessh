@@ -37,7 +37,7 @@ type RoomCreatedMsg struct {
 
 type mainModel struct {
 	client          *client.Client
-	msg             chan transport.EventMsg
+	event           chan transport.EventMsg
 	width, height   int
 	matchInfo       *game.MatchInfo
 	confirm         *bool
@@ -62,7 +62,7 @@ func InitialModel() mainModel {
 		screenID:  StartScreenID,
 		matchInfo: game.NewMatchInfo(),
 		client:    c,
-		msg:       make(chan transport.EventMsg),
+		event:     make(chan transport.EventMsg),
 	}
 	m.form, m.confirm = NewStartMenu(m.matchInfo)
 	return m
@@ -72,8 +72,8 @@ func (m mainModel) Init() tea.Cmd {
 
 	return tea.Batch(
 		tea.EnterAltScreen,
-		transport.ListenForActivity(m.client.Conn, m.msg),
-		transport.WaitForEvent(m.msg),
+		transport.ListenForActivity(m.client.Conn, m.event),
+		transport.WaitForEvent(m.event),
 	)
 }
 
@@ -101,7 +101,7 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.eventsPaused = false
 
-		return m, tea.Batch(tea.ClearScreen, m.form.Init(), transport.WaitForEvent(m.msg))
+		return m, tea.Batch(tea.ClearScreen, m.form.Init(), transport.WaitForEvent(m.event))
 
 	case MatchFinishedMsg:
 		m.screenID = MatchResultsScreenID
@@ -128,11 +128,11 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case game.ContinueIntent:
 		logger.Debug("Continuing Events")
 		m.eventsPaused = false
-		cmds = append(cmds, transport.WaitForEvent(m.msg))
+		cmds = append(cmds, transport.WaitForEvent(m.event))
 
 	case transport.EventMsg:
 		if !m.eventsPaused {
-			cmds = append(cmds, transport.WaitForEvent(m.msg))
+			cmds = append(cmds, transport.WaitForEvent(m.event))
 		}
 
 		msgFromEvent := m.handleEvent(msg)
