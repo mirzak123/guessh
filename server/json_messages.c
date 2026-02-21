@@ -80,3 +80,10 @@ cJSON *json_match_finished(const char *winner) {
   cJSON_AddStringToObject(json, "winner", winner);
   return json;
 }
+
+cJSON *json_opponent_typing(const char *value) {
+  cJSON *json = cJSON_CreateObject();
+  cJSON_AddStringToObject(json, "type", STR(OPPONENT_TYPING));
+  cJSON_AddStringToObject(json, "value", value);
+  return json;
+}

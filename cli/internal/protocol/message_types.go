@@ -21,6 +21,8 @@ const (
 	GUESS_RESULT        MessageType = "GUESS_RESULT"
 	ROUND_FINISHED      MessageType = "ROUND_FINISHED"
 	MATCH_FINISHED      MessageType = "MATCH_FINISHED"
+	TYPING              MessageType = "TYPING"
+	OPPONENT_TYPING     MessageType = "OPPONENT_TYPING"
 	BYE                 MessageType = "BYE"
 )
 
@@ -71,6 +73,18 @@ func NewJoinRoomMessage(roomID string) *JoinRoomMessage {
 	return &JoinRoomMessage{
 		Type:   JOIN_ROOM,
 		RoomID: roomID,
+	}
+}
+
+type TypingMessage struct {
+	Type  MessageType `json:"type"`
+	Value string      `json:"value"`
+}
+
+func NewTypingMessage(value string) *TypingMessage {
+	return &TypingMessage{
+		Type:  TYPING,
+		Value: value,
 	}
 }
 
@@ -129,4 +143,9 @@ type RoomJoinFailedMessage struct {
 	Type   MessageType `json:"type"`
 	RoomID string      `json:"roomId"`
 	Reason string      `json:"reason"`
+}
+
+type OpponentTypingMessage struct {
+	Type  MessageType `json:"type"`
+	Value string      `json:"value"`
 }

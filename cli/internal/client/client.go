@@ -64,6 +64,21 @@ func (c *Client) JoinRoom(roomID string) {
 	c.send(msg)
 }
 
+func (c *Client) Typing(value string) {
+	var (
+		msg []byte
+		err error
+	)
+
+	typingMsg := protocol.NewTypingMessage(value)
+	if msg, err = json.Marshal(typingMsg); err != nil {
+		logger.Error("[Client.MakeGuess] Failed to marshal TypingMessage: %v", err)
+		os.Exit(1)
+	}
+
+	c.send(msg)
+}
+
 func (c *Client) send(payload []byte) {
 	logger.Info("[Client.send] Sending message: %s", payload)
 	if _, err := transport.SendMessage(c.Conn, payload); err != nil {

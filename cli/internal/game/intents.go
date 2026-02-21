@@ -18,6 +18,10 @@ type MakeGuessIntent struct {
 
 type StartGameIntent struct{}
 
+type TypingIntent struct {
+	Value string
+}
+
 type JoinRoom struct {
 	RoomId string
 }

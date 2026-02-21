@@ -43,9 +43,9 @@ typedef enum {
   MAKE_GUESS,
   REQUEST_REMATCH,
   LEAVE_MATCH,
+  TYPING,
 
   // Server
-  ERROR,
   CONNECTED,
   ROOM_CREATED,
   ROOM_JOINED,
@@ -58,7 +58,9 @@ typedef enum {
   GUESS_RESULT,
   ROUND_FINISHED,
   MATCH_FINISHED,
+  OPPONENT_TYPING,
   BYE,
+  ERROR,
 } MessageType;
 
 typedef struct {
@@ -73,6 +75,7 @@ void GS_handle_request(GameServer *gs, Client *client);
 void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request);
 void GS_handle_make_guess(Client *client, cJSON *json_request);
 void GS_handle_join_room(GameServer *gs, Client *client, cJSON *json_request);
+void GS_handle_typing(Client *client, cJSON *json_request);
 void GS_end_match(Match *match, Player *disconnected_player);
 
 #endif // !GAME_SERVER_H
