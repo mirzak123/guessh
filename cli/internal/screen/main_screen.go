@@ -36,13 +36,14 @@ type RoomCreatedMsg struct {
 }
 
 type mainModel struct {
-	client          *client.Client
-	msg             chan transport.EventMsg
 	width, height   int
-	matchInfo       *game.MatchInfo
-	confirm         *bool
+	client          *client.Client
+	event           chan transport.EventMsg
+	eventBuffer     []transport.EventMsg
 	eventsPaused    bool
 	screenID        ScreenID
+	matchInfo       *game.MatchInfo
+	confirm         *bool
 	form            *huh.Form
 	game            *gameModel
 	waitingOpponent *waitingOpponentModel
@@ -62,7 +63,7 @@ func InitialModel() mainModel {
 		screenID:  StartScreenID,
 		matchInfo: game.NewMatchInfo(),
 		client:    c,
-		msg:       make(chan transport.EventMsg),
+		event:     make(chan transport.EventMsg),
 	}
 	m.form, m.confirm = NewStartMenu(m.matchInfo)
 	return m
@@ -72,8 +73,8 @@ func (m mainModel) Init() tea.Cmd {
 
 	return tea.Batch(
 		tea.EnterAltScreen,
-		transport.ListenForActivity(m.client.Conn, m.msg),
-		transport.WaitForEvent(m.msg),
+		transport.ListenForActivity(m.client.Conn, m.event),
+		transport.WaitForEvent(m.event),
 	)
 }
 
@@ -101,14 +102,14 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.eventsPaused = false
 
-		return m, tea.Batch(tea.ClearScreen, m.form.Init(), transport.WaitForEvent(m.msg))
+		return m, tea.Batch(tea.ClearScreen, m.form.Init(), transport.WaitForEvent(m.event))
 
 	case MatchFinishedMsg:
 		m.screenID = MatchResultsScreenID
 		m.matchResults = NewMatchResults(msg.roundsPlayed, msg.roundsWon)
 
 	case RoomCreatedMsg:
-		logger.Debug("setting room ID: %s", msg.roomID)
+		logger.Debug("Setting room ID: %s", msg.roomID)
 		m.matchInfo.RoomID = msg.roomID
 		m.waitingOpponent.roomID = msg.roomID
 
@@ -126,18 +127,28 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.eventsPaused = true
 
 	case game.ContinueIntent:
-		logger.Debug("Continuing Events")
+		logger.Debug("Continuing events, flushing buffer")
 		m.eventsPaused = false
-		cmds = append(cmds, transport.WaitForEvent(m.msg))
+
+		for _, bufferedEvent := range m.eventBuffer {
+			msgFromEvent := m.handleEvent(bufferedEvent)
+			if msgFromEvent != nil {
+				cmds = append(cmds, emit(msgFromEvent))
+			}
+		}
+		m.eventBuffer = nil
 
 	case transport.EventMsg:
-		if !m.eventsPaused {
-			cmds = append(cmds, transport.WaitForEvent(m.msg))
-		}
+		cmds = append(cmds, transport.WaitForEvent(m.event))
 
-		msgFromEvent := m.handleEvent(msg)
-		if msgFromEvent != nil {
-			cmds = append(cmds, emit(msgFromEvent))
+		if m.eventsPaused {
+			logger.Debug("UI paused, buffering event")
+			m.eventBuffer = append(m.eventBuffer, msg)
+		} else {
+			msgFromEvent := m.handleEvent(msg)
+			if msgFromEvent != nil {
+				cmds = append(cmds, emit(msgFromEvent))
+			}
 		}
 	}
 

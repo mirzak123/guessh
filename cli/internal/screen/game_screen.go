@@ -84,6 +84,7 @@ func (m *gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyCtrlC, tea.KeyEsc:
 			return m, tea.Quit
 		case tea.KeyEnter:
+			logger.Debug("Game state: [%s]", m.state)
 			switch m.state {
 			case game.StateRoundFinished:
 				return m, emit(game.ContinueIntent{})
