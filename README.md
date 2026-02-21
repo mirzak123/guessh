@@ -53,6 +53,7 @@ Find a better way to represent flow below 🙏🙏🙏
 | JOIN_ROOM       | {"type": "JOIN_ROOM", "roomId": string}                                            |
 | MAKE_GUESS      | {"type": "MAKE_GUESS", "guess": string}                                            |
 | REQUEST_REMATCH |                                                                                    |
+| TYPING          | {"type": "TYPING", "value": string}                                                |
 | LEAVE_MATCH     | {"type": "LEAVE_MATCH"}                                                            |
 
 ### Server Message Types
@@ -63,7 +64,7 @@ Find a better way to represent flow below 🙏🙏🙏
 | CONNECTED           |                                                                                      |                                                                         |
 | ROOM_CREATED        | {"type": "ROOM_CREATED", "roomId": string}                                           |                                                                         |
 | ROOM_JOINED         | {"type": "ROOM_JOINED", "roomId": string}                                            |                                                                         |
-| ROOM_JOIN_FAILED    | {"type": "ROOM_JOIN_FAILED", "roomId": string, "reason": string}                                       | Room full or invalid room ID                                            |
+| ROOM_JOIN_FAILED    | {"type": "ROOM_JOIN_FAILED", "roomId": string, "reason": string}                     | Room full or invalid room ID                                            |
 | WAIT_OPPONENT_JOIN  | {"type": "WAIT_OPPONENT_JOIN"}                                                       |                                                                         |
 | MATCH_STARTED       | {"type": "MATCH_STARTED", "matchId": string, "rounds": number, "wordLength": number} |                                                                         |
 | ROUND_STARTED       | {"type": "ROUND_STARTED", "roundNumber": number, "maxAttempts": number}              |                                                                         |
@@ -72,4 +73,5 @@ Find a better way to represent flow below 🙏🙏🙏
 | GUESS_RESULT        | {"type": "GUESS_RESULT", "success": boolean, "guess": string, "feedback": number[]}  |                                                                         |
 | ROUND_FINISHED      | {"type": "ROUND_FINISHED", "success": boolean, "word": string}                       | In multiplayer we need to provide a field indicating the winning player |
 | MATCH_FINISHED      | {"type": "MATCH_FINISHED", "winner": string}                                         | Winner only relevant for multiplayer games.                             |
+| OPPONENT_TYPING     | {"type": "OPPONENT_TYPING", "value": string}                                         |
 | BYE                 | {"type": "BYE"}                                                                      |                                                                         |

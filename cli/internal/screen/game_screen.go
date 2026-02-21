@@ -67,7 +67,7 @@ func (m *gameModel) Init() tea.Cmd {
 }
 
 func (m *gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
+	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
 
@@ -95,11 +95,16 @@ func (m *gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 		}
+		var inputCmd tea.Cmd
+		m.input, inputCmd = m.input.Update(msg)
+		cmds = append(cmds, inputCmd)
 
-	case error:
-		return m, nil
+		if m.state == game.StateWaitGuess {
+			cmds = append(cmds, emit(game.TypingIntent{Value: m.input.Value()}))
+		}
+		return m, tea.Batch(cmds...)
 	}
-
+	var cmd tea.Cmd
 	m.input, cmd = m.input.Update(msg)
 	return m, cmd
 }

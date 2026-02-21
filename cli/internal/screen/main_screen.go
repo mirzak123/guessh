@@ -139,6 +139,9 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.eventBuffer = nil
 
+	case game.TypingIntent:
+		m.client.Typing(msg.Value)
+
 	case transport.EventMsg:
 		cmds = append(cmds, transport.WaitForEvent(m.event))
 
@@ -276,6 +279,7 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 	case protocol.WAIT_GUESS:
 		m.game.state = game.StateWaitGuess
 		m.game.input.Focus()
+		m.game.input.SetValue("")
 
 	case protocol.WAIT_OPPONENT_GUESS:
 		m.game.state = game.StateWaitOpponentGuess
@@ -352,6 +356,14 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 		enterMsg := tea.KeyMsg{Type: tea.KeyEnter}
 		_, formCmd := m.form.Update(enterMsg)
 		return tea.Batch(tea.ClearScreen, formCmd)
+
+	case protocol.OPPONENT_TYPING:
+		opponentTypingEvent := &protocol.OpponentTypingMessage{}
+		if err := json.Unmarshal(msg, opponentTypingEvent); err != nil {
+			logger.Error("[handleEvent] error unmarshaling OpponentTypingMessage: %v", err)
+			return nil
+		}
+		m.game.input.SetValue(opponentTypingEvent.Value)
 
 	default:
 		logger.Info("Ignoring event: %s", event.Type)

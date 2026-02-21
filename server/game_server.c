@@ -70,6 +70,9 @@ void GS_handle_request(GameServer *gs, Client *client) {
   case LEAVE_MATCH:
     send_error(client->fd, E_NOT_IMPLEMENTED);
     break;
+  case TYPING:
+    GS_handle_typing(client, json_request);
+    break;
   case UNSUPPORTED_MESSAGE_TYPE:
   default:
     send_error(client->fd, E_UNSUPPORTED_MESSAGE_TYPE);
@@ -227,6 +230,10 @@ static MessageType parse_message(char *data, size_t size, cJSON **json_out) {
     mt = ROUND_FINISHED;
   } else if (!strcmp("MATCH_FINISHED", type)) {
     mt = MATCH_FINISHED;
+  } else if (!strcmp("TYPING", type)) {
+    mt = TYPING;
+  } else if (!strcmp("OPPONENT_TYPING", type)) {
+    mt = OPPONENT_TYPING;
   } else {
     mt = UNSUPPORTED_MESSAGE_TYPE;
   }
@@ -286,6 +293,33 @@ void GS_handle_join_room(GameServer *gs, Client *client, cJSON *json_request) {
   cJSON_Delete(room_joined_json);
 
   add_player_to_match(room->match, player);
+}
+
+void GS_handle_typing(Client *client, cJSON *json_request) {
+  Match *match = client->player->match;
+  Player *opponent = match->player1 == client->player ? match->player2 : match->player1;
+  cJSON *value_json = cJSON_GetObjectItem(json_request, "value");
+  if (value_json == NULL) {
+    send_error(client->fd, E_MISSING_FIELD("value"));
+    return;
+  }
+
+  if (!cJSON_IsString(value_json)) {
+    send_error(client->fd, E_INVALID_TYPE("value", STRING));
+    return;
+  }
+  char *value = cJSON_GetStringValue(value_json);
+
+  if (match->mode != MULTI_REMOTE)
+    return;
+
+  if (opponent == NULL) {
+    return;
+  }
+
+  cJSON *opponent_typing_json = json_opponent_typing(value);
+  send_json(opponent->client_fd, opponent_typing_json);
+  cJSON_Delete(opponent_typing_json);
 }
 
 static void add_player_to_match(Match *match, Player *player) {
