@@ -49,8 +49,13 @@ void HT_set(HashTable *table, Key key, Value value) {
   }
 
   Entry *entry = find_entry(table->entries, table->capacity, &key);
-  if (is_empty(entry))
+  if (is_empty(entry)) {
     table->count++;
+  } else {
+    if (entry->key.type == HT_KEY_STR) {
+      free(entry->key.str);
+    }
+  }
 
   if (key.type == HT_KEY_STR) {
     key.str = strdup(key.str);
@@ -67,8 +72,14 @@ Value HT_get(HashTable *table, Key key) {
 }
 
 void HT_delete(HashTable *table, Key key) {
+  if (table->count == 0)
+    return;
+
   Entry *entry = find_entry(table->entries, table->capacity, &key);
   if (!is_empty(entry)) {
+    if (entry->key.type == HT_KEY_STR) {
+      free(entry->key.str);
+    }
     entry->key.type = HT_KEY_TOMBSTONE;
     entry->value = NULL;
   }
@@ -80,16 +91,20 @@ static Entry *find_entry(Entry *entries, int capacity, Key *key) {
 
   while (true) {
     Entry *entry = &entries[index];
-    if (is_empty(entry) || compare_keys(key, &entry->key)) {
+    if (is_empty(entry)) {
+      return tombstone != NULL ? tombstone : entry;
+    }
+
+    if (compare_keys(key, &entry->key)) {
       return entry;
-    } else if (is_tombstone(entry)) {
+    }
+
+    if (is_tombstone(entry) && tombstone == NULL) {
       tombstone = entry;
     }
 
     index = (index + 1) % capacity;
   }
-
-  return tombstone;
 }
 
 static void adjust_capacity(HashTable *table, int capacity) {
@@ -104,7 +119,7 @@ static void adjust_capacity(HashTable *table, int capacity) {
 
   for (int i = 0; i < table->capacity; i++) {
     Entry *entry = &table->entries[i];
-    if (is_empty(entry))
+    if (is_empty(entry) || is_tombstone(entry))
       continue;
 
     Entry *new_entry = find_entry(entries, capacity, &entry->key);
@@ -159,4 +174,4 @@ static bool compare_keys(Key *k1, Key *k2) {
 }
 
 static inline bool is_empty(Entry *entry) { return entry->key.type == HT_KEY_EMPTY; }
-static inline bool is_tombstone(Entry *entry) { return entry->key.type == HT_KEY_EMPTY; }
+static inline bool is_tombstone(Entry *entry) { return entry->key.type == HT_KEY_TOMBSTONE; }

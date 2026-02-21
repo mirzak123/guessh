@@ -16,11 +16,13 @@ void test_hash_table(void);
 void assert_feedback(LetterFeedback *feedback, LetterFeedback *expected);
 void print_feedback(LetterFeedback *feedback);
 void test_generate_random_string(void);
+void test_call_HT_delete_on_empty_hash_table(void);
 
 int main(void) {
   srand(time(NULL));
   test_evaluate_guess();
   test_hash_table();
+  test_call_HT_delete_on_empty_hash_table();
 
   return 0;
 }
@@ -122,6 +124,11 @@ void test_hash_table(void) {
   assert(table->capacity == 16);
 
   HT_destroy(table);
+}
+
+void test_call_HT_delete_on_empty_hash_table(void) {
+  HashTable *ht = HT_create();
+  HT_delete(ht, KEY(1));
 }
 
 void assert_feedback(LetterFeedback *feedback, LetterFeedback *expected) {
