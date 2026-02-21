@@ -386,7 +386,7 @@ void GS_handle_make_guess(Client *client, cJSON *json_request) {
   guess_result_json = json_guess_result(success, guess, feedback, match->word_len);
 
   bool is_round_finished = success || (round->wc->attempt_count >= round->wc->max_attempts);
-  printf("is_round_finished: %d; success: %d; round->wc->attempt_count: %lu; round->wc->max_attempts: %lu", is_round_finished,
+  printf("is_round_finished: %d; success: %d; round->wc->attempt_count: %lu; round->wc->max_attempts: %lu\n", is_round_finished,
          success, round->wc->attempt_count, round->wc->max_attempts);
 
   switch (match->mode) {

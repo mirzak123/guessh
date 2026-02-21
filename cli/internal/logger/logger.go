@@ -21,7 +21,7 @@ var (
 )
 
 func Init(out io.Writer, level LogLevel) {
-	flags := log.Lshortfile
+	flags := log.Lshortfile | log.Ldate | log.Ltime
 
 	infoLogger = log.New(out, "[INFO] ", flags)
 	warnLogger = log.New(out, "[WARN] ", flags)

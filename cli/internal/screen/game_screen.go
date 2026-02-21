@@ -27,8 +27,6 @@ type gameModel struct {
 func NewGame(matchInfo *game.MatchInfo) *gameModel {
 	logger.Debug("Calling NewGame")
 	ti := textinput.New()
-	ti.CharLimit = matchInfo.WordLen
-	ti.Width = matchInfo.WordLen
 	ti.Blur()
 
 	return &gameModel{

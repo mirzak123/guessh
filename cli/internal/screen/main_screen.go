@@ -195,8 +195,6 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, gameCmd)
 
 	case WaitingOpponentScreenID:
-		// BUG: ROOM_CREATED event gets passed to waiting opponent screen instead of game screen, meaning it's never processed.
-		// Solution: move handleEvent to main screen and pass events to the screen that needs them
 		_, waitingOpponentCmd := m.waitingOpponent.Update(msg)
 		cmds = append(cmds, waitingOpponentCmd)
 
@@ -258,6 +256,9 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 		m.matchInfo.WordLen = matchStartedEvent.WordLength
 		m.matchInfo.TotalRounds = matchStartedEvent.Rounds
 		m.matchInfo.RawTotalRounds = fmt.Sprintf("%d", matchStartedEvent.Rounds)
+
+		m.game.input.CharLimit = m.matchInfo.WordLen
+		m.game.input.Width = m.matchInfo.WordLen
 
 	case protocol.ROUND_STARTED:
 		m.game.roundInfo = game.NewRoundInfo()
