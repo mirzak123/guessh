@@ -2,6 +2,7 @@ package screen
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"guessh/internal/client"
 	"guessh/internal/game"
@@ -243,15 +244,14 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 	switch event.Type {
 
 	case protocol.MATCH_STARTED:
-		m.game.state = game.StateMatchStarted
-		m.screenID = GameScreenID
-
 		matchStartedEvent := &protocol.MatchStartedMessage{}
-
 		if err := json.Unmarshal(msg, matchStartedEvent); err != nil {
 			logger.Error("[handleEvent] error unmarshaling RoundStartedMessage: %v", err)
 			return nil
 		}
+
+		m.game.state = game.StateMatchStarted
+		m.screenID = GameScreenID
 
 		m.matchInfo.WordLen = matchStartedEvent.WordLength
 		m.matchInfo.TotalRounds = matchStartedEvent.Rounds
@@ -261,14 +261,14 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 		m.game.input.Width = m.matchInfo.WordLen
 
 	case protocol.ROUND_STARTED:
-		m.game.roundInfo = game.NewRoundInfo()
-
 		roundStartedEvent := &protocol.RoundStartedMessage{}
-
 		if err := json.Unmarshal(msg, roundStartedEvent); err != nil {
 			logger.Error("[handleEvent] error unmarshaling RoundStartedMessage: %v", err)
 			return nil
 		}
+
+		m.game.roundInfo = game.NewRoundInfo()
+
 		m.matchInfo.MaxAttempts = roundStartedEvent.MaxAttempts
 		m.matchInfo.CurrentRound = roundStartedEvent.RoundNumber
 		m.game.guesses = nil
@@ -286,7 +286,6 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 
 	case protocol.GUESS_RESULT:
 		guessResultEvent := &protocol.GuessResultMessage{}
-
 		if err := json.Unmarshal(msg, guessResultEvent); err != nil {
 			logger.Error("[handleEvent] error unmarshaling GuessResultMessage: %v", err)
 			return nil
@@ -296,7 +295,6 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 
 	case protocol.ROUND_FINISHED:
 		roundFinishedEvent := &protocol.RoundFinishedMessage{}
-
 		if err := json.Unmarshal(msg, roundFinishedEvent); err != nil {
 			logger.Error("[handleEvent] error unmarshaling RoundFinishedMessage: %v", err)
 			return nil
@@ -324,9 +322,7 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 		}
 
 	case protocol.ROOM_CREATED:
-		logger.Debug("Processing ROOM_CREATED event")
 		roomCreatedEvent := &protocol.RoomCreatedMessage{}
-
 		if err := json.Unmarshal(msg, roomCreatedEvent); err != nil {
 			logger.Error("[handleEvent] error unmarshaling RoomCreatedMessage: %v", err)
 			return nil
@@ -335,6 +331,27 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 		return RoomCreatedMsg{
 			roomID: roomCreatedEvent.RoomID,
 		}
+
+	case protocol.ROOM_JOIN_FAILED:
+		roomJoinFailedEvent := &protocol.RoomJoinFailedMessage{}
+		if err := json.Unmarshal(msg, roomJoinFailedEvent); err != nil {
+			logger.Error("[handleEvent] error unmarshaling RoomJoinFailedMessage: %v", err)
+			return nil
+		}
+
+		m.screenID = StartScreenID
+		m.form, m.confirm = NewStartMenu(m.matchInfo)
+		m.game.matchInfo.RoomValidationError = errors.New(roomJoinFailedEvent.Reason)
+
+		// navigate to the RoomID input field
+		m.form.NextGroup()
+		m.form.NextGroup()
+		m.form.NextField()
+
+		// simulate a key press to register the error message
+		enterMsg := tea.KeyMsg{Type: tea.KeyEnter}
+		_, formCmd := m.form.Update(enterMsg)
+		return tea.Batch(tea.ClearScreen, formCmd)
 
 	default:
 		logger.Info("Ignoring event: %s", event.Type)

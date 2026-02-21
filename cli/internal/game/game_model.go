@@ -18,16 +18,17 @@ const (
 )
 
 type MatchInfo struct {
-	Mode           protocol.GameMode
-	WordLen        int
-	CurrentRound   int
-	RawTotalRounds string
-	TotalRounds    int
-	MaxAttempts    int
-	RoundsWon      int
-	PlayerName     string
-	RoomID         string
-	JoinExisting   bool
+	Mode                protocol.GameMode
+	WordLen             int
+	CurrentRound        int
+	RawTotalRounds      string
+	TotalRounds         int
+	MaxAttempts         int
+	RoundsWon           int
+	PlayerName          string
+	RoomID              string
+	JoinExisting        bool
+	RoomValidationError error
 }
 
 func NewMatchInfo() *MatchInfo {
