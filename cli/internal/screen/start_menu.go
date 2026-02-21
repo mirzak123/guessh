@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"guessh/internal/game"
+	"guessh/internal/logger"
 	"guessh/internal/protocol"
 	"guessh/internal/ui"
 	"strconv"
@@ -81,8 +82,14 @@ func NewStartMenu(matchInfo *game.MatchInfo) (*huh.Form, *bool) {
 				Value(&matchInfo.RoomID).
 				Description("Enter the Room ID shared with you").
 				Validate(func(str string) error {
-				matchInfo.RoomID = strings.ToUpper(str)
+				if matchInfo.RoomValidationError != nil {
+					err := matchInfo.RoomValidationError
+					matchInfo.RoomValidationError = nil
+					logger.Debug("Error: %v", err)
+					return err
+				}
 
+				matchInfo.RoomID = strings.ToUpper(str)
 				if str != "" && len(str) != protocol.ROOM_ID_LENGTH {
 					return fmt.Errorf("room ID must be %d characters long", protocol.ROOM_ID_LENGTH)
 				}

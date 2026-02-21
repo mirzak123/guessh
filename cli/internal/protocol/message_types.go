@@ -124,3 +124,9 @@ type RoomCreatedMessage struct {
 	Type   MessageType `json:"type"`
 	RoomID string      `json:"roomId"`
 }
+
+type RoomJoinFailedMessage struct {
+	Type   MessageType `json:"type"`
+	RoomID string      `json:"roomId"`
+	Reason string      `json:"reason"`
+}
