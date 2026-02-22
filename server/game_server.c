@@ -551,17 +551,31 @@ void GS_end_match(Match *match, Player *disconnected_player) {
 
 static void end_round(Match *match) {
   Round *round = match->rounds[match->round_idx];
-  cJSON *round_finished_json = json_round_finished(round->outcome, round->wc->word);
+  cJSON *round_finished_json = NULL;
 
   printf("[end_round] Ending round...\n");
   switch (match->mode) {
+    Outcome outcome; // map outcome to perspective of player 2
   case MULTI_REMOTE:
+    switch (round->outcome) {
+    case OUTCOME_PLAYER1:
+      outcome = OUTCOME_PLAYER2;
+      break;
+    case OUTCOME_PLAYER2:
+      outcome = OUTCOME_PLAYER1;
+      break;
+    case OUTCOME_NONE:
+      outcome = OUTCOME_NONE;
+      break;
+    }
+    round_finished_json = json_round_finished(outcome, round->wc->word);
     send_json(match->player2->client_fd, round_finished_json);
+    cJSON_Delete(round_finished_json);
   case SINGLE:
+    round_finished_json = json_round_finished(round->outcome, round->wc->word);
     send_json(match->player1->client_fd, round_finished_json);
+    cJSON_Delete(round_finished_json);
   }
-
-  cJSON_Delete(round_finished_json);
 
   if (match->round_idx + 1 < (int)match->round_capacity) {
     start_round(match);

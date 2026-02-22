@@ -125,12 +125,7 @@ func (m *gameModel) View() string {
 	)
 	continueMsg := "Press enter to continue..."
 
-	header += fmt.Sprintf(
-		"Round: %d/%s\tGuessed correctly: %d\n",
-		m.matchInfo.CurrentRound,
-		m.matchInfo.RawTotalRounds,
-		m.matchInfo.RoundsWon,
-	)
+	header += ui.ViewRoundOutcomes(m.matchInfo.RoundOutcomes)
 
 	centeredGrid := lipgloss.PlaceHorizontal(
 		m.width,

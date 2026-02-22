@@ -130,7 +130,7 @@ type GuessResultMessage struct {
 
 type RoundFinishedMessage struct {
 	Type    MessageType `json:"type"`
-	Success bool        `json:"success"`
+	Outcome Outcome     `json:"outcome"`
 	Word    string      `json:"word"`
 }
 

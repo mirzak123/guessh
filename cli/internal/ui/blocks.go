@@ -28,12 +28,16 @@ func ViewGuessedRow(g *protocol.Guess) string {
 	return lipgloss.JoinHorizontal(lipgloss.Center, blocks...)
 }
 
-func ViewWordInputRow(input string, length int, isActive bool) string {
+func ViewWordInputRow(input string, length int, isActive bool, onTurn bool) string {
 	blocks := make([]string, length)
 	var style lipgloss.Style
 
 	if isActive {
-		style = activeInputStyle
+		if onTurn {
+			style = playerActiveInputStyle
+		} else {
+			style = opponentActiveInputStyle
+		}
 	} else {
 		style = baseLetterStyle
 	}
@@ -59,11 +63,44 @@ func ViewGuessGrid(guesses []*protocol.Guess, input string, maxAttempts int, wor
 		if i < len(guesses) {
 			grid[i] = ViewGuessedRow(guesses[i])
 		} else if i == len(guesses) {
-			grid[i] = ViewWordInputRow(input, wordLen, onTurn)
+			grid[i] = ViewWordInputRow(input, wordLen, true, onTurn)
 		} else {
-			grid[i] = ViewWordInputRow("", wordLen, false)
+			grid[i] = ViewWordInputRow("", wordLen, false, false)
 		}
 	}
 
 	return strings.Join(grid, "\n")
+}
+
+func viewOutcomeBlock(outcome *protocol.Outcome, isLast bool) string {
+	var color lipgloss.Color
+
+	if outcome == nil {
+		color = White
+	} else {
+		switch *outcome {
+		case protocol.OUTCOME_PLAYER_WON:
+			color = Purple
+		case protocol.OUTCOME_OPPONENT_WON:
+			color = Red
+		case protocol.OUTCOME_NONE:
+			color = Gray
+		}
+	}
+
+	style := outcomeBlockStyle(color)
+
+	if isLast {
+		style = style.UnsetMarginRight()
+	}
+
+	return style.Render("")
+}
+
+func ViewRoundOutcomes(outcomes []*protocol.Outcome) string {
+	blocks := make([]string, len(outcomes))
+	for i, outcome := range outcomes {
+		blocks[i] = viewOutcomeBlock(outcome, len(outcomes)-1 == i)
+	}
+	return lipgloss.JoinHorizontal(lipgloss.Center, blocks...)
 }

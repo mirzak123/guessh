@@ -69,10 +69,10 @@ cJSON *json_guess_result(bool success, const char *guess, const LetterFeedback *
   return json;
 }
 
-cJSON *json_round_finished(bool success, const char *word) {
+cJSON *json_round_finished(Outcome outcome, const char *word) {
   cJSON *json = cJSON_CreateObject();
   cJSON_AddStringToObject(json, "type", STR(ROUND_FINISHED));
-  cJSON_AddBoolToObject(json, "success", success);
+  cJSON_AddNumberToObject(json, "outcome", outcome);
   cJSON_AddStringToObject(json, "word", word);
   return json;
 }

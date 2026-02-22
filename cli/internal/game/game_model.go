@@ -24,7 +24,7 @@ type MatchInfo struct {
 	RawTotalRounds      string
 	TotalRounds         int
 	MaxAttempts         int
-	RoundsWon           int
+	RoundOutcomes       []*protocol.Outcome
 	PlayerName          string
 	OpponentName        string
 	RoomID              string

@@ -5,9 +5,10 @@ import "github.com/charmbracelet/lipgloss"
 var (
 	Green  = lipgloss.Color("46")
 	Yellow = lipgloss.Color("226")
-	Gray   = lipgloss.Color("7")
+	Gray   = lipgloss.Color("244")
 	White  = lipgloss.Color("15")
 	Purple = lipgloss.Color("63")
+	Red    = lipgloss.Color("161")
 )
 
 var (
@@ -33,7 +34,19 @@ var (
 			BorderForeground(Gray).
 			Foreground(Gray)
 
-	activeInputStyle = baseLetterStyle.
+	playerActiveInputStyle = baseLetterStyle.
 				BorderForeground(Purple).
 				Foreground(White)
+
+	opponentActiveInputStyle = baseLetterStyle.
+					BorderForeground(Red).
+					Foreground(White)
 )
+
+func outcomeBlockStyle(color lipgloss.Color) lipgloss.Style {
+	return lipgloss.NewStyle().
+		Width(2).
+		Height(1).
+		MarginRight(1).
+		Background(color)
+}
