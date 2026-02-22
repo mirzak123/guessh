@@ -115,10 +115,10 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.waitingOpponent.roomID = msg.roomID
 
 	case game.CreateMatchIntent:
-		m.client.CreateMatch(msg.Mode, msg.WordLen, msg.Rounds)
+		m.client.CreateMatch(msg.Mode, msg.WordLen, msg.Rounds, msg.PlayerName)
 
-	case game.JoinRoom:
-		m.client.JoinRoom(m.matchInfo.RoomID)
+	case game.JoinRoomIntent:
+		m.client.JoinRoom(msg.RoomId, msg.PlayerName)
 
 	case game.MakeGuessIntent:
 		m.client.MakeGuess(msg.Guess)

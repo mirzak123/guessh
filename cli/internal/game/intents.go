@@ -7,9 +7,10 @@ type PauseIntent struct{}
 type ContinueIntent struct{}
 
 type CreateMatchIntent struct {
-	Mode    protocol.GameMode
-	WordLen int
-	Rounds  int
+	Mode       protocol.GameMode
+	WordLen    int
+	Rounds     int
+	PlayerName string
 }
 
 type MakeGuessIntent struct {
@@ -22,6 +23,7 @@ type TypingIntent struct {
 	Value string
 }
 
-type JoinRoom struct {
-	RoomId string
+type JoinRoomIntent struct {
+	RoomId     string
+	PlayerName string
 }

@@ -51,12 +51,16 @@ func (m *gameModel) Init() tea.Cmd {
 	var cmd tea.Cmd
 
 	if m.matchInfo.JoinExisting {
-		cmd = emit(game.JoinRoom{RoomId: m.matchInfo.RoomID})
+		cmd = emit(game.JoinRoomIntent{
+			RoomId:     m.matchInfo.RoomID,
+			PlayerName: m.matchInfo.PlayerName,
+		})
 	} else {
 		cmd = emit(game.CreateMatchIntent{
-			Mode:    m.matchInfo.Mode,
-			WordLen: m.matchInfo.WordLen,
-			Rounds:  m.matchInfo.TotalRounds,
+			Mode:       m.matchInfo.Mode,
+			WordLen:    m.matchInfo.WordLen,
+			Rounds:     m.matchInfo.TotalRounds,
+			PlayerName: m.matchInfo.PlayerName,
 		})
 	}
 

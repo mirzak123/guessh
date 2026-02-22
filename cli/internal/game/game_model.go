@@ -26,6 +26,7 @@ type MatchInfo struct {
 	MaxAttempts         int
 	RoundsWon           int
 	PlayerName          string
+	OpponentName        string
 	RoomID              string
 	JoinExisting        bool
 	RoomValidationError error
