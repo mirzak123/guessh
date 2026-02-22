@@ -1,6 +1,7 @@
 #include "game_types.h"
 #include "game_logic.h"
 #include "util.h"
+#include <_string.h>
 #include <cjson/cJSON.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -91,9 +92,16 @@ Player *new_player(int client_fd, char *name) {
     perror("malloc");
     return NULL;
   }
+
   player->client_fd = client_fd;
-  player->name = name;
   player->match = NULL;
+
+  if (name != NULL) {
+    player->name = strdup(name);
+  } else {
+    player->name = NULL;
+  }
+
   return player;
 }
 

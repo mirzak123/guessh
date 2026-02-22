@@ -100,10 +100,11 @@ type ErrorMessage struct {
 }
 
 type MatchStartedMessage struct {
-	Type       MessageType `json:"type"`
-	MatchID    string      `json:"matchId"`
-	Rounds     int         `json:"rounds"`
-	WordLength int         `json:"wordLength"`
+	Type         MessageType `json:"type"`
+	MatchID      string      `json:"matchId"`
+	Rounds       int         `json:"rounds"`
+	WordLength   int         `json:"wordLength"`
+	OpponentName string      `json:"opponentName,omitempty"`
 }
 
 type RoundStartedMessage struct {

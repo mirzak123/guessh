@@ -83,9 +83,9 @@ void GS_handle_request(GameServer *gs, Client *client) {
 
 void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request) {
   Match *match = NULL;
-  cJSON *rounds_json = NULL, *mode_json = NULL, *word_len_json = NULL;
+  cJSON *rounds_json = NULL, *mode_json = NULL, *word_len_json = NULL, *player_name_json = NULL;
   size_t rounds, word_len;
-  char *mode_str;
+  char *mode_str, *player_name_str = NULL;
   GameMode game_mode;
 
   printf("[GS_handle_create_match] json_request: %s\n", cJSON_PrintUnformatted(json_request));
@@ -136,6 +136,22 @@ void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request)
     return;
   }
 
+  // parse playerName
+  if (game_mode == MULTI_REMOTE) {
+    player_name_json = cJSON_GetObjectItem(json_request, "playerName");
+    if (player_name_json == NULL) {
+      send_error(client->fd, E_MISSING_FIELD("playerName"));
+      return;
+    }
+
+    if (!cJSON_IsString(player_name_json)) {
+      send_error(client->fd, E_INVALID_TYPE("playerName", STRING));
+      return;
+    }
+
+    player_name_str = cJSON_GetStringValue(player_name_json);
+  }
+
   // parse wordLength
   word_len_json = cJSON_GetObjectItem(json_request, "wordLength");
   if (word_len_json == NULL) {
@@ -161,7 +177,7 @@ void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request)
     return;
   }
 
-  Player *player = new_player(client->fd, "dummy"); // TODO: Resolve real name
+  Player *player = new_player(client->fd, player_name_str);
   client->player = player;
 
   if (match->mode == MULTI_REMOTE) {
@@ -256,8 +272,10 @@ void create_room(GameServer *gs, Match *match, Client *client) {
 
 void GS_handle_join_room(GameServer *gs, Client *client, cJSON *json_request) {
   Room *room;
-  char *room_id;
-  cJSON *room_id_json = cJSON_GetObjectItem(json_request, "roomId");
+  char *room_id, *player_name;
+  cJSON *room_id_json = NULL, *player_name_json = NULL;
+
+  room_id_json = cJSON_GetObjectItem(json_request, "roomId");
   if (room_id_json == NULL) {
     send_error(client->fd, E_MISSING_FIELD("roomId"));
     return;
@@ -267,8 +285,20 @@ void GS_handle_join_room(GameServer *gs, Client *client, cJSON *json_request) {
     send_error(client->fd, E_INVALID_TYPE("roomId", STRING));
     return;
   }
-
   room_id = cJSON_GetStringValue(room_id_json);
+
+  player_name_json = cJSON_GetObjectItem(json_request, "playerName");
+  if (player_name_json == NULL) {
+    send_error(client->fd, E_MISSING_FIELD("playerName"));
+    return;
+  }
+
+  if (!cJSON_IsString(player_name_json)) {
+    send_error(client->fd, E_INVALID_TYPE("playerName", STRING));
+    return;
+  }
+  player_name = cJSON_GetStringValue(player_name_json);
+
   room = (Room *)HT_get(gs->rooms, KEY(room_id));
 
   if (room == NULL) {
@@ -284,7 +314,7 @@ void GS_handle_join_room(GameServer *gs, Client *client, cJSON *json_request) {
     return;
   }
 
-  Player *player = new_player(client->fd, "dummy2");
+  Player *player = new_player(client->fd, player_name);
   client->player = player;
   room->player2 = player;
 
@@ -512,21 +542,30 @@ static void end_round(Match *match) {
 }
 
 static void start_match(Match *match) {
-  cJSON *match_started_json;
-  match_started_json = json_match_started(match->id, match->round_capacity, match->word_len);
+  cJSON *match_started_json = NULL;
 
   printf("[start_match] Starting new match...\n");
 
   switch (match->mode) {
   case MULTI_REMOTE:
     assert(match->player2 != NULL);
+    match_started_json = json_match_started(match->id, match->round_capacity, match->word_len, match->player1->name);
     send_json(match->player2->client_fd, match_started_json);
+    cJSON_Delete(match_started_json);
+
+    assert(match->player1 != NULL);
+    match_started_json = json_match_started(match->id, match->round_capacity, match->word_len, match->player2->name);
+    send_json(match->player1->client_fd, match_started_json);
+    cJSON_Delete(match_started_json);
+    break;
+
   case SINGLE:
     assert(match->player1 != NULL);
+    match_started_json = json_match_started(match->id, match->round_capacity, match->word_len, NULL);
     send_json(match->player1->client_fd, match_started_json);
+    cJSON_Delete(match_started_json);
   }
 
-  cJSON_Delete(match_started_json);
   start_round(match);
 }
 

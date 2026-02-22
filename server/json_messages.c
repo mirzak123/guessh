@@ -33,12 +33,15 @@ cJSON *json_room_join_failed(const char *room_id, const char *reason) {
   return json;
 }
 
-cJSON *json_match_started(const char *match_id, int rounds, size_t word_len) {
+cJSON *json_match_started(const char *match_id, int rounds, size_t word_len, char *opponent_name) {
   cJSON *json = cJSON_CreateObject();
   cJSON_AddStringToObject(json, "type", STR(MATCH_STARTED));
   cJSON_AddStringToObject(json, "matchId", match_id);
   cJSON_AddNumberToObject(json, "rounds", rounds);
   cJSON_AddNumberToObject(json, "wordLength", word_len);
+  if (opponent_name != NULL) {
+    cJSON_AddStringToObject(json, "opponentName", opponent_name);
+  }
   return json;
 }
 
