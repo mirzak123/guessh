@@ -198,7 +198,7 @@ static MessageType parse_message(char *data, size_t size, cJSON **json_out) {
     printf("[parse_message] cJSON failed to parse message\n");
     return MALFORMED_MESSAGE;
   }
-  printf("[parse_message] json_out: %s\n", cJSON_PrintUnformatted(*json_out));
+  // printf("[parse_message] json_out: %s\n", cJSON_PrintUnformatted(*json_out));
 
   json_type = cJSON_GetObjectItem(*json_out, "type");
   if (json_type == NULL) {
@@ -328,9 +328,20 @@ void GS_handle_join_room(GameServer *gs, Client *client, cJSON *json_request) {
 }
 
 void GS_handle_typing(Client *client, cJSON *json_request) {
-  Match *match = client->player->match;
+  Match *match = NULL;
+
+  if (client->player != NULL && client->player->match != NULL) {
+    match = client->player->match;
+  }
+
+  if (match == NULL) {
+    send_error(client->fd, E_PLAYER_NOT_IN_MATCH);
+    return;
+  }
+
   Player *opponent = match->player1 == client->player ? match->player2 : match->player1;
   cJSON *value_json = cJSON_GetObjectItem(json_request, "value");
+
   if (value_json == NULL) {
     send_error(client->fd, E_MISSING_FIELD("value"));
     return;

@@ -2,8 +2,6 @@ package game
 
 import "guessh/internal/protocol"
 
-type PauseIntent struct{}
-
 type ContinueIntent struct{}
 
 type CreateMatchIntent struct {

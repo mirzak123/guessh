@@ -104,7 +104,7 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.eventsPaused = false
 
-		return m, tea.Batch(tea.ClearScreen, m.form.Init(), transport.WaitForEvent(m.event))
+		return m, tea.Batch(tea.ClearScreen, m.form.Init())
 
 	case MatchFinishedMsg:
 		m.screenID = MatchResultsScreenID
@@ -123,10 +123,6 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case game.MakeGuessIntent:
 		m.client.MakeGuess(msg.Guess)
-
-	case game.PauseIntent:
-		logger.Debug("Pausing Events")
-		m.eventsPaused = true
 
 	case game.ContinueIntent:
 		logger.Debug("Continuing events, flushing buffer")
@@ -317,7 +313,9 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 			logger.Debug("Round not successful, not incrementing") // TODO: Remove
 		}
 
-		return game.PauseIntent{}
+		logger.Debug("Pausing events...")
+		m.eventsPaused = true
+		return nil
 
 	case protocol.MATCH_FINISHED:
 		matchFinishedEvent := &protocol.MatchFinishedMessage{}
