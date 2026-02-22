@@ -30,6 +30,7 @@ const (
 type MatchFinishedMsg struct {
 	roundsPlayed int
 	roundsWon    int
+	outcome      protocol.Outcome
 }
 
 type RoomCreatedMsg struct {
@@ -107,7 +108,7 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case MatchFinishedMsg:
 		m.screenID = MatchResultsScreenID
-		m.matchResults = NewMatchResults(msg.roundsPlayed, msg.roundsWon)
+		m.matchResults = NewMatchResults(m.matchInfo.Mode, msg.roundsPlayed, msg.roundsWon, msg.outcome)
 
 	case RoomCreatedMsg:
 		logger.Debug("Setting room ID: %s", msg.roomID)
@@ -319,10 +320,18 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 		return game.PauseIntent{}
 
 	case protocol.MATCH_FINISHED:
+		matchFinishedEvent := &protocol.MatchFinishedMessage{}
+		if err := json.Unmarshal(msg, matchFinishedEvent); err != nil {
+			logger.Error("[handleEvent] error unmarshaling MatchFinishedMessage: %v", err)
+			return nil
+		}
+
 		m.game.state = game.StateMatchFinished
+
 		return MatchFinishedMsg{
 			roundsPlayed: m.matchInfo.TotalRounds,
 			roundsWon:    m.matchInfo.RoundsWon,
+			outcome:      matchFinishedEvent.Outcome,
 		}
 
 	case protocol.ROOM_CREATED:

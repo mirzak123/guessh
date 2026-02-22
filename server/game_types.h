@@ -6,7 +6,7 @@
 
 #define MAX_CLIENT_DATA 1024
 
-typedef enum { TIE, PLAYER1_WINS, PLAYER2_WINS } Outcome;
+typedef enum { OUTCOME_NONE, OUTCOME_PLAYER1, OUTCOME_PLAYER2 } Outcome;
 
 typedef enum {
   SINGLE,

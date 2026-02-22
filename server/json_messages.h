@@ -2,6 +2,7 @@
 #define JSON_MESSAGES_H
 
 #include "game_logic.h"
+#include "game_types.h"
 #include <cjson/cJSON.h>
 #include <stdbool.h>
 
@@ -13,7 +14,7 @@ cJSON *json_match_started(const char *match_id, int rounds, size_t word_len, cha
 cJSON *json_round_started(size_t round_num, size_t max_attempts);
 cJSON *json_guess_result(bool success, const char *guess, const LetterFeedback *feedback, size_t word_len);
 cJSON *json_round_finished(bool success, const char *word);
-cJSON *json_match_finished(const char *winner);
+cJSON *json_match_finished(Outcome outcome);
 cJSON *json_opponent_typing(const char *value);
 
 #endif

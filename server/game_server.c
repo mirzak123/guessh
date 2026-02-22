@@ -6,6 +6,7 @@
 #include "json_messages.h"
 #include "room.h"
 #include <assert.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,6 +18,7 @@ static void start_round(Match *match);
 static void end_round(Match *match);
 static void add_player_to_match(Match *match, Player *player);
 static void create_room(GameServer *gs, Match *match, Client *client);
+static Outcome calculate_match_outcome(Match *match);
 
 GameServer *GS_create(void) {
   GameServer *gs;
@@ -477,28 +479,28 @@ void GS_handle_make_guess(Client *client, cJSON *json_request) {
     return;
 
   if (success) {
-    round->outcome = player == match->player1 ? PLAYER1_WINS : PLAYER2_WINS;
+    round->outcome = player == match->player1 ? OUTCOME_PLAYER1 : OUTCOME_PLAYER2;
   } else if (round->wc->attempt_count >= round->wc->max_attempts) {
-    round->outcome = TIE;
+    round->outcome = OUTCOME_NONE;
   }
   end_round(match);
 }
 
 void GS_end_match(Match *match, Player *disconnected_player) {
-  char *winner_name;
-  switch (match->outcome) {
-  case TIE:
-    winner_name = "TIE";
+  cJSON *match_finished_json = NULL;
+
+  switch (match->mode) {
+  case MULTI_REMOTE:
+    if (disconnected_player != NULL) { // disonnected player loses
+      match->outcome = disconnected_player == match->player1 ? OUTCOME_PLAYER2 : OUTCOME_PLAYER1;
+    } else {
+      match->outcome = calculate_match_outcome(match);
+    }
     break;
-  case PLAYER1_WINS:
-    winner_name = match->player1->name;
-    break;
-  case PLAYER2_WINS:
-    winner_name = match->player2->name;
+  case SINGLE:
+    match->outcome = OUTCOME_NONE; // not relevant in SINGLE mode
     break;
   }
-
-  cJSON *match_finished_json = json_match_finished(winner_name);
 
   printf("[GS_end_match] Ending match: (%s)...\n", match->id);
 
@@ -507,17 +509,33 @@ void GS_end_match(Match *match, Player *disconnected_player) {
   case MULTI_REMOTE:
     if (match->player2 != NULL && match->player2 != disconnected_player) {
       match->player2->match = NULL;
+      Outcome outcome; // map outcome to perspective of player 2
+      switch (match->outcome) {
+      case OUTCOME_PLAYER1:
+        outcome = OUTCOME_PLAYER2;
+        break;
+      case OUTCOME_PLAYER2:
+        outcome = OUTCOME_PLAYER1;
+        break;
+      case OUTCOME_NONE:
+        outcome = OUTCOME_NONE;
+        break;
+      }
+
+      match_finished_json = json_match_finished(outcome);
       send_json(match->player2->client_fd, match_finished_json);
+      cJSON_Delete(match_finished_json);
     }
     // TODO: Delete the room
 
   case SINGLE:
     if (match->player1 != disconnected_player) {
-      send_json(match->player1->client_fd, match_finished_json);
       match->player1->match = NULL;
+      match_finished_json = json_match_finished(match->outcome);
+      send_json(match->player1->client_fd, match_finished_json);
+      cJSON_Delete(match_finished_json);
     }
   }
-  cJSON_Delete(match_finished_json);
 }
 
 static void end_round(Match *match) {
@@ -615,4 +633,21 @@ static void start_round(Match *match) {
     break;
   }
   cJSON_Delete(round_started_json);
+}
+
+static Outcome calculate_match_outcome(Match *match) {
+  int outcome = 0;
+  for (size_t i = 0; i < match->round_capacity; i++) {
+    Round *round = match->rounds[i];
+    if (round->outcome == OUTCOME_PLAYER1)
+      outcome++;
+    else if (round->outcome == OUTCOME_PLAYER2)
+      outcome--;
+  }
+
+  if (outcome > 0)
+    return OUTCOME_PLAYER1;
+  else if (outcome < 0)
+    return OUTCOME_PLAYER2;
+  return OUTCOME_NONE;
 }

@@ -1,6 +1,7 @@
 #include "json_messages.h"
 #include "game_logic.h"
 #include "game_server.h"
+#include "game_types.h"
 #include <cjson/cJSON.h>
 #include <stdbool.h>
 
@@ -76,11 +77,10 @@ cJSON *json_round_finished(bool success, const char *word) {
   return json;
 }
 
-cJSON *json_match_finished(const char *winner) {
+cJSON *json_match_finished(Outcome outcome) {
   cJSON *json = cJSON_CreateObject();
   cJSON_AddStringToObject(json, "type", STR(MATCH_FINISHED));
-  // TODO: Add outcome field
-  cJSON_AddStringToObject(json, "winner", winner);
+  cJSON_AddNumberToObject(json, "outcome", outcome);
   return json;
 }
 

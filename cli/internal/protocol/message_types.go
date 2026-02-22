@@ -135,8 +135,8 @@ type RoundFinishedMessage struct {
 }
 
 type MatchFinishedMessage struct {
-	Type   MessageType `json:"type"`
-	Winner string      `json:"winner"`
+	Type    MessageType `json:"type"`
+	Outcome Outcome     `json:"outcome"`
 }
 
 type RoomCreatedMessage struct {
