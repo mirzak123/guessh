@@ -114,8 +114,7 @@ func (m *gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *gameModel) View() string {
-	var body, header, footer string
-
+	// 1. Render and measure the grid
 	guessGrid := ui.ViewGuessGrid(
 		m.guesses,
 		m.input.Value(),
@@ -123,32 +122,54 @@ func (m *gameModel) View() string {
 		m.matchInfo.WordLen,
 		m.input.Focused(),
 	)
-	continueMsg := "Press enter to continue..."
 
-	header += ui.ViewRoundOutcomes(m.matchInfo.RoundOutcomes)
+	gridWidth := lipgloss.Width(guessGrid)
 
-	centeredGrid := lipgloss.PlaceHorizontal(
-		m.width,
+	// 2. Define the "Game Area"
+	// Instead of m.width, we take the grid and add a fixed amount of padding (e.g., 12 chars).
+	// This makes the UI look consistent regardless of how big the terminal window is.
+
+	// 3. Components
+	player1 := fmt.Sprintf("%s%s", ui.OutcomeBlockStyle(ui.Purple).Render(""), m.matchInfo.PlayerName)
+	player2 := fmt.Sprintf("%s%s", ui.OutcomeBlockStyle(ui.Red).Render(""), m.matchInfo.OpponentName)
+	outcomes := ui.ViewRoundOutcomes(m.matchInfo.RoundOutcomes)
+
+	gameAreaWidth := gridWidth + lipgloss.Width(player1) + lipgloss.Width(player2)
+
+	// 4. Calculate gaps based on gameAreaWidth
+	totalComponentsWidth := lipgloss.Width(player1) + lipgloss.Width(outcomes) + lipgloss.Width(player2)
+	totalSpace := max(0, gameAreaWidth-totalComponentsWidth)
+
+	gapWidth := totalSpace / 2
+	leftSpacer := strings.Repeat(" ", gapWidth)
+	rightSpacer := strings.Repeat(" ", totalSpace-gapWidth) // Handles odd numbers
+
+	// 5. Build the header
+	headerRow := lipgloss.JoinHorizontal(
 		lipgloss.Center,
+		player1,
+		leftSpacer,
+		outcomes,
+		rightSpacer,
+		player2,
+	)
+
+	// 6. Stack them. JoinVertical(lipgloss.Center) ensures the
+	// narrower guessGrid is centered under the slightly wider headerRow.
+	content := lipgloss.JoinVertical(
+		lipgloss.Center,
+		headerRow,
+		"\n",
 		guessGrid,
 	)
 
-	body = centeredGrid
-
-	if m.state == game.StateRoundFinished {
-		if m.roundInfo.Success {
-			footer = continueMsg
-		} else {
-			footer = fmt.Sprintf("Correct word: %s\n%s", m.roundInfo.Word, continueMsg)
-		}
-	}
-
-	view := strings.Join([]string{header, body, footer}, "\n")
-
+	// 7. Center the "Game Area" on the actual screen
+	// This is the only place we use m.width.
 	return lipgloss.NewStyle().
 		Width(m.width).
-		AlignHorizontal(lipgloss.Center).
-		Render(view)
+		Height(m.height).
+		Align(lipgloss.Center, lipgloss.Center).
+		Render(content)
 }
 
 func emit(msg tea.Msg) tea.Cmd {

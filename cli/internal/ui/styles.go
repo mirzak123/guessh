@@ -43,7 +43,7 @@ var (
 					Foreground(White)
 )
 
-func outcomeBlockStyle(color lipgloss.Color) lipgloss.Style {
+func OutcomeBlockStyle(color lipgloss.Color) lipgloss.Style {
 	return lipgloss.NewStyle().
 		Width(2).
 		Height(1).

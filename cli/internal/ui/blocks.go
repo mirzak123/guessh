@@ -72,7 +72,7 @@ func ViewGuessGrid(guesses []*protocol.Guess, input string, maxAttempts int, wor
 	return strings.Join(grid, "\n")
 }
 
-func viewOutcomeBlock(outcome *protocol.Outcome, isLast bool) string {
+func ViewOutcomeBlock(outcome *protocol.Outcome, isLast bool) string {
 	var color lipgloss.Color
 
 	if outcome == nil {
@@ -88,7 +88,7 @@ func viewOutcomeBlock(outcome *protocol.Outcome, isLast bool) string {
 		}
 	}
 
-	style := outcomeBlockStyle(color)
+	style := OutcomeBlockStyle(color)
 
 	if isLast {
 		style = style.UnsetMarginRight()
@@ -100,7 +100,7 @@ func viewOutcomeBlock(outcome *protocol.Outcome, isLast bool) string {
 func ViewRoundOutcomes(outcomes []*protocol.Outcome) string {
 	blocks := make([]string, len(outcomes))
 	for i, outcome := range outcomes {
-		blocks[i] = viewOutcomeBlock(outcome, len(outcomes)-1 == i)
+		blocks[i] = ViewOutcomeBlock(outcome, len(outcomes)-1 == i)
 	}
 	return lipgloss.JoinHorizontal(lipgloss.Center, blocks...)
 }

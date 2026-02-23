@@ -255,6 +255,8 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 
 		m.matchInfo.WordLen = matchStartedEvent.WordLength
 		m.matchInfo.TotalRounds = matchStartedEvent.Rounds
+		m.matchInfo.OpponentName = matchStartedEvent.OpponentName
+
 		m.matchInfo.RawTotalRounds = fmt.Sprintf("%d", matchStartedEvent.Rounds)
 		m.matchInfo.RoundOutcomes = make([]*protocol.Outcome, matchStartedEvent.Rounds)
 

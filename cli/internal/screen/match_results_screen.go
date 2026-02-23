@@ -39,8 +39,9 @@ func (m matchResultsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m matchResultsModel) View() string {
 	view := fmt.Sprintf(
-		"Rounds played: %d\nRounds: %s",
+		"Round %d/%d\n%s",
 		m.roundsPlayed,
+		len(m.roundOutcomes),
 		ui.ViewRoundOutcomes(m.roundOutcomes),
 	)
 
