@@ -42,6 +42,8 @@ func NewMatchResults(mode protocol.GameMode, roundsPlayed int, roundOutcomes []*
 			lipgloss.Top,
 			results,
 			ui.ViewRoundOutcomes(m.roundOutcomes))
+	} else {
+		results = ui.ViewRoundOutcomes(m.roundOutcomes)
 	}
 
 	m.form = huh.NewForm(
