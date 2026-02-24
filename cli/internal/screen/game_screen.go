@@ -119,7 +119,7 @@ func (m *gameModel) View() string {
 		m.input.Value(),
 		m.matchInfo.MaxAttempts,
 		m.matchInfo.WordLen,
-		m.input.Focused(),
+		m.state,
 	)
 
 	gridWidth := lipgloss.Width(guessGrid)
