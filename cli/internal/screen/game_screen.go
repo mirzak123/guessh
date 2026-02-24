@@ -124,12 +124,17 @@ func (m *gameModel) View() string {
 
 	gridWidth := lipgloss.Width(guessGrid)
 
+	var (
+		playerOutcome   = protocol.OUTCOME_PLAYER_WON
+		opponentOutcome = protocol.OUTCOME_OPPONENT_WON
+	)
+
 	player1 := fmt.Sprintf("%s%s",
-		ui.OutcomeBlockStyle(ui.Purple).Render(""),
+		ui.OutcomeBlock(&playerOutcome),
 		m.matchInfo.PlayerName,
 	)
 	player2 := fmt.Sprintf("%s%s",
-		ui.OutcomeBlockStyle(ui.Red).Render(""),
+		ui.OutcomeBlock(&opponentOutcome),
 		m.matchInfo.OpponentName,
 	)
 
@@ -138,7 +143,7 @@ func (m *gameModel) View() string {
 	maxPlayerWidth := max(p1w, p2w)
 
 	if p1w < maxPlayerWidth {
-		player1 = player1 + strings.Repeat(" ", maxPlayerWidth-p1w)
+		player1 += strings.Repeat(" ", maxPlayerWidth-p1w)
 	}
 	if p2w < maxPlayerWidth {
 		player2 = strings.Repeat(" ", maxPlayerWidth-p2w) + player2
@@ -146,9 +151,13 @@ func (m *gameModel) View() string {
 
 	outcomes := ui.ViewRoundOutcomes(m.matchInfo.RoundOutcomes)
 
-	gameAreaWidth := gridWidth + lipgloss.Width(player1) + lipgloss.Width(player2)
+	gameAreaWidth := gridWidth + maxPlayerWidth*2
 
-	totalComponentsWidth := lipgloss.Width(player1) + lipgloss.Width(outcomes) + lipgloss.Width(player2)
+	totalComponentsWidth :=
+		maxPlayerWidth +
+			lipgloss.Width(outcomes) +
+			maxPlayerWidth
+
 	totalSpace := max(0, gameAreaWidth-totalComponentsWidth)
 
 	gapWidth := totalSpace / 2
@@ -164,16 +173,80 @@ func (m *gameModel) View() string {
 		player2,
 	)
 
+	emptyLine := lipgloss.NewStyle().
+		Height(1).
+		Render("")
+
 	content := lipgloss.JoinVertical(
 		lipgloss.Center,
 		headerRow,
+		emptyLine,
 		guessGrid,
+		emptyLine,
+		m.statusBar(),
 	)
 
 	return lipgloss.NewStyle().
 		Width(m.width).
 		Height(m.height).
 		Align(lipgloss.Center, lipgloss.Center).
+		Render(content)
+}
+
+func (m *gameModel) statusBar() string {
+	var content string
+
+	if m.state == game.StateRoundFinished {
+		var line1 string
+
+		outcome := m.matchInfo.RoundOutcomes[m.matchInfo.CurrentRound-1]
+		switch *outcome {
+		case protocol.OUTCOME_PLAYER_WON:
+			line1 = fmt.Sprintf("%s Round Won", ui.OutcomeBlock(outcome))
+		case protocol.OUTCOME_OPPONENT_WON:
+			line1 = fmt.Sprintf(
+				"%s Round Lost - Correct word: %s",
+				ui.OutcomeBlock(outcome),
+				m.roundInfo.Word,
+			)
+		case protocol.OUTCOME_NONE:
+			line1 = fmt.Sprintf(
+				"%s Not Guessed - Correct word: %s",
+				ui.OutcomeBlock(outcome),
+				m.roundInfo.Word)
+		}
+
+		line2 := "Press Enter to continue"
+
+		content = lipgloss.JoinVertical(
+			lipgloss.Center,
+			line1,
+			line2,
+		)
+
+	} else {
+		gue := lipgloss.NewStyle().
+			Bold(true).
+			Foreground(ui.White).
+			Render("Gue")
+
+		ssh := lipgloss.NewStyle().
+			Bold(true).
+			Foreground(ui.Purple).
+			Render("SSH")
+
+		content = lipgloss.JoinHorizontal(
+			lipgloss.Center,
+			gue,
+			ssh,
+		)
+	}
+
+	return lipgloss.NewStyle().
+		Width(m.width).
+		Height(2).
+		AlignHorizontal(lipgloss.Center).
+		AlignVertical(lipgloss.Top).
 		Render(content)
 }
 

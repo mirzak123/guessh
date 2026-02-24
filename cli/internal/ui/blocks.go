@@ -73,28 +73,13 @@ func ViewGuessGrid(guesses []*protocol.Guess, input string, maxAttempts int, wor
 }
 
 func ViewOutcomeBlock(outcome *protocol.Outcome, isLast bool) string {
-	var color lipgloss.Color
+	outcomeBlock := OutcomeBlock(outcome)
 
-	if outcome == nil {
-		color = White
-	} else {
-		switch *outcome {
-		case protocol.OUTCOME_PLAYER_WON:
-			color = Purple
-		case protocol.OUTCOME_OPPONENT_WON:
-			color = Red
-		case protocol.OUTCOME_NONE:
-			color = Gray
-		}
+	if !isLast {
+		outcomeBlock = lipgloss.NewStyle().MarginRight(1).Render(outcomeBlock)
 	}
 
-	style := OutcomeBlockStyle(color)
-
-	if isLast {
-		style = style.UnsetMarginRight()
-	}
-
-	return style.Render("")
+	return outcomeBlock
 }
 
 func ViewRoundOutcomes(outcomes []*protocol.Outcome) string {

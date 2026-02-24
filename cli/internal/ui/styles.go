@@ -1,6 +1,10 @@
 package ui
 
-import "github.com/charmbracelet/lipgloss"
+import (
+	"guessh/internal/protocol"
+
+	"github.com/charmbracelet/lipgloss"
+)
 
 var (
 	Green  = lipgloss.Color("46")
@@ -8,7 +12,7 @@ var (
 	Gray   = lipgloss.Color("244")
 	White  = lipgloss.Color("15")
 	Purple = lipgloss.Color("63")
-	Red    = lipgloss.Color("161")
+	Rose   = lipgloss.Color("198")
 )
 
 var (
@@ -39,14 +43,41 @@ var (
 				Foreground(White)
 
 	opponentActiveInputStyle = baseLetterStyle.
-					BorderForeground(Red).
+					BorderForeground(Rose).
 					Foreground(White)
 )
 
-func OutcomeBlockStyle(color lipgloss.Color) lipgloss.Style {
+func OutcomeBlock(outcome *protocol.Outcome) string {
+	var (
+		fg     = White
+		bg     lipgloss.Color
+		symbol string
+	)
+
+	if outcome == nil {
+		bg = White
+		symbol = ""
+	} else {
+		switch *outcome {
+		case protocol.OUTCOME_PLAYER_WON:
+			bg = Purple
+			symbol = "✓"
+		case protocol.OUTCOME_OPPONENT_WON:
+			bg = Rose
+			symbol = "✗"
+		case protocol.OUTCOME_NONE:
+			bg = Gray
+			symbol = "○"
+		}
+	}
+
 	return lipgloss.NewStyle().
-		Width(2).
+		Width(3).
 		Height(1).
-		MarginRight(1).
-		Background(color)
+		AlignHorizontal(lipgloss.Center).
+		AlignVertical(lipgloss.Center).
+		Background(bg).
+		Foreground(fg).
+		Bold(true).
+		Render(symbol)
 }
