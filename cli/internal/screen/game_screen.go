@@ -130,11 +130,11 @@ func (m *gameModel) View() string {
 	)
 
 	player1 := fmt.Sprintf("%s%s",
-		ui.OutcomeBlock(&playerOutcome),
+		lipgloss.NewStyle().MarginRight(1).Render(ui.OutcomeBlock(&playerOutcome)),
 		m.matchInfo.PlayerName,
 	)
 	player2 := fmt.Sprintf("%s%s",
-		ui.OutcomeBlock(&opponentOutcome),
+		lipgloss.NewStyle().MarginRight(1).Render(ui.OutcomeBlock(&opponentOutcome)),
 		m.matchInfo.OpponentName,
 	)
 
