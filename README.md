@@ -47,31 +47,31 @@ Find a better way to represent flow below 🙏🙏🙏
 
 ### Client Message Types
 
-| Type            | Content                                                                            |
-| --------------- | ---------------------------------------------------------------------------------- |
-| CREATE_MATCH    | {"type": "CREATE_MATCH", "mode": "SINGLE", "rounds": number, "wordLength": number} |
-| JOIN_ROOM       | {"type": "JOIN_ROOM", "roomId": string}                                            |
-| MAKE_GUESS      | {"type": "MAKE_GUESS", "guess": string}                                            |
-| REQUEST_REMATCH |                                                                                    |
-| TYPING          | {"type": "TYPING", "value": string}                                                |
-| LEAVE_MATCH     | {"type": "LEAVE_MATCH"}                                                            |
+| Type            | Content                                                                                                   | Additional Info                              |
+| --------------- | --------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| CREATE_MATCH    | {"type": "CREATE_MATCH", "mode": "SINGLE", "rounds": number, "wordLength": number, "playerName"?: string} | playerName required only in multiplayer mode |
+| JOIN_ROOM       | {"type": "JOIN_ROOM", "roomId": string, "playerName"?: string}                                            | playerName required only in multiplayer mode |
+| MAKE_GUESS      | {"type": "MAKE_GUESS", "guess": string}                                                                   |                                              |
+| REQUEST_REMATCH |                                                                                                           |                                              |
+| TYPING          | {"type": "TYPING", "value": string}                                                                       |                                              |
+| LEAVE_MATCH     | {"type": "LEAVE_MATCH"}                                                                                   |                                              |
 
 ### Server Message Types
 
-| Type                | Content                                                                              | Additional info                                                         |
-| ------------------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
-| ERROR               | {"type": "ERROR", "reason": string}                                                  |                                                                         |
-| CONNECTED           |                                                                                      |                                                                         |
-| ROOM_CREATED        | {"type": "ROOM_CREATED", "roomId": string}                                           |                                                                         |
-| ROOM_JOINED         | {"type": "ROOM_JOINED", "roomId": string}                                            |                                                                         |
-| ROOM_JOIN_FAILED    | {"type": "ROOM_JOIN_FAILED", "roomId": string, "reason": string}                     | Room full or invalid room ID                                            |
-| WAIT_OPPONENT_JOIN  | {"type": "WAIT_OPPONENT_JOIN"}                                                       |                                                                         |
-| MATCH_STARTED       | {"type": "MATCH_STARTED", "matchId": string, "rounds": number, "wordLength": number} |                                                                         |
-| ROUND_STARTED       | {"type": "ROUND_STARTED", "roundNumber": number, "maxAttempts": number}              |                                                                         |
-| WAIT_GUESS          | {"type": "WAIT_GUESS"}                                                               |                                                                         |
-| WAIT_OPPONENT_GUESS | {"type": "WAIT_OPPONENT_GUESS"}                                                      |                                                                         |
-| GUESS_RESULT        | {"type": "GUESS_RESULT", "success": boolean, "guess": string, "feedback": number[]}  |                                                                         |
-| ROUND_FINISHED      | {"type": "ROUND_FINISHED", "success": boolean, "word": string}                       | In multiplayer we need to provide a field indicating the winning player |
-| MATCH_FINISHED      | {"type": "MATCH_FINISHED", "winner": string}                                         | Winner only relevant for multiplayer games.                             |
-| OPPONENT_TYPING     | {"type": "OPPONENT_TYPING", "value": string}                                         |
-| BYE                 | {"type": "BYE"}                                                                      |                                                                         |
+| Type                | Content                                                                                                       | Additional Info                                         |
+| ------------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| ERROR               | {"type": "ERROR", "reason": string}                                                                           |                                                         |
+| CONNECTED           |                                                                                                               |                                                         |
+| ROOM_CREATED        | {"type": "ROOM_CREATED", "roomId": string}                                                                    |                                                         |
+| ROOM_JOINED         | {"type": "ROOM_JOINED", "roomId": string}                                                                     |                                                         |
+| ROOM_JOIN_FAILED    | {"type": "ROOM_JOIN_FAILED", "roomId": string, "reason": string}                                              | Room full or invalid room ID                            |
+| WAIT_OPPONENT_JOIN  | {"type": "WAIT_OPPONENT_JOIN"}                                                                                |                                                         |
+| MATCH_STARTED       | {"type": "MATCH_STARTED", "matchId": string, "rounds": number, "wordLength": number, "opponentName"?: string} | opponentName will not be included in single player mode |
+| ROUND_STARTED       | {"type": "ROUND_STARTED", "roundNumber": number, "maxAttempts": number}                                       |                                                         |
+| WAIT_GUESS          | {"type": "WAIT_GUESS"}                                                                                        |                                                         |
+| WAIT_OPPONENT_GUESS | {"type": "WAIT_OPPONENT_GUESS"}                                                                               |                                                         |
+| GUESS_RESULT        | {"type": "GUESS_RESULT", "success": boolean, "guess": string, "feedback": number[]}                           |                                                         |
+| ROUND_FINISHED      | {"type": "ROUND_FINISHED", "outcome": number, "word": string}                                                 |                                                         |
+| MATCH_FINISHED      | {"type": "MATCH_FINISHED", "outcome": number}                                                                 | outcome only relevant for multiplayer games.            |
+| OPPONENT_TYPING     | {"type": "OPPONENT_TYPING", "value": string}                                                                  |
+| BYE                 | {"type": "BYE"}                                                                                               |                                                         |

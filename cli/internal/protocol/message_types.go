@@ -33,18 +33,20 @@ type EnvelopeMessage struct {
 /* Client Types */
 
 type CreateMatchMessage struct {
-	Type    MessageType `json:"type"`
-	Mode    GameMode    `json:"mode"`
-	WordLen int         `json:"wordLength"`
-	Rounds  int         `json:"rounds"`
+	Type       MessageType `json:"type"`
+	Mode       GameMode    `json:"mode"`
+	WordLen    int         `json:"wordLength"`
+	Rounds     int         `json:"rounds"`
+	PlayerName string      `json:"playerName,omitempty"`
 }
 
-func NewCreateMatchMessage(mode GameMode, wordLen int, rounds int) *CreateMatchMessage {
+func NewCreateMatchMessage(mode GameMode, wordLen int, rounds int, playerName string) *CreateMatchMessage {
 	return &CreateMatchMessage{
-		Type:    CREATE_MATCH,
-		Mode:    mode,
-		WordLen: wordLen,
-		Rounds:  rounds,
+		Type:       CREATE_MATCH,
+		Mode:       mode,
+		WordLen:    wordLen,
+		Rounds:     rounds,
+		PlayerName: playerName,
 	}
 }
 
@@ -65,14 +67,16 @@ type LeaveMatchMessage struct {
 }
 
 type JoinRoomMessage struct {
-	Type   MessageType `json:"type"`
-	RoomID string      `json:"roomId"`
+	Type       MessageType `json:"type"`
+	RoomID     string      `json:"roomId"`
+	PlayerName string      `json:"playerName,omitempty"`
 }
 
-func NewJoinRoomMessage(roomID string) *JoinRoomMessage {
+func NewJoinRoomMessage(roomID string, playerName string) *JoinRoomMessage {
 	return &JoinRoomMessage{
-		Type:   JOIN_ROOM,
-		RoomID: roomID,
+		Type:       JOIN_ROOM,
+		RoomID:     roomID,
+		PlayerName: playerName,
 	}
 }
 
@@ -96,10 +100,11 @@ type ErrorMessage struct {
 }
 
 type MatchStartedMessage struct {
-	Type       MessageType `json:"type"`
-	MatchID    string      `json:"matchId"`
-	Rounds     int         `json:"rounds"`
-	WordLength int         `json:"wordLength"`
+	Type         MessageType `json:"type"`
+	MatchID      string      `json:"matchId"`
+	Rounds       int         `json:"rounds"`
+	WordLength   int         `json:"wordLength"`
+	OpponentName string      `json:"opponentName,omitempty"`
 }
 
 type RoundStartedMessage struct {
@@ -125,13 +130,13 @@ type GuessResultMessage struct {
 
 type RoundFinishedMessage struct {
 	Type    MessageType `json:"type"`
-	Success bool        `json:"success"`
+	Outcome Outcome     `json:"outcome"`
 	Word    string      `json:"word"`
 }
 
 type MatchFinishedMessage struct {
-	Type   MessageType `json:"type"`
-	Winner string      `json:"winner"`
+	Type    MessageType `json:"type"`
+	Outcome Outcome     `json:"outcome"`
 }
 
 type RoomCreatedMessage struct {

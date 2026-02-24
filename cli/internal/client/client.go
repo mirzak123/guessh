@@ -19,13 +19,13 @@ func NewClient(conn net.Conn) *Client {
 	}
 }
 
-func (c *Client) CreateMatch(mode protocol.GameMode, wordLen, rounds int) {
+func (c *Client) CreateMatch(mode protocol.GameMode, wordLen, rounds int, playerName string) {
 	var (
 		msg []byte
 		err error
 	)
 
-	createMatchMsg := protocol.NewCreateMatchMessage(mode, wordLen, rounds)
+	createMatchMsg := protocol.NewCreateMatchMessage(mode, wordLen, rounds, playerName)
 	if msg, err = json.Marshal(createMatchMsg); err != nil {
 		logger.Error("[Client.CreateMatch] Failed to marshal CreateMatchMessage: %v", err)
 		os.Exit(1)
@@ -49,13 +49,13 @@ func (c *Client) MakeGuess(guess string) {
 	c.send(msg)
 }
 
-func (c *Client) JoinRoom(roomID string) {
+func (c *Client) JoinRoom(roomID string, playerName string) {
 	var (
 		msg []byte
 		err error
 	)
 
-	joinRoomMsg := protocol.NewJoinRoomMessage(roomID)
+	joinRoomMsg := protocol.NewJoinRoomMessage(roomID, playerName)
 	if msg, err = json.Marshal(joinRoomMsg); err != nil {
 		logger.Error("[Client.MakeGuess] Failed to marshal JoinRoomMessage: %v", err)
 		os.Exit(1)

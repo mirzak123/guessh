@@ -28,8 +28,9 @@ const (
 )
 
 type MatchFinishedMsg struct {
-	roundsPlayed int
-	roundsWon    int
+	roundsPlayed  int
+	roundOutcomes []*protocol.Outcome
+	matchOutcome  protocol.Outcome
 }
 
 type RoomCreatedMsg struct {
@@ -103,11 +104,11 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.eventsPaused = false
 
-		return m, tea.Batch(tea.ClearScreen, m.form.Init(), transport.WaitForEvent(m.event))
+		return m, tea.Batch(tea.ClearScreen, m.form.Init())
 
 	case MatchFinishedMsg:
 		m.screenID = MatchResultsScreenID
-		m.matchResults = NewMatchResults(msg.roundsPlayed, msg.roundsWon)
+		m.matchResults = NewMatchResults(m.matchInfo.Mode, msg.roundsPlayed, msg.roundOutcomes, msg.matchOutcome)
 
 	case RoomCreatedMsg:
 		logger.Debug("Setting room ID: %s", msg.roomID)
@@ -115,17 +116,13 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.waitingOpponent.roomID = msg.roomID
 
 	case game.CreateMatchIntent:
-		m.client.CreateMatch(msg.Mode, msg.WordLen, msg.Rounds)
+		m.client.CreateMatch(msg.Mode, msg.WordLen, msg.Rounds, msg.PlayerName)
 
-	case game.JoinRoom:
-		m.client.JoinRoom(m.matchInfo.RoomID)
+	case game.JoinRoomIntent:
+		m.client.JoinRoom(msg.RoomId, msg.PlayerName)
 
 	case game.MakeGuessIntent:
 		m.client.MakeGuess(msg.Guess)
-
-	case game.PauseIntent:
-		logger.Debug("Pausing Events")
-		m.eventsPaused = true
 
 	case game.ContinueIntent:
 		logger.Debug("Continuing events, flushing buffer")
@@ -258,7 +255,10 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 
 		m.matchInfo.WordLen = matchStartedEvent.WordLength
 		m.matchInfo.TotalRounds = matchStartedEvent.Rounds
+		m.matchInfo.OpponentName = matchStartedEvent.OpponentName
+
 		m.matchInfo.RawTotalRounds = fmt.Sprintf("%d", matchStartedEvent.Rounds)
+		m.matchInfo.RoundOutcomes = make([]*protocol.Outcome, matchStartedEvent.Rounds)
 
 		m.game.input.CharLimit = m.matchInfo.WordLen
 		m.game.input.Width = m.matchInfo.WordLen
@@ -306,23 +306,29 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 
 		m.game.state = game.StateRoundFinished
 		m.game.roundInfo.Word = roundFinishedEvent.Word
-		m.game.roundInfo.Success = roundFinishedEvent.Success
+		m.game.roundInfo.Success = roundFinishedEvent.Outcome != protocol.OUTCOME_NONE
 		m.game.input.Blur()
 
-		if roundFinishedEvent.Success {
-			logger.Debug("Incrementing correct guess count: %d", m.matchInfo.RoundsWon)
-			m.matchInfo.RoundsWon++
-		} else {
-			logger.Debug("Round not successful, not incrementing") // TODO: Remove
-		}
+		logger.Debug("Round outcomes: %v", m.matchInfo.RoundOutcomes)
+		m.matchInfo.RoundOutcomes[m.matchInfo.CurrentRound-1] = &roundFinishedEvent.Outcome
 
-		return game.PauseIntent{}
+		logger.Debug("Pausing events...")
+		m.eventsPaused = true
+		return nil
 
 	case protocol.MATCH_FINISHED:
+		matchFinishedEvent := &protocol.MatchFinishedMessage{}
+		if err := json.Unmarshal(msg, matchFinishedEvent); err != nil {
+			logger.Error("[handleEvent] error unmarshaling MatchFinishedMessage: %v", err)
+			return nil
+		}
+
 		m.game.state = game.StateMatchFinished
+
 		return MatchFinishedMsg{
-			roundsPlayed: m.matchInfo.TotalRounds,
-			roundsWon:    m.matchInfo.RoundsWon,
+			roundsPlayed:  m.matchInfo.TotalRounds,
+			roundOutcomes: m.matchInfo.RoundOutcomes,
+			matchOutcome:  matchFinishedEvent.Outcome,
 		}
 
 	case protocol.ROOM_CREATED:

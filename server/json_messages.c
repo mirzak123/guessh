@@ -1,6 +1,7 @@
 #include "json_messages.h"
 #include "game_logic.h"
 #include "game_server.h"
+#include "game_types.h"
 #include <cjson/cJSON.h>
 #include <stdbool.h>
 
@@ -33,12 +34,15 @@ cJSON *json_room_join_failed(const char *room_id, const char *reason) {
   return json;
 }
 
-cJSON *json_match_started(const char *match_id, int rounds, size_t word_len) {
+cJSON *json_match_started(const char *match_id, int rounds, size_t word_len, char *opponent_name) {
   cJSON *json = cJSON_CreateObject();
   cJSON_AddStringToObject(json, "type", STR(MATCH_STARTED));
   cJSON_AddStringToObject(json, "matchId", match_id);
   cJSON_AddNumberToObject(json, "rounds", rounds);
   cJSON_AddNumberToObject(json, "wordLength", word_len);
+  if (opponent_name != NULL) {
+    cJSON_AddStringToObject(json, "opponentName", opponent_name);
+  }
   return json;
 }
 
@@ -65,19 +69,18 @@ cJSON *json_guess_result(bool success, const char *guess, const LetterFeedback *
   return json;
 }
 
-cJSON *json_round_finished(bool success, const char *word) {
+cJSON *json_round_finished(Outcome outcome, const char *word) {
   cJSON *json = cJSON_CreateObject();
   cJSON_AddStringToObject(json, "type", STR(ROUND_FINISHED));
-  cJSON_AddBoolToObject(json, "success", success);
+  cJSON_AddNumberToObject(json, "outcome", outcome);
   cJSON_AddStringToObject(json, "word", word);
   return json;
 }
 
-cJSON *json_match_finished(const char *winner) {
+cJSON *json_match_finished(Outcome outcome) {
   cJSON *json = cJSON_CreateObject();
   cJSON_AddStringToObject(json, "type", STR(MATCH_FINISHED));
-  // TODO: Add outcome field
-  cJSON_AddStringToObject(json, "winner", winner);
+  cJSON_AddNumberToObject(json, "outcome", outcome);
   return json;
 }
 

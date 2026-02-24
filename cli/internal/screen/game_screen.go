@@ -51,12 +51,16 @@ func (m *gameModel) Init() tea.Cmd {
 	var cmd tea.Cmd
 
 	if m.matchInfo.JoinExisting {
-		cmd = emit(game.JoinRoom{RoomId: m.matchInfo.RoomID})
+		cmd = emit(game.JoinRoomIntent{
+			RoomId:     m.matchInfo.RoomID,
+			PlayerName: m.matchInfo.PlayerName,
+		})
 	} else {
 		cmd = emit(game.CreateMatchIntent{
-			Mode:    m.matchInfo.Mode,
-			WordLen: m.matchInfo.WordLen,
-			Rounds:  m.matchInfo.TotalRounds,
+			Mode:       m.matchInfo.Mode,
+			WordLen:    m.matchInfo.WordLen,
+			Rounds:     m.matchInfo.TotalRounds,
+			PlayerName: m.matchInfo.PlayerName,
 		})
 	}
 
@@ -110,46 +114,140 @@ func (m *gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *gameModel) View() string {
-	var body, header, footer string
-
 	guessGrid := ui.ViewGuessGrid(
 		m.guesses,
 		m.input.Value(),
 		m.matchInfo.MaxAttempts,
 		m.matchInfo.WordLen,
-		m.input.Focused(),
-	)
-	continueMsg := "Press enter to continue..."
-
-	header += fmt.Sprintf(
-		"Round: %d/%s\tGuessed correctly: %d\n",
-		m.matchInfo.CurrentRound,
-		m.matchInfo.RawTotalRounds,
-		m.matchInfo.RoundsWon,
+		m.state,
 	)
 
-	centeredGrid := lipgloss.PlaceHorizontal(
-		m.width,
-		lipgloss.Center,
-		guessGrid,
+	gridWidth := lipgloss.Width(guessGrid)
+
+	var (
+		playerOutcome   = protocol.OUTCOME_PLAYER_WON
+		opponentOutcome = protocol.OUTCOME_OPPONENT_WON
 	)
 
-	body = centeredGrid
+	player1 := fmt.Sprintf("%s%s",
+		lipgloss.NewStyle().MarginRight(1).Render(ui.OutcomeBlock(&playerOutcome)),
+		m.matchInfo.PlayerName,
+	)
+	player2 := fmt.Sprintf("%s%s",
+		lipgloss.NewStyle().MarginRight(1).Render(ui.OutcomeBlock(&opponentOutcome)),
+		m.matchInfo.OpponentName,
+	)
 
-	if m.state == game.StateRoundFinished {
-		if m.roundInfo.Success {
-			footer = continueMsg
-		} else {
-			footer = fmt.Sprintf("Correct word: %s\n%s", m.roundInfo.Word, continueMsg)
-		}
+	p1w := lipgloss.Width(player1)
+	p2w := lipgloss.Width(player2)
+	maxPlayerWidth := max(p1w, p2w)
+
+	if p1w < maxPlayerWidth {
+		player1 += strings.Repeat(" ", maxPlayerWidth-p1w)
+	}
+	if p2w < maxPlayerWidth {
+		player2 = strings.Repeat(" ", maxPlayerWidth-p2w) + player2
 	}
 
-	view := strings.Join([]string{header, body, footer}, "\n")
+	outcomes := ui.ViewRoundOutcomes(m.matchInfo.RoundOutcomes)
+
+	gameAreaWidth := gridWidth + maxPlayerWidth*2
+
+	totalComponentsWidth :=
+		maxPlayerWidth +
+			lipgloss.Width(outcomes) +
+			maxPlayerWidth
+
+	totalSpace := max(0, gameAreaWidth-totalComponentsWidth)
+
+	gapWidth := totalSpace / 2
+	leftSpacer := strings.Repeat(" ", gapWidth)
+	rightSpacer := strings.Repeat(" ", totalSpace-gapWidth)
+
+	headerRow := lipgloss.JoinHorizontal(
+		lipgloss.Center,
+		player1,
+		leftSpacer,
+		outcomes,
+		rightSpacer,
+		player2,
+	)
+
+	emptyLine := lipgloss.NewStyle().
+		Height(1).
+		Render("")
+
+	content := lipgloss.JoinVertical(
+		lipgloss.Center,
+		headerRow,
+		emptyLine,
+		guessGrid,
+		emptyLine,
+		m.statusBar(),
+	)
 
 	return lipgloss.NewStyle().
 		Width(m.width).
+		Height(m.height).
+		Align(lipgloss.Center, lipgloss.Center).
+		Render(content)
+}
+
+func (m *gameModel) statusBar() string {
+	var content string
+
+	if m.state == game.StateRoundFinished {
+		var line1 string
+
+		outcome := m.matchInfo.RoundOutcomes[m.matchInfo.CurrentRound-1]
+		switch *outcome {
+		case protocol.OUTCOME_PLAYER_WON:
+			line1 = fmt.Sprintf("%s Round Won", ui.OutcomeBlock(outcome))
+		case protocol.OUTCOME_OPPONENT_WON:
+			line1 = fmt.Sprintf(
+				"%s Round Lost - Correct word: %s",
+				ui.OutcomeBlock(outcome),
+				m.roundInfo.Word,
+			)
+		case protocol.OUTCOME_NONE:
+			line1 = fmt.Sprintf(
+				"%s Not Guessed - Correct word: %s",
+				ui.OutcomeBlock(outcome),
+				m.roundInfo.Word)
+		}
+
+		line2 := "Press Enter to continue"
+
+		content = lipgloss.JoinVertical(
+			lipgloss.Center,
+			line1,
+			line2,
+		)
+
+	} else {
+		gue := lipgloss.NewStyle().
+			Bold(true).
+			Foreground(ui.White).
+			Render("Gue")
+
+		ssh := lipgloss.NewStyle().
+			Bold(true).
+			Foreground(ui.Purple).
+			Render("SSH")
+
+		content = lipgloss.JoinHorizontal(
+			lipgloss.Center,
+			gue,
+			ssh,
+		)
+	}
+
+	return lipgloss.NewStyle().
+		Width(m.width).
+		Height(2).
 		AlignHorizontal(lipgloss.Center).
-		Render(view)
+		AlignVertical(lipgloss.Top).
+		Render(content)
 }
 
 func emit(msg tea.Msg) tea.Cmd {

@@ -2,6 +2,7 @@ package protocol
 
 type GameMode string
 type LetterFeedback int
+type Outcome int
 
 const ROOM_ID_LENGTH = 5
 
@@ -14,6 +15,12 @@ const (
 	LETTER_ABSENT LetterFeedback = iota
 	LETTER_PRESENT
 	LETTER_CORRECT
+)
+
+const (
+	OUTCOME_NONE Outcome = iota
+	OUTCOME_PLAYER_WON
+	OUTCOME_OPPONENT_WON
 )
 
 type Guess struct {

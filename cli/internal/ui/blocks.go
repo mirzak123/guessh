@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"guessh/internal/game"
 	"guessh/internal/protocol"
 	"strings"
 
@@ -8,7 +9,7 @@ import (
 )
 
 func ViewGuessedRow(g *protocol.Guess) string {
-	blocks := make([]string, len(g.Word))
+	blocks := make([]string, len(g.Result))
 
 	for i, r := range g.Word {
 		var style lipgloss.Style
@@ -28,14 +29,14 @@ func ViewGuessedRow(g *protocol.Guess) string {
 	return lipgloss.JoinHorizontal(lipgloss.Center, blocks...)
 }
 
-func ViewWordInputRow(input string, length int, isActive bool) string {
+func ViewWordInputRow(input string, length int, onTurn bool) string {
 	blocks := make([]string, length)
 	var style lipgloss.Style
 
-	if isActive {
-		style = activeInputStyle
+	if onTurn {
+		style = playerActiveInputStyle
 	} else {
-		style = baseLetterStyle
+		style = opponentActiveInputStyle
 	}
 
 	for i := range blocks {
@@ -52,18 +53,44 @@ func ViewWordInputRow(input string, length int, isActive bool) string {
 	return lipgloss.JoinHorizontal(lipgloss.Center, blocks...)
 }
 
-func ViewGuessGrid(guesses []*protocol.Guess, input string, maxAttempts int, wordLen int, onTurn bool) string {
+func ViewInactiveRow(wordLen int) string {
+	blocks := make([]string, wordLen)
+	for i := range blocks {
+		blocks[i] = baseLetterStyle.Render(" ")
+	}
+	return lipgloss.JoinHorizontal(lipgloss.Center, blocks...)
+}
+
+func ViewGuessGrid(guesses []*protocol.Guess, input string, maxAttempts int, wordLen int, state game.GameState) string {
 	grid := make([]string, maxAttempts)
 
 	for i := range maxAttempts {
 		if i < len(guesses) {
 			grid[i] = ViewGuessedRow(guesses[i])
-		} else if i == len(guesses) {
-			grid[i] = ViewWordInputRow(input, wordLen, onTurn)
+		} else if i == len(guesses) && (state == game.StateWaitGuess || state == game.StateWaitOpponentGuess) {
+			grid[i] = ViewWordInputRow(input, wordLen, state == game.StateWaitGuess)
 		} else {
-			grid[i] = ViewWordInputRow("", wordLen, false)
+			grid[i] = ViewInactiveRow(wordLen)
 		}
 	}
 
 	return strings.Join(grid, "\n")
+}
+
+func ViewOutcomeBlock(outcome *protocol.Outcome, isLast bool) string {
+	outcomeBlock := OutcomeBlock(outcome)
+
+	if !isLast {
+		outcomeBlock = lipgloss.NewStyle().MarginRight(1).Render(outcomeBlock)
+	}
+
+	return outcomeBlock
+}
+
+func ViewRoundOutcomes(outcomes []*protocol.Outcome) string {
+	blocks := make([]string, len(outcomes))
+	for i, outcome := range outcomes {
+		blocks[i] = ViewOutcomeBlock(outcome, len(outcomes)-1 == i)
+	}
+	return lipgloss.JoinHorizontal(lipgloss.Center, blocks...)
 }
