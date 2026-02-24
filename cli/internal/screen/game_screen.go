@@ -114,7 +114,6 @@ func (m *gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *gameModel) View() string {
-	// 1. Render and measure the grid
 	guessGrid := ui.ViewGuessGrid(
 		m.guesses,
 		m.input.Value(),
@@ -125,26 +124,37 @@ func (m *gameModel) View() string {
 
 	gridWidth := lipgloss.Width(guessGrid)
 
-	// 2. Define the "Game Area"
-	// Instead of m.width, we take the grid and add a fixed amount of padding (e.g., 12 chars).
-	// This makes the UI look consistent regardless of how big the terminal window is.
+	player1 := fmt.Sprintf("%s%s",
+		ui.OutcomeBlockStyle(ui.Purple).Render(""),
+		m.matchInfo.PlayerName,
+	)
+	player2 := fmt.Sprintf("%s%s",
+		ui.OutcomeBlockStyle(ui.Red).Render(""),
+		m.matchInfo.OpponentName,
+	)
 
-	// 3. Components
-	player1 := fmt.Sprintf("%s%s", ui.OutcomeBlockStyle(ui.Purple).Render(""), m.matchInfo.PlayerName)
-	player2 := fmt.Sprintf("%s%s", ui.OutcomeBlockStyle(ui.Red).Render(""), m.matchInfo.OpponentName)
+	p1w := lipgloss.Width(player1)
+	p2w := lipgloss.Width(player2)
+	maxPlayerWidth := max(p1w, p2w)
+
+	if p1w < maxPlayerWidth {
+		player1 = player1 + strings.Repeat(" ", maxPlayerWidth-p1w)
+	}
+	if p2w < maxPlayerWidth {
+		player2 = strings.Repeat(" ", maxPlayerWidth-p2w) + player2
+	}
+
 	outcomes := ui.ViewRoundOutcomes(m.matchInfo.RoundOutcomes)
 
 	gameAreaWidth := gridWidth + lipgloss.Width(player1) + lipgloss.Width(player2)
 
-	// 4. Calculate gaps based on gameAreaWidth
 	totalComponentsWidth := lipgloss.Width(player1) + lipgloss.Width(outcomes) + lipgloss.Width(player2)
 	totalSpace := max(0, gameAreaWidth-totalComponentsWidth)
 
 	gapWidth := totalSpace / 2
 	leftSpacer := strings.Repeat(" ", gapWidth)
-	rightSpacer := strings.Repeat(" ", totalSpace-gapWidth) // Handles odd numbers
+	rightSpacer := strings.Repeat(" ", totalSpace-gapWidth)
 
-	// 5. Build the header
 	headerRow := lipgloss.JoinHorizontal(
 		lipgloss.Center,
 		player1,
@@ -154,17 +164,12 @@ func (m *gameModel) View() string {
 		player2,
 	)
 
-	// 6. Stack them. JoinVertical(lipgloss.Center) ensures the
-	// narrower guessGrid is centered under the slightly wider headerRow.
 	content := lipgloss.JoinVertical(
 		lipgloss.Center,
 		headerRow,
-		"\n",
 		guessGrid,
 	)
 
-	// 7. Center the "Game Area" on the actual screen
-	// This is the only place we use m.width.
 	return lipgloss.NewStyle().
 		Width(m.width).
 		Height(m.height).
