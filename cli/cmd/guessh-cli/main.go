@@ -1,6 +1,7 @@
 package main
 
 import (
+	"guessh/internal/game"
 	"guessh/internal/logger"
 	"guessh/internal/screen"
 	"log"
@@ -22,6 +23,10 @@ func main() {
 	}
 
 	logger.Init(logFile, getLogLevelFromEnv())
+
+	game.FiveLetterWords = game.ExtractWordsFromFile("/Users/mirza/code/personal/guessh/server/words/valid-words.txt")
+	game.SixLetterWords = game.ExtractWordsFromFile("/Users/mirza/code/personal/guessh/server/words/six-letter.txt")
+	game.SevenLetterWords = game.ExtractWordsFromFile("/Users/mirza/code/personal/guessh/server/words/seven-letter.txt")
 
 	p := tea.NewProgram(
 		screen.InitialModel(),

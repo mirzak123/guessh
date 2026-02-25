@@ -7,6 +7,7 @@ import (
 	"guessh/internal/protocol"
 	"guessh/internal/ui"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -94,8 +95,10 @@ func (m *gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				v := m.input.Value()
 
 				if len(v) == m.matchInfo.WordLen { // do nothing if not enough letters
-					m.input.SetValue("")
-					return m, emit(game.MakeGuessIntent{Guess: v})
+					if m.validateGuess(v) {
+						m.input.SetValue("")
+						return m, emit(game.MakeGuessIntent{Guess: v})
+					}
 				}
 			}
 		}
@@ -237,8 +240,7 @@ func (m *gameModel) statusBar() string {
 
 		content = lipgloss.JoinHorizontal(
 			lipgloss.Center,
-			gue,
-			ssh,
+			gue, ssh,
 		)
 	}
 
@@ -248,6 +250,20 @@ func (m *gameModel) statusBar() string {
 		AlignHorizontal(lipgloss.Center).
 		AlignVertical(lipgloss.Top).
 		Render(content)
+}
+
+func (m *gameModel) validateGuess(guess string) bool {
+	switch len(guess) {
+	case 5:
+		return slices.Index(game.FiveLetterWords, guess) != -1
+	case 6:
+		return slices.Index(game.SixLetterWords, guess) != -1
+	case 7:
+		return slices.Index(game.SevenLetterWords, guess) != -1
+	default:
+		logger.Error("[validateGuess] received value of length %d", len(guess))
+		return false
+	}
 }
 
 func emit(msg tea.Msg) tea.Cmd {
