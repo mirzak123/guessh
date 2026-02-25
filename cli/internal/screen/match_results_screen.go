@@ -34,7 +34,8 @@ func NewMatchResults(
 	}
 
 	var results string
-	if m.mode == protocol.MULTI_REMOTE {
+	switch m.mode {
+	case protocol.MULTI_REMOTE:
 		if opponentLeft {
 			results = "🔌 Opponent left the match"
 		} else {
@@ -56,9 +57,11 @@ func NewMatchResults(
 				"📊 Results • ",
 				ui.ViewRoundOutcomes(m.roundOutcomes)),
 		)
-
-	} else {
-		results = ui.ViewRoundOutcomes(m.roundOutcomes)
+	case protocol.SINGLE:
+		results = lipgloss.JoinHorizontal(
+			lipgloss.Left,
+			"📊 Results • ",
+			ui.ViewRoundOutcomes(m.roundOutcomes))
 	}
 
 	m.form = huh.NewForm(
