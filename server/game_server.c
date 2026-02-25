@@ -504,7 +504,7 @@ void GS_handle_leave_match(GameServer *gs, Client *client) {
     return;
   }
 
-  GS_end_match(gs, client->player->match, client->player);
+  GS_end_match(gs, client->player->match, NULL);
 }
 
 void GS_end_match(GameServer *gs, Match *match, Player *disconnected_player) {
