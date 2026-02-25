@@ -25,9 +25,9 @@ func (c *Client) CreateMatch(mode protocol.GameMode, wordLen, rounds int, player
 		err error
 	)
 
-	createMatchMsg := protocol.NewCreateMatchMessage(mode, wordLen, rounds, playerName)
+	createMatchMsg := protocol.NewCreateMatchEvent(mode, wordLen, rounds, playerName)
 	if msg, err = json.Marshal(createMatchMsg); err != nil {
-		logger.Error("[Client.CreateMatch] Failed to marshal CreateMatchMessage: %v", err)
+		logger.Error("[Client.CreateMatch] Failed to marshal CreateMatchEvent: %v", err)
 		os.Exit(1)
 	}
 
@@ -40,9 +40,9 @@ func (c *Client) MakeGuess(guess string) {
 		err error
 	)
 
-	makeGuessMsg := protocol.NewMakeGuessMessage(guess)
+	makeGuessMsg := protocol.NewMakeGuessEvent(guess)
 	if msg, err = json.Marshal(makeGuessMsg); err != nil {
-		logger.Error("[Client.MakeGuess] Failed to marshal CreateMatchMessage: %v", err)
+		logger.Error("[Client.MakeGuess] Failed to marshal MakeGuessEvent: %v", err)
 		os.Exit(1)
 	}
 
@@ -55,9 +55,9 @@ func (c *Client) JoinRoom(roomID string, playerName string) {
 		err error
 	)
 
-	joinRoomMsg := protocol.NewJoinRoomMessage(roomID, playerName)
+	joinRoomMsg := protocol.NewJoinRoomEvent(roomID, playerName)
 	if msg, err = json.Marshal(joinRoomMsg); err != nil {
-		logger.Error("[Client.MakeGuess] Failed to marshal JoinRoomMessage: %v", err)
+		logger.Error("[Client.MakeGuess] Failed to marshal JoinRoomEvent: %v", err)
 		os.Exit(1)
 	}
 
@@ -70,9 +70,9 @@ func (c *Client) Typing(value string) {
 		err error
 	)
 
-	typingMsg := protocol.NewTypingMessage(value)
+	typingMsg := protocol.NewTypingEvent(value)
 	if msg, err = json.Marshal(typingMsg); err != nil {
-		logger.Error("[Client.MakeGuess] Failed to marshal TypingMessage: %v", err)
+		logger.Error("[Client.MakeGuess] Failed to marshal TypingEvent: %v", err)
 		os.Exit(1)
 	}
 
@@ -85,9 +85,9 @@ func (c *Client) LeaveMatch() {
 		err error
 	)
 
-	leaveMatchMsg := protocol.NewLeaveMatchMessage()
+	leaveMatchMsg := protocol.NewLeaveMatchEvent()
 	if msg, err = json.Marshal(leaveMatchMsg); err != nil {
-		logger.Error("[Client.MakeGuess] Failed to marshal LeaveMatchMessage: %v", err)
+		logger.Error("[Client.MakeGuess] Failed to marshal LeaveMatchEvent: %v", err)
 		os.Exit(1)
 	}
 
@@ -95,8 +95,8 @@ func (c *Client) LeaveMatch() {
 }
 
 func (c *Client) send(payload []byte) {
-	logger.Info("[Client.send] Sending message: %s", payload)
-	if _, err := transport.SendMessage(c.Conn, payload); err != nil {
-		logger.Error("[Client.send] Failed to send message: %v", err)
+	logger.Info("[Client.send] Sending event: %s", payload)
+	if _, err := transport.SendEvent(c.Conn, payload); err != nil {
+		logger.Error("[Client.send] Failed to send event: %v", err)
 	}
 }
