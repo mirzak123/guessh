@@ -70,7 +70,7 @@ void GS_handle_request(GameServer *gs, Client *client) {
     send_error(client->fd, E_NOT_IMPLEMENTED);
     break;
   case LEAVE_MATCH:
-    send_error(client->fd, E_NOT_IMPLEMENTED);
+    GS_handle_leave_match(gs, client);
     break;
   case TYPING:
     GS_handle_typing(client, json_request);
@@ -496,6 +496,16 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
     round->outcome = OUTCOME_NONE;
   }
   GS_end_round(gs, match);
+}
+
+void GS_handle_leave_match(GameServer *gs, Client *client) {
+  Match *match = NULL;
+  if (client->player == NULL || client->player->match == NULL) {
+    send_error(client->fd, E_PLAYER_NOT_IN_MATCH);
+    return;
+  }
+
+  GS_end_match(gs, match, client->player);
 }
 
 void GS_end_match(GameServer *gs, Match *match, Player *disconnected_player) {
