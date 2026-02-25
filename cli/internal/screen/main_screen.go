@@ -31,6 +31,7 @@ type MatchFinishedMsg struct {
 	roundsPlayed  int
 	roundOutcomes []*protocol.Outcome
 	matchOutcome  protocol.Outcome
+	opponentLeft  bool
 }
 
 type RoomCreatedMsg struct {
@@ -108,7 +109,14 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case MatchFinishedMsg:
 		m.screenID = MatchResultsScreenID
-		m.matchResults = NewMatchResults(m.matchInfo.Mode, msg.roundsPlayed, msg.roundOutcomes, msg.matchOutcome)
+		logger.Debug("opponentLeft : %v", msg.opponentLeft)
+		m.matchResults = NewMatchResults(
+			m.matchInfo.Mode,
+			msg.roundsPlayed,
+			msg.roundOutcomes,
+			msg.matchOutcome,
+			msg.opponentLeft,
+		)
 
 	case RoomCreatedMsg:
 		logger.Debug("Setting room ID: %s", msg.roomID)
@@ -329,6 +337,7 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 			roundsPlayed:  m.matchInfo.TotalRounds,
 			roundOutcomes: m.matchInfo.RoundOutcomes,
 			matchOutcome:  matchFinishedEvent.Outcome,
+			opponentLeft:  matchFinishedEvent.OpponentLeft,
 		}
 
 	case protocol.ROOM_CREATED:

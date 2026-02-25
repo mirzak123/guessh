@@ -77,10 +77,11 @@ cJSON *json_round_finished(Outcome outcome, const char *word) {
   return json;
 }
 
-cJSON *json_match_finished(Outcome outcome) {
+cJSON *json_match_finished(Outcome outcome, bool opponentLeft) {
   cJSON *json = cJSON_CreateObject();
   cJSON_AddStringToObject(json, "type", STR(MATCH_FINISHED));
   cJSON_AddNumberToObject(json, "outcome", outcome);
+  cJSON_AddBoolToObject(json, "opponentLeft", opponentLeft);
   return json;
 }
 

@@ -52,11 +52,12 @@ func OutcomeBlock(outcome *protocol.Outcome) string {
 		fg     = White
 		bg     lipgloss.Color
 		symbol string
+		withBg = true
 	)
 
 	if outcome == nil {
-		bg = White
-		symbol = ""
+		withBg = false
+		symbol = "○"
 	} else {
 		switch *outcome {
 		case protocol.OUTCOME_PLAYER_WON:
@@ -71,13 +72,17 @@ func OutcomeBlock(outcome *protocol.Outcome) string {
 		}
 	}
 
-	return lipgloss.NewStyle().
+	style := lipgloss.NewStyle().
 		Width(3).
 		Height(1).
 		AlignHorizontal(lipgloss.Center).
 		AlignVertical(lipgloss.Center).
-		Background(bg).
 		Foreground(fg).
-		Bold(true).
-		Render(symbol)
+		Bold(true)
+
+	if withBg {
+		style = style.Background(bg)
+	}
+
+	return style.Render(symbol)
 }

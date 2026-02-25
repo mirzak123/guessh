@@ -312,7 +312,9 @@ void GS_handle_join_room(GameServer *gs, Client *client, cJSON *json_request) {
 
   assert(room->player1 != NULL);
   if (room->player2 != NULL) {
-    send_error(client->fd, E_ROOM_FULL);
+    cJSON *room_join_failed_json = json_room_join_failed(room_id, E_ROOM_FULL);
+    send_json(client->fd, room_join_failed_json);
+    cJSON_Delete(room_join_failed_json);
     return;
   }
 
@@ -500,11 +502,7 @@ void GS_end_match(Match *match, Player *disconnected_player) {
 
   switch (match->mode) {
   case MULTI_REMOTE:
-    if (disconnected_player != NULL) { // disonnected player loses
-      match->outcome = disconnected_player == match->player1 ? OUTCOME_PLAYER2 : OUTCOME_PLAYER1;
-    } else {
-      match->outcome = calculate_match_outcome(match);
-    }
+    match->outcome = calculate_match_outcome(match);
     break;
   case SINGLE:
     match->outcome = OUTCOME_NONE; // not relevant in SINGLE mode
@@ -514,6 +512,7 @@ void GS_end_match(Match *match, Player *disconnected_player) {
   printf("[GS_end_match] Ending match: (%s)...\n", match->id);
 
   assert(match->player1 != NULL);
+  printf("Disconnected player: %d\n", disconnected_player != NULL);
   switch (match->mode) {
   case MULTI_REMOTE:
     if (match->player2 != NULL && match->player2 != disconnected_player) {
@@ -531,7 +530,7 @@ void GS_end_match(Match *match, Player *disconnected_player) {
         break;
       }
 
-      match_finished_json = json_match_finished(outcome);
+      match_finished_json = json_match_finished(outcome, disconnected_player != NULL);
       send_json(match->player2->client_fd, match_finished_json);
       cJSON_Delete(match_finished_json);
     }
@@ -540,7 +539,7 @@ void GS_end_match(Match *match, Player *disconnected_player) {
   case SINGLE:
     if (match->player1 != disconnected_player) {
       match->player1->match = NULL;
-      match_finished_json = json_match_finished(match->outcome);
+      match_finished_json = json_match_finished(match->outcome, disconnected_player != NULL);
       send_json(match->player1->client_fd, match_finished_json);
       cJSON_Delete(match_finished_json);
     }
@@ -660,7 +659,7 @@ static void start_round(Match *match) {
 
 static Outcome calculate_match_outcome(Match *match) {
   int outcome = 0;
-  for (size_t i = 0; i < match->round_capacity; i++) {
+  for (int i = 0; i <= match->round_idx; i++) {
     Round *round = match->rounds[i];
     if (round->outcome == OUTCOME_PLAYER1)
       outcome++;

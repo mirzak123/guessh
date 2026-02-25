@@ -25,7 +25,7 @@ type gameModel struct {
 }
 
 func NewGame(matchInfo *game.MatchInfo) *gameModel {
-	logger.Debug("Calling NewGame")
+	logger.Debug("Creating new game model")
 	ti := textinput.New()
 	ti.Blur()
 

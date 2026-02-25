@@ -19,7 +19,13 @@ type matchResultsModel struct {
 	form *huh.Form
 }
 
-func NewMatchResults(mode protocol.GameMode, roundsPlayed int, roundOutcomes []*protocol.Outcome, matchOutcome protocol.Outcome) *matchResultsModel {
+func NewMatchResults(
+	mode protocol.GameMode,
+	roundsPlayed int,
+	roundOutcomes []*protocol.Outcome,
+	matchOutcome protocol.Outcome,
+	opponentLeft bool) *matchResultsModel {
+
 	m := &matchResultsModel{
 		mode:          mode,
 		roundsPlayed:  roundsPlayed,
@@ -29,19 +35,28 @@ func NewMatchResults(mode protocol.GameMode, roundsPlayed int, roundOutcomes []*
 
 	var results string
 	if m.mode == protocol.MULTI_REMOTE {
-		switch m.matchOutcome {
-		case protocol.OUTCOME_PLAYER_WON:
-			results = "🎉 You won!"
-		case protocol.OUTCOME_OPPONENT_WON:
-			results = "😢 You lost"
-		default:
-			results = "🤝 Draw"
+		if opponentLeft {
+			results = "🔌 Opponent left the match"
+		} else {
+			switch m.matchOutcome {
+			case protocol.OUTCOME_PLAYER_WON:
+				results = "🎉 You won!"
+			case protocol.OUTCOME_OPPONENT_WON:
+				results = "😢 You lost"
+			default:
+				results = "🤝 Draw"
+			}
 		}
 
 		results = lipgloss.JoinVertical(
-			lipgloss.Top,
+			lipgloss.Left,
 			results,
-			ui.ViewRoundOutcomes(m.roundOutcomes))
+			lipgloss.JoinHorizontal(
+				lipgloss.Left,
+				"📊 Results • ",
+				ui.ViewRoundOutcomes(m.roundOutcomes)),
+		)
+
 	} else {
 		results = ui.ViewRoundOutcomes(m.roundOutcomes)
 	}
