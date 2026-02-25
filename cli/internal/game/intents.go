@@ -25,3 +25,5 @@ type JoinRoomIntent struct {
 	RoomId     string
 	PlayerName string
 }
+
+type LeaveMatchIntent struct{}

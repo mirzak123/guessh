@@ -152,6 +152,10 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.eventBuffer = nil
 
+	case game.LeaveMatchIntent:
+		m.client.LeaveMatch()
+		cmds = append(cmds, emit(game.StartGameIntent{}))
+
 	case game.TypingIntent:
 		m.client.Typing(msg.Value)
 
@@ -201,7 +205,7 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					cmds = append(cmds, m.game.Init())
 				} else {
 					m.screenID = WaitingOpponentScreenID
-					m.waitingOpponent = NewWaitingOpponentModel(m.matchInfo.RoomID)
+					m.waitingOpponent = NewWaitingOpponentModel()
 					cmds = append(cmds, m.game.Init(), m.waitingOpponent.Init())
 				}
 			case protocol.SINGLE:
@@ -227,6 +231,10 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case WaitingOpponentScreenID:
 		_, waitingOpponentCmd := m.waitingOpponent.Update(msg)
 		cmds = append(cmds, waitingOpponentCmd)
+
+		if m.waitingOpponent.form.State == huh.StateCompleted {
+			cmds = append(cmds, emit(game.LeaveMatchIntent{}))
+		}
 
 	case MatchResultsScreenID:
 		_, matchResultsCmd := m.matchResults.Update(msg)

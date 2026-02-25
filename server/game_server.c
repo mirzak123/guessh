@@ -499,13 +499,12 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
 }
 
 void GS_handle_leave_match(GameServer *gs, Client *client) {
-  Match *match = NULL;
   if (client->player == NULL || client->player->match == NULL) {
     send_error(client->fd, E_PLAYER_NOT_IN_MATCH);
     return;
   }
 
-  GS_end_match(gs, match, client->player);
+  GS_end_match(gs, client->player->match, client->player);
 }
 
 void GS_end_match(GameServer *gs, Match *match, Player *disconnected_player) {
@@ -523,7 +522,6 @@ void GS_end_match(GameServer *gs, Match *match, Player *disconnected_player) {
   printf("[GS_end_match] Ending match: (%s)...\n", match->id);
 
   assert(match->player1 != NULL);
-  printf("Disconnected player: %d\n", disconnected_player != NULL);
   switch (match->mode) {
   case MULTI_REMOTE:
     if (match->player2 != NULL && match->player2 != disconnected_player) {

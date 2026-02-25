@@ -79,6 +79,21 @@ func (c *Client) Typing(value string) {
 	c.send(msg)
 }
 
+func (c *Client) LeaveMatch() {
+	var (
+		msg []byte
+		err error
+	)
+
+	leaveMatchMsg := protocol.NewLeaveMatchMessage()
+	if msg, err = json.Marshal(leaveMatchMsg); err != nil {
+		logger.Error("[Client.MakeGuess] Failed to marshal LeaveMatchMessage: %v", err)
+		os.Exit(1)
+	}
+
+	c.send(msg)
+}
+
 func (c *Client) send(payload []byte) {
 	logger.Info("[Client.send] Sending message: %s", payload)
 	if _, err := transport.SendMessage(c.Conn, payload); err != nil {
