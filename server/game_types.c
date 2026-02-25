@@ -28,6 +28,7 @@ Match *new_match(size_t round_capacity, GameMode mode, size_t word_len) {
 
 void delete_match(Match *match) {
   free(match->id);
+  free(match->room_id);
   if (match->player1 != NULL)
     delete_player(match->player1);
   if (match->player2 != NULL)

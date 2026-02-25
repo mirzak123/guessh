@@ -5,6 +5,7 @@
 #include "hash_table.h"
 #include "json_messages.h"
 #include "room.h"
+#include <_string.h>
 #include <assert.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -15,7 +16,6 @@
 static MessageType parse_message(char *data, size_t size, cJSON **out);
 static void start_match(Match *match);
 static void start_round(Match *match);
-static void end_round(Match *match);
 static void add_player_to_match(Match *match, Player *player);
 static void create_room(GameServer *gs, Match *match, Client *client);
 static Outcome calculate_match_outcome(Match *match);
@@ -64,7 +64,7 @@ void GS_handle_request(GameServer *gs, Client *client) {
     GS_handle_join_room(gs, client, json_request);
     break;
   case MAKE_GUESS:
-    GS_handle_make_guess(client, json_request);
+    GS_handle_make_guess(gs, client, json_request);
     break;
   case REQUEST_REMATCH:
     send_error(client->fd, E_NOT_IMPLEMENTED);
@@ -266,6 +266,7 @@ void create_room(GameServer *gs, Match *match, Client *client) {
 
   room->match = match;
   room->player1 = client->player;
+  match->room_id = strdup(room->id);
 
   cJSON *room_created_json = json_room_created(room->id);
   send_json(client->fd, room_created_json);
@@ -407,7 +408,7 @@ static void add_player_to_match(Match *match, Player *player) {
   }
 }
 
-void GS_handle_make_guess(Client *client, cJSON *json_request) {
+void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
   Match *match = NULL;
   Round *round;
   Player *player, *opponent;
@@ -494,10 +495,10 @@ void GS_handle_make_guess(Client *client, cJSON *json_request) {
   } else if (round->wc->attempt_count >= round->wc->max_attempts) {
     round->outcome = OUTCOME_NONE;
   }
-  end_round(match);
+  GS_end_round(gs, match);
 }
 
-void GS_end_match(Match *match, Player *disconnected_player) {
+void GS_end_match(GameServer *gs, Match *match, Player *disconnected_player) {
   cJSON *match_finished_json = NULL;
 
   switch (match->mode) {
@@ -534,7 +535,7 @@ void GS_end_match(Match *match, Player *disconnected_player) {
       send_json(match->player2->client_fd, match_finished_json);
       cJSON_Delete(match_finished_json);
     }
-    // TODO: Delete the room
+    HT_delete(gs->rooms, KEY(match->room_id));
 
   case SINGLE:
     if (match->player1 != disconnected_player) {
@@ -546,7 +547,7 @@ void GS_end_match(Match *match, Player *disconnected_player) {
   }
 }
 
-static void end_round(Match *match) {
+void GS_end_round(GameServer *gs, Match *match) {
   Round *round = match->rounds[match->round_idx];
   cJSON *round_finished_json = NULL;
 
@@ -577,7 +578,7 @@ static void end_round(Match *match) {
   if (match->round_idx + 1 < (int)match->round_capacity) {
     start_round(match);
   } else {
-    GS_end_match(match, NULL);
+    GS_end_match(gs, match, NULL);
   }
 }
 
