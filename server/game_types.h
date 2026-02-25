@@ -50,6 +50,7 @@ typedef struct Match {
   int round_idx;
   size_t word_len;
   size_t round_capacity; /* total amount of rounds */
+  char *room_id;
   Round **rounds;
   GameMode mode;
   Outcome outcome;

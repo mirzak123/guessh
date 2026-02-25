@@ -73,9 +73,11 @@ void GS_destroy(GameServer *gs);
 
 void GS_handle_request(GameServer *gs, Client *client);
 void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request);
-void GS_handle_make_guess(Client *client, cJSON *json_request);
+void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request);
 void GS_handle_join_room(GameServer *gs, Client *client, cJSON *json_request);
 void GS_handle_typing(Client *client, cJSON *json_request);
-void GS_end_match(Match *match, Player *disconnected_player);
+void GS_handle_leave_match(GameServer *gs, Client *client);
+void GS_end_match(GameServer *gs, Match *match, Player *disconnected_player);
+void GS_end_round(GameServer *gs, Match *match);
 
 #endif // !GAME_SERVER_H

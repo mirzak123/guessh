@@ -11,7 +11,6 @@ import (
 	"guessh/internal/transport"
 	"guessh/internal/ui"
 	"net"
-	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
@@ -25,12 +24,14 @@ const (
 	GameScreenID
 	WaitingOpponentScreenID
 	MatchResultsScreenID
+	ServerDownScreenID
 )
 
 type MatchFinishedMsg struct {
 	roundsPlayed  int
 	roundOutcomes []*protocol.Outcome
 	matchOutcome  protocol.Outcome
+	opponentLeft  bool
 }
 
 type RoomCreatedMsg struct {
@@ -38,40 +39,49 @@ type RoomCreatedMsg struct {
 }
 
 type mainModel struct {
-	width, height   int
-	client          *client.Client
-	event           chan transport.EventMsg
-	eventBuffer     []transport.EventMsg
-	eventsPaused    bool
-	screenID        ScreenID
-	matchInfo       *game.MatchInfo
-	confirm         *bool
-	form            *huh.Form
+	width, height int
+	client        *client.Client
+	event         chan transport.EventMsg
+	eventBuffer   []transport.EventMsg
+	eventsPaused  bool
+	screenID      ScreenID
+	matchInfo     *game.MatchInfo
+	confirm       *bool
+	connected     bool
+
+	startMenu       *huh.Form
 	game            *gameModel
 	waitingOpponent *waitingOpponentModel
 	matchResults    *matchResultsModel
+	serverDown      *huh.Form
 }
 
 func InitialModel() mainModel {
+	m := mainModel{
+		screenID:   StartScreenID,
+		matchInfo:  game.NewMatchInfo(),
+		event:      make(chan transport.EventMsg),
+		serverDown: NewServerDownForm(),
+	}
+
 	conn, err := net.Dial("tcp", "localhost:2480")
 	if err != nil {
 		logger.Error("net.Dial error: %v", err)
-		os.Exit(1)
+		m.screenID = ServerDownScreenID
+	} else {
+		m.connected = true
 	}
 
-	c := client.NewClient(conn)
-
-	m := mainModel{
-		screenID:  StartScreenID,
-		matchInfo: game.NewMatchInfo(),
-		client:    c,
-		event:     make(chan transport.EventMsg),
-	}
-	m.form, m.confirm = NewStartMenu(m.matchInfo)
+	m.client = client.NewClient(conn)
+	m.startMenu, m.confirm = NewStartMenu(m.matchInfo)
 	return m
 }
 
 func (m mainModel) Init() tea.Cmd {
+
+	if !m.connected {
+		return tea.EnterAltScreen
+	}
 
 	return tea.Batch(
 		tea.EnterAltScreen,
@@ -100,15 +110,21 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case game.StartGameIntent:
 		m.screenID = StartScreenID
 		m.matchInfo = game.NewMatchInfo()
-		m.form, m.confirm = NewStartMenu(m.matchInfo)
+		m.startMenu, m.confirm = NewStartMenu(m.matchInfo)
 
 		m.eventsPaused = false
 
-		return m, tea.Batch(tea.ClearScreen, m.form.Init())
+		return m, tea.Batch(tea.ClearScreen, m.startMenu.Init())
 
 	case MatchFinishedMsg:
 		m.screenID = MatchResultsScreenID
-		m.matchResults = NewMatchResults(m.matchInfo.Mode, msg.roundsPlayed, msg.roundOutcomes, msg.matchOutcome)
+		m.matchResults = NewMatchResults(
+			m.matchInfo.Mode,
+			msg.roundsPlayed,
+			msg.roundOutcomes,
+			msg.matchOutcome,
+			msg.opponentLeft,
+		)
 
 	case RoomCreatedMsg:
 		logger.Debug("Setting room ID: %s", msg.roomID)
@@ -136,8 +152,15 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.eventBuffer = nil
 
+	case game.LeaveMatchIntent:
+		m.client.LeaveMatch()
+		cmds = append(cmds, emit(game.StartGameIntent{}))
+
 	case game.TypingIntent:
 		m.client.Typing(msg.Value)
+
+	case transport.ServerDisconnectedMsg:
+		m.screenID = ServerDownScreenID
 
 	case transport.EventMsg:
 		cmds = append(cmds, transport.WaitForEvent(m.event))
@@ -156,15 +179,15 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch m.screenID {
 
 	case StartScreenID:
-		updatedModel, formCmd := m.form.Update(msg)
-		m.form = updatedModel.(*huh.Form)
+		updatedModel, formCmd := m.startMenu.Update(msg)
+		m.startMenu = updatedModel.(*huh.Form)
 
 		cmds = append(cmds, formCmd)
 
-		if m.form.State == huh.StateCompleted {
+		if m.startMenu.State == huh.StateCompleted {
 			if !*m.confirm {
 				m.screenID = StartScreenID
-				m.form, m.confirm = NewStartMenu(m.matchInfo)
+				m.startMenu, m.confirm = NewStartMenu(m.matchInfo)
 
 				return m, tea.Batch(tea.ClearScreen, formCmd)
 			}
@@ -182,7 +205,7 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					cmds = append(cmds, m.game.Init())
 				} else {
 					m.screenID = WaitingOpponentScreenID
-					m.waitingOpponent = NewWaitingOpponentModel(m.matchInfo.RoomID)
+					m.waitingOpponent = NewWaitingOpponentModel()
 					cmds = append(cmds, m.game.Init(), m.waitingOpponent.Init())
 				}
 			case protocol.SINGLE:
@@ -191,6 +214,16 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
+	case ServerDownScreenID:
+		updatedModel, formCmd := m.serverDown.Update(msg)
+		m.serverDown = updatedModel.(*huh.Form)
+
+		if m.serverDown.State == huh.StateCompleted {
+			return m, tea.Quit
+		}
+
+		return m, formCmd
+
 	case GameScreenID:
 		_, gameCmd := m.game.Update(msg)
 		cmds = append(cmds, gameCmd)
@@ -198,6 +231,10 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case WaitingOpponentScreenID:
 		_, waitingOpponentCmd := m.waitingOpponent.Update(msg)
 		cmds = append(cmds, waitingOpponentCmd)
+
+		if m.waitingOpponent.form.State == huh.StateCompleted {
+			cmds = append(cmds, emit(game.LeaveMatchIntent{}))
+		}
 
 	case MatchResultsScreenID:
 		_, matchResultsCmd := m.matchResults.Update(msg)
@@ -212,7 +249,9 @@ func (m mainModel) View() string {
 
 	switch m.screenID {
 	case StartScreenID:
-		content = ui.MainContentStyle.Render(m.form.View())
+		content = ui.MainContentStyle.Render(m.startMenu.View())
+	case ServerDownScreenID:
+		content = ui.MainContentStyle.Render(m.serverDown.View())
 	case GameScreenID:
 		content = ui.MainContentStyle.Render(m.game.View())
 	case WaitingOpponentScreenID:
@@ -329,6 +368,7 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 			roundsPlayed:  m.matchInfo.TotalRounds,
 			roundOutcomes: m.matchInfo.RoundOutcomes,
 			matchOutcome:  matchFinishedEvent.Outcome,
+			opponentLeft:  matchFinishedEvent.OpponentLeft,
 		}
 
 	case protocol.ROOM_CREATED:
@@ -350,17 +390,17 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 		}
 
 		m.screenID = StartScreenID
-		m.form, m.confirm = NewStartMenu(m.matchInfo)
+		m.startMenu, m.confirm = NewStartMenu(m.matchInfo)
 		m.game.matchInfo.RoomValidationError = errors.New(roomJoinFailedEvent.Reason)
 
 		// navigate to the RoomID input field
-		m.form.NextGroup()
-		m.form.NextGroup()
-		m.form.NextField()
+		m.startMenu.NextGroup()
+		m.startMenu.NextGroup()
+		m.startMenu.NextField()
 
 		// simulate a key press to register the error message
 		enterMsg := tea.KeyMsg{Type: tea.KeyEnter}
-		_, formCmd := m.form.Update(enterMsg)
+		_, formCmd := m.startMenu.Update(enterMsg)
 		return tea.Batch(tea.ClearScreen, formCmd)
 
 	case protocol.OPPONENT_TYPING:

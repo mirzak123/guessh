@@ -66,6 +66,12 @@ type LeaveMatchMessage struct {
 	Type MessageType `json:"type"`
 }
 
+func NewLeaveMatchMessage() *LeaveMatchMessage {
+	return &LeaveMatchMessage{
+		Type: LEAVE_MATCH,
+	}
+}
+
 type JoinRoomMessage struct {
 	Type       MessageType `json:"type"`
 	RoomID     string      `json:"roomId"`
@@ -135,8 +141,9 @@ type RoundFinishedMessage struct {
 }
 
 type MatchFinishedMessage struct {
-	Type    MessageType `json:"type"`
-	Outcome Outcome     `json:"outcome"`
+	Type         MessageType `json:"type"`
+	Outcome      Outcome     `json:"outcome"`
+	OpponentLeft bool        `json:"opponentLeft"`
 }
 
 type RoomCreatedMessage struct {

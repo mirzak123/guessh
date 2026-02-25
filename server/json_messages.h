@@ -14,7 +14,7 @@ cJSON *json_match_started(const char *match_id, int rounds, size_t word_len, cha
 cJSON *json_round_started(size_t round_num, size_t max_attempts);
 cJSON *json_guess_result(bool success, const char *guess, const LetterFeedback *feedback, size_t word_len);
 cJSON *json_round_finished(Outcome outcome, const char *word);
-cJSON *json_match_finished(Outcome outcome);
+cJSON *json_match_finished(Outcome outcome, bool opponentLeft);
 cJSON *json_opponent_typing(const char *value);
 
 #endif
