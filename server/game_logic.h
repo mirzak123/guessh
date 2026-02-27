@@ -14,9 +14,9 @@ typedef struct {
 } WordStore;
 
 static WordStore word_stores[] = {
-    {"./words/five-letter.txt", 5, 1168},
-    {"./words/six-letter.txt", 6, 1164},
-    {"./words/seven-letter.txt", 7, 1164},
+    {"../words/five-letter.txt", 5, 1168},
+    {"../words/six-letter.txt", 6, 1164},
+    {"../words/seven-letter.txt", 7, 1164},
 };
 
 typedef enum {
