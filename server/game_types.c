@@ -59,18 +59,18 @@ void delete_round(Round *round) {
   free(round);
 }
 
-WordChallenge *new_word_challenge(int word_len, int max_attempts) {
+WordChallenge *new_word_challenge(WordStore *store, int max_attempts) {
   WordChallenge *wc = malloc(sizeof(WordChallenge));
   if (wc == NULL) {
     perror("malloc");
     return NULL;
   }
 
-  wc->word_len = word_len;
+  wc->word_len = store->word_len;
   wc->attempt_count = 0;
   wc->max_attempts = max_attempts;
   wc->guess_attempts = malloc(sizeof(char *) * max_attempts);
-  wc->word = get_random_word(word_len);
+  wc->word = get_random_word(store);
   printf("[new_word_challenge] word: %s\n", wc->word);
 
   return wc;

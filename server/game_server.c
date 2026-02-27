@@ -14,11 +14,9 @@
 #include <sys/socket.h>
 
 static MessageType parse_message(char *data, size_t size, cJSON **out);
-static void start_match(Match *match);
-static void start_round(Match *match);
-static void add_player_to_match(Match *match, Player *player);
 static void create_room(GameServer *gs, Match *match, Client *client);
 static Outcome calculate_match_outcome(Match *match);
+static WordStore *get_word_store(GameServer *gs, size_t word_len);
 
 GameServer *GS_create(void) {
   GameServer *gs;
@@ -32,12 +30,21 @@ GameServer *GS_create(void) {
   gs->clients = HT_create();
   gs->rooms = HT_create();
 
+  gs->word_store.five = new_word_store(FIVE_LETTER_WORD_FILE, 5);
+  gs->word_store.six = new_word_store(SIX_LETTER_WORD_FILE, 6);
+  gs->word_store.seven = new_word_store(SEVEN_LETTER_WORD_FILE, 7);
+
   return gs;
 }
 
 void GS_destroy(GameServer *gs) {
   HT_destroy(gs->rooms);
   HT_destroy(gs->clients);
+
+  delete_word_store(gs->word_store.five);
+  delete_word_store(gs->word_store.six);
+  delete_word_store(gs->word_store.seven);
+
   free(gs);
 }
 
@@ -185,7 +192,7 @@ void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request)
   if (match->mode == MULTI_REMOTE) {
     create_room(gs, match, client);
   }
-  add_player_to_match(match, player); // implicitly starts the match
+  GS_add_player_to_match(gs, match, player); // implicitly starts the match
 }
 
 static MessageType parse_message(char *data, size_t size, cJSON **json_out) {
@@ -327,7 +334,7 @@ void GS_handle_join_room(GameServer *gs, Client *client, cJSON *json_request) {
   send_json(client->fd, room_joined_json);
   cJSON_Delete(room_joined_json);
 
-  add_player_to_match(room->match, player);
+  GS_add_player_to_match(gs, room->match, player);
 }
 
 void GS_handle_typing(Client *client, cJSON *json_request) {
@@ -368,7 +375,7 @@ void GS_handle_typing(Client *client, cJSON *json_request) {
   cJSON_Delete(opponent_typing_json);
 }
 
-static void add_player_to_match(Match *match, Player *player) {
+void GS_add_player_to_match(GameServer *gs, Match *match, Player *player) {
   bool can_start = false;
   switch (match->mode) {
   case MULTI_REMOTE:
@@ -404,7 +411,7 @@ static void add_player_to_match(Match *match, Player *player) {
 
   player->match = match;
   if (can_start) {
-    start_match(match);
+    GS_start_match(gs, match);
   }
 }
 
@@ -584,13 +591,13 @@ void GS_end_round(GameServer *gs, Match *match) {
   }
 
   if (match->round_idx + 1 < (int)match->round_capacity) {
-    start_round(match);
+    GS_start_round(gs, match);
   } else {
     GS_end_match(gs, match, NULL);
   }
 }
 
-static void start_match(Match *match) {
+void GS_start_match(GameServer *gs, Match *match) {
   cJSON *match_started_json = NULL;
 
   printf("[start_match] Starting new match...\n");
@@ -615,15 +622,16 @@ static void start_match(Match *match) {
     cJSON_Delete(match_started_json);
   }
 
-  start_round(match);
+  GS_start_round(gs, match);
 }
 
-static void start_round(Match *match) {
+void GS_start_round(GameServer *gs, Match *match) {
   cJSON *round_started_json = NULL;
   printf("[start_round] Starting new round...\n");
 
   size_t max_attempts = match->word_len + 1; // TODO: allow for flexible max_attempts
-  WordChallenge *wc = new_word_challenge(match->word_len, max_attempts);
+  WordStore *store = get_word_store(gs, match->word_len);
+  WordChallenge *wc = new_word_challenge(store, max_attempts);
   if (wc == NULL) {
     printf("[start_match] error: new_word_challenge() returned NULL\n");
     return;
@@ -681,4 +689,17 @@ static Outcome calculate_match_outcome(Match *match) {
   else if (outcome < 0)
     return OUTCOME_PLAYER2;
   return OUTCOME_NONE;
+}
+
+static WordStore *get_word_store(GameServer *gs, size_t word_len) {
+  switch (word_len) {
+  case 5:
+    return gs->word_store.five;
+  case 6:
+    return gs->word_store.six;
+  case 7:
+    return gs->word_store.seven;
+  }
+  printf("Tried to get word store for unsupported word length: %lu\n", word_len);
+  exit(EXIT_FAILURE);
 }

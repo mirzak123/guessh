@@ -271,10 +271,10 @@ func (m mainModel) View() string {
 
 func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 	msg := []byte(eventMsg)
-	event := &protocol.EnvelopeMessage{}
+	event := &protocol.EnvelopeEvent{}
 
 	if err := json.Unmarshal(msg, event); err != nil {
-		logger.Error("[handleEvent] error unmarshaling EnvelopeMessage: %s", err)
+		logger.Error("[handleEvent] error unmarshaling EnvelopeEvent: %s", err)
 		return nil
 	}
 
@@ -283,9 +283,9 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 	switch event.Type {
 
 	case protocol.MATCH_STARTED:
-		matchStartedEvent := &protocol.MatchStartedMessage{}
+		matchStartedEvent := &protocol.MatchStartedEvent{}
 		if err := json.Unmarshal(msg, matchStartedEvent); err != nil {
-			logger.Error("[handleEvent] error unmarshaling RoundStartedMessage: %v", err)
+			logger.Error("[handleEvent] error unmarshaling MatchStartedEvent: %v", err)
 			return nil
 		}
 
@@ -303,9 +303,9 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 		m.game.input.Width = m.matchInfo.WordLen
 
 	case protocol.ROUND_STARTED:
-		roundStartedEvent := &protocol.RoundStartedMessage{}
+		roundStartedEvent := &protocol.RoundStartedEvent{}
 		if err := json.Unmarshal(msg, roundStartedEvent); err != nil {
-			logger.Error("[handleEvent] error unmarshaling RoundStartedMessage: %v", err)
+			logger.Error("[handleEvent] error unmarshaling RoundStartedEvent: %v", err)
 			return nil
 		}
 
@@ -328,18 +328,18 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 		m.game.state = game.StateWaitOpponentJoin
 
 	case protocol.GUESS_RESULT:
-		guessResultEvent := &protocol.GuessResultMessage{}
+		guessResultEvent := &protocol.GuessResultEvent{}
 		if err := json.Unmarshal(msg, guessResultEvent); err != nil {
-			logger.Error("[handleEvent] error unmarshaling GuessResultMessage: %v", err)
+			logger.Error("[handleEvent] error unmarshaling GuessResultEvent: %v", err)
 			return nil
 		}
 
 		m.game.guesses = append(m.game.guesses, protocol.NewGuess(guessResultEvent.Guess, guessResultEvent.Feedback))
 
 	case protocol.ROUND_FINISHED:
-		roundFinishedEvent := &protocol.RoundFinishedMessage{}
+		roundFinishedEvent := &protocol.RoundFinishedEvent{}
 		if err := json.Unmarshal(msg, roundFinishedEvent); err != nil {
-			logger.Error("[handleEvent] error unmarshaling RoundFinishedMessage: %v", err)
+			logger.Error("[handleEvent] error unmarshaling RoundFinishedEvent: %v", err)
 			return nil
 		}
 
@@ -356,9 +356,9 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 		return nil
 
 	case protocol.MATCH_FINISHED:
-		matchFinishedEvent := &protocol.MatchFinishedMessage{}
+		matchFinishedEvent := &protocol.MatchFinishedEvent{}
 		if err := json.Unmarshal(msg, matchFinishedEvent); err != nil {
-			logger.Error("[handleEvent] error unmarshaling MatchFinishedMessage: %v", err)
+			logger.Error("[handleEvent] error unmarshaling MatchFinishedEvent: %v", err)
 			return nil
 		}
 
@@ -372,9 +372,9 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 		}
 
 	case protocol.ROOM_CREATED:
-		roomCreatedEvent := &protocol.RoomCreatedMessage{}
+		roomCreatedEvent := &protocol.RoomCreatedEvent{}
 		if err := json.Unmarshal(msg, roomCreatedEvent); err != nil {
-			logger.Error("[handleEvent] error unmarshaling RoomCreatedMessage: %v", err)
+			logger.Error("[handleEvent] error unmarshaling RoomCreatedEvent: %v", err)
 			return nil
 		}
 
@@ -383,9 +383,9 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 		}
 
 	case protocol.ROOM_JOIN_FAILED:
-		roomJoinFailedEvent := &protocol.RoomJoinFailedMessage{}
+		roomJoinFailedEvent := &protocol.RoomJoinFailedEvent{}
 		if err := json.Unmarshal(msg, roomJoinFailedEvent); err != nil {
-			logger.Error("[handleEvent] error unmarshaling RoomJoinFailedMessage: %v", err)
+			logger.Error("[handleEvent] error unmarshaling RoomJoinFailedEvent: %v", err)
 			return nil
 		}
 
@@ -404,9 +404,9 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 		return tea.Batch(tea.ClearScreen, formCmd)
 
 	case protocol.OPPONENT_TYPING:
-		opponentTypingEvent := &protocol.OpponentTypingMessage{}
+		opponentTypingEvent := &protocol.OpponentTypingEvent{}
 		if err := json.Unmarshal(msg, opponentTypingEvent); err != nil {
-			logger.Error("[handleEvent] error unmarshaling OpponentTypingMessage: %v", err)
+			logger.Error("[handleEvent] error unmarshaling OpponentTypingEvent: %v", err)
 			return nil
 		}
 		m.game.input.SetValue(opponentTypingEvent.Value)

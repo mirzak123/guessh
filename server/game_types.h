@@ -1,6 +1,7 @@
 #ifndef GAME_TYPES_H
 #define GAME_TYPES_H
 
+#include "game_logic.h"
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -32,7 +33,7 @@ typedef struct {
   int is_solved;         /* optional */
 } WordChallenge;
 
-WordChallenge *new_word_challenge(int word_len, int max_attempts);
+WordChallenge *new_word_challenge(WordStore *store, int max_attempts);
 void delete_word_challenge(WordChallenge *word_challenge);
 
 typedef struct {

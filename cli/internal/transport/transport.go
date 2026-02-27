@@ -9,7 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-const MESSAGE_LEN_BYTES = 4
+const EVENT_LEN_BYTES = 4
 
 type EventMsg string
 
@@ -49,9 +49,9 @@ func WaitForEvent(msg chan EventMsg) tea.Cmd {
 	}
 }
 
-func SendMessage(conn net.Conn, payload []byte) (int, error) {
+func SendEvent(conn net.Conn, payload []byte) (int, error) {
 	payloadLen := uint32(len(payload))
-	prefix := make([]byte, MESSAGE_LEN_BYTES)
+	prefix := make([]byte, EVENT_LEN_BYTES)
 	binary.BigEndian.PutUint32(prefix, payloadLen)
 
 	return conn.Write(append(prefix, payload...))

@@ -1,17 +1,20 @@
 #include "game_logic.h"
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/fcntl.h>
 #include <unistd.h>
 
+static char **read_fixed_lines(FILE *file, size_t line_len, size_t *out_count);
+
 /* Returns 1 if correctly guessed, 0 otherwise. */
-bool evaluate_guess(const char *guess_word, const char *target_word, LetterFeedback *feedback, int len) {
-  int alphabet[26] = {0};
-  int correct_count = 0;
+bool evaluate_guess(const char *guess_word, const char *target_word, LetterFeedback *feedback, size_t len) {
+  size_t alphabet[26] = {0};
+  size_t correct_count = 0;
 
   /* 1st pass: LETTER_CORRECT */
-  for (int i = 0; i < len; i++) {
+  for (size_t i = 0; i < len; i++) {
     if (guess_word[i] == target_word[i]) {
       feedback[i] = LETTER_CORRECT;
       correct_count++;
@@ -26,7 +29,7 @@ bool evaluate_guess(const char *guess_word, const char *target_word, LetterFeedb
     return 1;
 
   /* 2nd pass: LETTER_PRESENT */
-  for (int i = 0; i < len; i++) {
+  for (size_t i = 0; i < len; i++) {
     if (feedback[i] != LETTER_CORRECT && alphabet[guess_word[i] - 'a'] > 0) {
       feedback[i] = LETTER_PRESENT;
       alphabet[guess_word[i] - 'a']--;
@@ -36,33 +39,79 @@ bool evaluate_guess(const char *guess_word, const char *target_word, LetterFeedb
   return 0;
 }
 
-// TODO: Open all word files once and reuse them
-char *get_random_word(int word_len) {
-  int fd, offset;
-  char *word;
+char *get_random_word(WordStore *store) {
+  printf("[get_random_word] getting word\n");
+  int index = rand() % (store->word_count + 1);
+  return store->words[index];
+}
 
-  WordStore *ws = &word_stores[word_len - MIN_WORD_LEN];
-  printf("[get_random_word] getting word from file: %s\n", ws->file);
+WordStore *new_word_store(char *filepath, size_t word_len) {
+  WordStore *store = malloc(sizeof(WordStore));
+  if (store == NULL) {
+    perror("malloc");
+    exit(EXIT_FAILURE);
+  }
 
-  fd = open(ws->file, O_RDONLY);
-  if (fd == -1) {
+  FILE *file = fopen(filepath, "r");
+  if (file == NULL) {
     perror("open");
     exit(EXIT_FAILURE);
   }
 
-  word = malloc(word_len * sizeof(char));
-  offset = rand_word_index(ws);
+  store->word_len = word_len;
+  store->words = read_fixed_lines(file, word_len, &store->word_count);
 
-  if ((pread(fd, word, word_len, offset)) == -1) {
-    perror("pread");
+  if (fclose(file) == EOF) {
+    perror("fclose");
     exit(EXIT_FAILURE);
   }
 
-  return word;
+  return store;
 }
 
-int rand_word_index(WordStore *ws) {
-  int word_index = rand() % (ws->word_count + 1);
-  int byte_offset = (ws->word_len + 1) * word_index;
-  return byte_offset;
+void delete_word_store(WordStore *store) {
+  for (size_t i = 0; i < store->word_count; i++) {
+    free(store->words[i]);
+  }
+  free(store->words);
+  free(store);
+}
+
+static char **read_fixed_lines(FILE *file, size_t line_len, size_t *out_count) {
+  int capacity = 0;
+  int count = 0;
+  char **lines = NULL;
+
+  for (;;) {
+    char *line = malloc(line_len + 1);
+    if (line == NULL) {
+      perror("malloc");
+      exit(EXIT_FAILURE);
+    }
+
+    size_t bytes = fread(line, 1, line_len, file);
+    if (bytes != line_len) {
+      free(line);
+      break;
+    }
+
+    line[line_len] = '\0';
+    fgetc(file);
+
+    if (count == capacity) {
+      capacity = capacity ? capacity * 2 : 16;
+      void *tmp = realloc(lines, capacity * sizeof(char *));
+      if (tmp == NULL) {
+        free(lines);
+        perror("realloc");
+        exit(EXIT_FAILURE);
+      }
+      lines = tmp;
+    }
+
+    lines[count++] = line;
+  }
+
+  *out_count = count;
+  return lines;
 }
