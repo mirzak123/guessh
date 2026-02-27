@@ -9,6 +9,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "game_logic.h"
 #include "game_server.h"
 #include "network.h"
 

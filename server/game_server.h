@@ -2,6 +2,7 @@
 #define GAME_SERVER_H
 
 #include "client.h"
+#include "game_logic.h"
 #include "game_types.h"
 #include "hash_table.h"
 #include <cjson/cJSON.h>
@@ -66,6 +67,11 @@ typedef enum {
 typedef struct {
   HashTable *clients;
   HashTable *rooms;
+  struct {
+    WordStore *five;
+    WordStore *six;
+    WordStore *seven;
+  } word_store;
 } GameServer;
 
 GameServer *GS_create(void);
@@ -77,7 +83,10 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request);
 void GS_handle_join_room(GameServer *gs, Client *client, cJSON *json_request);
 void GS_handle_typing(Client *client, cJSON *json_request);
 void GS_handle_leave_match(GameServer *gs, Client *client);
+void GS_start_match(GameServer *gs, Match *match);
+void GS_start_round(GameServer *gs, Match *match);
 void GS_end_match(GameServer *gs, Match *match, Player *disconnected_player);
 void GS_end_round(GameServer *gs, Match *match);
+void GS_add_player_to_match(GameServer *gs, Match *match, Player *player);
 
 #endif // !GAME_SERVER_H

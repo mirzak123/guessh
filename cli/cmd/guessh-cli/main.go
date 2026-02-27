@@ -24,7 +24,7 @@ func main() {
 
 	logger.Init(logFile, getLogLevelFromEnv())
 
-	game.FiveLetterWords = game.ExtractWordsFromFile("/Users/mirza/code/personal/guessh/words/valid-words.txt")
+	game.FiveLetterWords = game.ExtractWordsFromFile("/Users/mirza/code/personal/guessh/words/five-letter.txt")
 	game.SixLetterWords = game.ExtractWordsFromFile("/Users/mirza/code/personal/guessh/words/six-letter.txt")
 	game.SevenLetterWords = game.ExtractWordsFromFile("/Users/mirza/code/personal/guessh/words/seven-letter.txt")
 
