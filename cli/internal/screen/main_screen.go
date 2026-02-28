@@ -148,6 +148,7 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case game.DenyRematchIntent:
 		m.client.DenyRematch()
+		cmds = append(cmds, emit(game.StartGameIntent{}))
 
 	case game.MakeGuessIntent:
 		m.client.MakeGuess(msg.Guess)
@@ -259,7 +260,6 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, rematchRequestedCmd)
 
 		if m.requestRematch.form.State == huh.StateCompleted {
-			// WARN: Could cause trouble if denied at the same time the opponent requests rematch
 			cmds = append(cmds, emit(game.DenyRematchIntent{}))
 		}
 
@@ -330,6 +330,7 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 
 		m.game.input.CharLimit = m.matchInfo.WordLen
 		m.game.input.Width = m.matchInfo.WordLen
+		m.game.input.SetValue("")
 
 	case protocol.ROUND_STARTED:
 		roundStartedEvent := &protocol.RoundStartedEvent{}

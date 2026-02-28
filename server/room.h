@@ -1,14 +1,16 @@
 #ifndef ROOM_H
 #define ROOM_H
 
-#include "game_types.h"
 #define ROOM_ID_LEN 5
 
-typedef struct {
+struct Player;
+struct Match;
+
+typedef struct Room {
   char *id;
-  Player *player1;
-  Player *player2;
-  Match *match;
+  struct Player *player1;
+  struct Player *player2;
+  struct Match *match;
 } Room;
 
 Room *new_room(void);

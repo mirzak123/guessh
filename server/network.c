@@ -156,7 +156,7 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
 
     // Delete match if it exists
     if (match != NULL) {
-      GS_end_match(gs, match, client->player);
+      GS_end_match(match, client->player);
     }
 
     free(client);
@@ -176,7 +176,7 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
 
     Match *match = client->player->match;
     if (match != NULL) {
-      GS_end_match(gs, match, NULL);
+      GS_end_match(match, NULL);
     }
 
     close(client_fd);

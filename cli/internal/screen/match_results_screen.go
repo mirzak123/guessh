@@ -129,10 +129,7 @@ func (m matchResultsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		} else {
 			// only MULTI_REMOTE can get here
-			return m, tea.Batch(
-				emit(game.DenyRematchIntent{}),
-				emit(game.StartGameIntent{}),
-			)
+			return m, emit(game.DenyRematchIntent{})
 		}
 	}
 

@@ -17,6 +17,7 @@ static MessageType parse_message(char *data, size_t size, cJSON **out);
 static void create_room(GameServer *gs, Match *match, Client *client);
 static Outcome calculate_match_outcome(Match *match);
 static WordStore *get_word_store(GameServer *gs, size_t word_len);
+static Player *get_opponent(Player *player1, Player *player2, Player *current);
 
 GameServer *GS_create(void) {
   GameServer *gs;
@@ -74,13 +75,13 @@ void GS_handle_request(GameServer *gs, Client *client) {
     GS_handle_make_guess(gs, client, json_request);
     break;
   case REQUEST_REMATCH:
-    send_error(client->fd, E_NOT_IMPLEMENTED);
+    GS_handle_request_rematch(gs, client);
     break;
   case DENY_REMATCH:
-    GS_handle_deny_rematch(gs, client, json_request);
+    GS_handle_deny_rematch(gs, client);
     break;
   case LEAVE_MATCH:
-    GS_handle_leave_match(gs, client);
+    GS_handle_leave_match(client);
     break;
   case TYPING:
     GS_handle_typing(client, json_request);
@@ -183,7 +184,7 @@ void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request)
     return;
   }
 
-  match = new_match(rounds, game_mode, word_len);
+  match = new_match(game_mode, rounds, word_len);
   if (match == NULL) {
     printf("[GS_handle_create_match] error: new_match() returned NULL\n");
     return;
@@ -195,7 +196,11 @@ void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request)
   if (match->mode == MULTI_REMOTE) {
     create_room(gs, match, client);
   }
-  GS_add_player_to_match(gs, match, player); // implicitly starts the match
+
+  bool can_start = GS_add_player_to_match(match, player);
+  if (can_start) {
+    GS_start_match(gs, match);
+  }
 }
 
 static MessageType parse_message(char *data, size_t size, cJSON **json_out) {
@@ -232,6 +237,8 @@ static MessageType parse_message(char *data, size_t size, cJSON **json_out) {
     mt = MAKE_GUESS;
   } else if (!strcmp("REQUEST_REMATCH", type)) {
     mt = REQUEST_REMATCH;
+  } else if (!strcmp("DENY_REMATCH", type)) {
+    mt = DENY_REMATCH;
   } else if (!strcmp("LEAVE_MATCH", type)) {
     mt = LEAVE_MATCH;
   } else if (!strcmp("CONNECTED", type)) {
@@ -276,6 +283,7 @@ void create_room(GameServer *gs, Match *match, Client *client) {
 
   room->match = match;
   room->player1 = client->player;
+  room->player1->room = room;
   match->room_id = strdup(room->id);
 
   cJSON *room_created_json = json_room_created(room->id);
@@ -332,17 +340,58 @@ void GS_handle_join_room(GameServer *gs, Client *client, cJSON *json_request) {
   Player *player = new_player(client->fd, player_name);
   client->player = player;
   room->player2 = player;
+  room->player2->room = room;
 
   cJSON *room_joined_json = json_room_joined(room_id);
   send_json(client->fd, room_joined_json);
   cJSON_Delete(room_joined_json);
 
-  GS_add_player_to_match(gs, room->match, player);
+  GS_add_player_to_match(room->match, player);
+  GS_start_match(gs, room->match);
 }
 
-void GS_handle_deny_rematch(GameServer *gs, Client *client, cJSON *json_request) {
+void GS_handle_request_rematch(GameServer *gs, Client *client) {
   assert(client->player != NULL);
-  send_only_type(client->player->client_fd, STR(OPPONENT_DENIED_REMATCH));
+  Player *player = client->player;
+  Player *opponent;
+  Room *room = player->room;
+  Match *old_match, *match;
+
+  if (room == NULL) {
+    send_error(client->fd, E_PLAYER_NOT_IN_ROOM);
+    return;
+  }
+  old_match = room->match;
+  opponent = get_opponent(room->player1, room->player2, player);
+
+  player->wants_rematch = true;
+  if (!opponent->wants_rematch) {
+    return;
+  }
+
+  player->wants_rematch = false;
+  opponent->wants_rematch = false;
+  match = new_match(old_match->mode, old_match->round_capacity, old_match->word_len);
+  GS_add_player_to_match(match, player);
+  GS_add_player_to_match(match, opponent);
+  GS_start_match(gs, match);
+}
+
+void GS_handle_deny_rematch(GameServer *gs, Client *client) {
+  assert(client->player != NULL);
+  Player *player = client->player;
+  Player *opponent;
+  Room *room = client->player->room;
+
+  if (room == NULL) {
+    send_error(client->fd, E_PLAYER_NOT_IN_MATCH);
+    return;
+  }
+  player->wants_rematch = false;
+
+  opponent = get_opponent(room->player1, room->player2, player);
+  send_only_type(opponent->client_fd, STR(OPPONENT_DENIED_REMATCH));
+  HT_delete(gs->rooms, KEY(room->id));
 }
 
 void GS_handle_typing(Client *client, cJSON *json_request) {
@@ -357,7 +406,7 @@ void GS_handle_typing(Client *client, cJSON *json_request) {
     return;
   }
 
-  Player *opponent = match->player1 == client->player ? match->player2 : match->player1;
+  Player *opponent = get_opponent(match->player1, match->player2, client->player);
   cJSON *value_json = cJSON_GetObjectItem(json_request, "value");
 
   if (value_json == NULL) {
@@ -383,7 +432,7 @@ void GS_handle_typing(Client *client, cJSON *json_request) {
   cJSON_Delete(opponent_typing_json);
 }
 
-void GS_add_player_to_match(GameServer *gs, Match *match, Player *player) {
+bool GS_add_player_to_match(Match *match, Player *player) {
   bool can_start = false;
   switch (match->mode) {
   case MULTI_REMOTE:
@@ -403,13 +452,11 @@ void GS_add_player_to_match(GameServer *gs, Match *match, Player *player) {
       can_start = true;
     } else {
       printf("[add_player_to_match] error: trying to add a player to a match that has 2 players\n");
-      return;
     }
     break;
   case SINGLE:
     if (match->player1 != NULL) {
       printf("[add_player_to_match] error: trying to add second player to a match in SINGLE mode\n");
-      return;
     } else {
       match->player1 = player;
       can_start = true;
@@ -418,9 +465,7 @@ void GS_add_player_to_match(GameServer *gs, Match *match, Player *player) {
   }
 
   player->match = match;
-  if (can_start) {
-    GS_start_match(gs, match);
-  }
+  return can_start;
 }
 
 void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
@@ -444,7 +489,7 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
   }
 
   round = match->rounds[match->round_idx];
-  opponent = match->player1 == player ? match->player2 : match->player1;
+  opponent = get_opponent(match->player1, match->player2, player);
 
   assert(round->wc->attempt_count < round->wc->max_attempts);
 
@@ -513,16 +558,16 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
   GS_end_round(gs, match);
 }
 
-void GS_handle_leave_match(GameServer *gs, Client *client) {
+void GS_handle_leave_match(Client *client) {
   if (client->player == NULL || client->player->match == NULL) {
     send_error(client->fd, E_PLAYER_NOT_IN_MATCH);
     return;
   }
 
-  GS_end_match(gs, client->player->match, NULL);
+  GS_end_match(client->player->match, NULL);
 }
 
-void GS_end_match(GameServer *gs, Match *match, Player *disconnected_player) {
+void GS_end_match(Match *match, Player *disconnected_player) {
   cJSON *match_finished_json = NULL;
 
   switch (match->mode) {
@@ -558,7 +603,6 @@ void GS_end_match(GameServer *gs, Match *match, Player *disconnected_player) {
       send_json(match->player2->client_fd, match_finished_json);
       cJSON_Delete(match_finished_json);
     }
-    HT_delete(gs->rooms, KEY(match->room_id));
 
   case SINGLE:
     if (match->player1 != disconnected_player) {
@@ -601,7 +645,7 @@ void GS_end_round(GameServer *gs, Match *match) {
   if (match->round_idx + 1 < (int)match->round_capacity) {
     GS_start_round(gs, match);
   } else {
-    GS_end_match(gs, match, NULL);
+    GS_end_match(match, NULL);
   }
 }
 
@@ -711,3 +755,5 @@ static WordStore *get_word_store(GameServer *gs, size_t word_len) {
   printf("Tried to get word store for unsupported word length: %lu\n", word_len);
   exit(EXIT_FAILURE);
 }
+
+static Player *get_opponent(Player *player1, Player *player2, Player *current) { return player1 == current ? player2 : player1; }
