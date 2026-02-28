@@ -62,7 +62,6 @@ Find a better way to represent flow below 🙏🙏🙏
 | Type                    | Content                                                                                                       | Additional Info                                         |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
 | ERROR                   | {"type": "ERROR", "reason": string}                                                                           |                                                         |
-| CONNECTED               |                                                                                                               |                                                         |
 | ROOM_CREATED            | {"type": "ROOM_CREATED", "roomId": string}                                                                    |                                                         |
 | ROOM_JOINED             | {"type": "ROOM_JOINED", "roomId": string}                                                                     |                                                         |
 | ROOM_JOIN_FAILED        | {"type": "ROOM_JOIN_FAILED", "roomId": string, "reason": string}                                              | Room full or invalid room ID                            |
@@ -76,4 +75,3 @@ Find a better way to represent flow below 🙏🙏🙏
 | ROUND_FINISHED          | {"type": "ROUND_FINISHED", "outcome": number, "word": string}                                                 |                                                         |
 | MATCH_FINISHED          | {"type": "MATCH_FINISHED", "outcome": number, "opponentLeft": boolean}                                        | outcome only relevant for multiplayer games.            |
 | OPPONENT_TYPING         | {"type": "OPPONENT_TYPING", "value": string}                                                                  |
-| BYE                     | {"type": "BYE"}                                                                                               |                                                         |

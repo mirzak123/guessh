@@ -49,7 +49,6 @@ typedef enum {
   TYPING,
 
   // Server
-  CONNECTED,
   ROOM_CREATED,
   ROOM_JOINED,
   ROOM_JOIN_FAILED,
@@ -63,7 +62,6 @@ typedef enum {
   ROUND_FINISHED,
   MATCH_FINISHED,
   OPPONENT_TYPING,
-  BYE,
   ERROR,
 } MessageType;
 

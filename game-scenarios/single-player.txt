@@ -22,4 +22,3 @@ cli<-server: {"type": "GUESS_RESULT", "success": boolean, "feedback": number[]}
 
 cli<-server: {"type": "ROUND_FINISHED", "success": boolean, "word": string}
 cli<-server: {"type": "MATCH_FINISHED"}
-cli<-server: {"type": "BYE"}

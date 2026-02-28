@@ -8,7 +8,6 @@ const (
 	MAKE_GUESS              EventType = "MAKE_GUESS"
 	LEAVE_MATCH             EventType = "LEAVE_MATCH"
 	ERROR                   EventType = "ERROR"
-	CONNECTED               EventType = "CONNECTED"
 	ROOM_CREATED            EventType = "ROOM_CREATED"
 	ROOM_JOINED             EventType = "ROOM_JOINED"
 	ROOM_JOIN_FAILED        EventType = "ROOM_JOIN_FAILED"
@@ -25,7 +24,6 @@ const (
 	MATCH_FINISHED          EventType = "MATCH_FINISHED"
 	TYPING                  EventType = "TYPING"
 	OPPONENT_TYPING         EventType = "OPPONENT_TYPING"
-	BYE                     EventType = "BYE"
 )
 
 type EnvelopeEvent struct {

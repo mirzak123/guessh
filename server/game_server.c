@@ -227,9 +227,7 @@ static MessageType parse_message(char *data, size_t size, cJSON **json_out) {
   }
   type = cJSON_GetStringValue(json_type);
 
-  if (!strcmp("BYE", type)) {
-    mt = BYE;
-  } else if (!strcmp("CREATE_MATCH", type)) {
+  if (!strcmp("CREATE_MATCH", type)) {
     mt = CREATE_MATCH;
   } else if (!strcmp("JOIN_ROOM", type)) {
     mt = JOIN_ROOM;
@@ -241,8 +239,6 @@ static MessageType parse_message(char *data, size_t size, cJSON **json_out) {
     mt = DENY_REMATCH;
   } else if (!strcmp("LEAVE_MATCH", type)) {
     mt = LEAVE_MATCH;
-  } else if (!strcmp("CONNECTED", type)) {
-    mt = CONNECTED;
   } else if (!strcmp("ROOM_CREATED", type)) {
     mt = ROOM_CREATED;
   } else if (!strcmp("ROOM_JOINED", type)) {

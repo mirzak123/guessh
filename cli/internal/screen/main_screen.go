@@ -324,7 +324,6 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 		m.matchInfo.WordLen = matchStartedEvent.WordLength
 		m.matchInfo.TotalRounds = matchStartedEvent.Rounds
 		m.matchInfo.OpponentName = matchStartedEvent.OpponentName
-		m.requestRematchScreen.opponentName = matchStartedEvent.OpponentName
 
 		m.matchInfo.RawTotalRounds = fmt.Sprintf("%d", matchStartedEvent.Rounds)
 		m.matchInfo.RoundOutcomes = make([]*protocol.Outcome, matchStartedEvent.Rounds)
@@ -332,6 +331,9 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 		m.game.input.CharLimit = m.matchInfo.WordLen
 		m.game.input.Width = m.matchInfo.WordLen
 		m.game.input.SetValue("")
+
+		m.requestRematchScreen.opponentName = matchStartedEvent.OpponentName
+		m.requestRematchScreen.opponentDeniedRematch = false
 
 	case protocol.ROUND_STARTED:
 		roundStartedEvent := &protocol.RoundStartedEvent{}
