@@ -27,3 +27,7 @@ type JoinRoomIntent struct {
 }
 
 type LeaveMatchIntent struct{}
+
+type RequestRematchIntent struct{}
+
+type DenyRematchIntent struct{}

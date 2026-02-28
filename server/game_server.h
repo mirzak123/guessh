@@ -43,6 +43,7 @@ typedef enum {
   JOIN_ROOM,
   MAKE_GUESS,
   REQUEST_REMATCH,
+  DENY_REMATCH,
   LEAVE_MATCH,
   TYPING,
 
@@ -52,6 +53,7 @@ typedef enum {
   ROOM_JOINED,
   ROOM_JOIN_FAILED,
   WAIT_OPPONENT_JOIN,
+  OPPONENT_DENIED_REMATCH,
   MATCH_STARTED,
   ROUND_STARTED,
   WAIT_GUESS,
@@ -81,6 +83,7 @@ void GS_handle_request(GameServer *gs, Client *client);
 void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request);
 void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request);
 void GS_handle_join_room(GameServer *gs, Client *client, cJSON *json_request);
+void GS_handle_deny_rematch(GameServer *gs, Client *client, cJSON *json_request);
 void GS_handle_typing(Client *client, cJSON *json_request);
 void GS_handle_leave_match(GameServer *gs, Client *client);
 void GS_start_match(GameServer *gs, Match *match);

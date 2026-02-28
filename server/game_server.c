@@ -76,6 +76,9 @@ void GS_handle_request(GameServer *gs, Client *client) {
   case REQUEST_REMATCH:
     send_error(client->fd, E_NOT_IMPLEMENTED);
     break;
+  case DENY_REMATCH:
+    GS_handle_deny_rematch(gs, client, json_request);
+    break;
   case LEAVE_MATCH:
     GS_handle_leave_match(gs, client);
     break;
@@ -335,6 +338,11 @@ void GS_handle_join_room(GameServer *gs, Client *client, cJSON *json_request) {
   cJSON_Delete(room_joined_json);
 
   GS_add_player_to_match(gs, room->match, player);
+}
+
+void GS_handle_deny_rematch(GameServer *gs, Client *client, cJSON *json_request) {
+  assert(client->player != NULL);
+  send_only_type(client->player->client_fd, STR(OPPONENT_DENIED_REMATCH));
 }
 
 void GS_handle_typing(Client *client, cJSON *json_request) {

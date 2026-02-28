@@ -23,6 +23,7 @@ const (
 	StartScreenID ScreenID = iota
 	GameScreenID
 	WaitingOpponentScreenID
+	RequestRematchScreenID
 	MatchResultsScreenID
 	ServerDownScreenID
 )
@@ -52,6 +53,7 @@ type mainModel struct {
 	startMenu       *huh.Form
 	game            *gameModel
 	waitingOpponent *waitingOpponentModel
+	requestRematch  *requestRematchModel
 	matchResults    *matchResultsModel
 	serverDown      *huh.Form
 }
@@ -136,6 +138,15 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case game.JoinRoomIntent:
 		m.client.JoinRoom(msg.RoomId, msg.PlayerName)
+
+	case game.RequestRematchIntent:
+		m.client.RequestRematch()
+		m.screenID = RequestRematchScreenID
+		m.requestRematch = NewRequestRematchModel(m.matchInfo.OpponentName)
+		cmds = append(cmds, m.requestRematch.Init())
+
+	case game.DenyRematchIntent:
+		m.client.DenyRematch()
 
 	case game.MakeGuessIntent:
 		m.client.MakeGuess(msg.Guess)
@@ -236,6 +247,15 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, emit(game.LeaveMatchIntent{}))
 		}
 
+	case RequestRematchScreenID:
+		_, rematchRequestedCmd := m.requestRematch.Update(msg)
+		cmds = append(cmds, rematchRequestedCmd)
+
+		if m.requestRematch.form.State == huh.StateCompleted {
+			// WARN: Could cause trouble if denied at the same time the opponent requests rematch
+			cmds = append(cmds, emit(game.DenyRematchIntent{}))
+		}
+
 	case MatchResultsScreenID:
 		_, matchResultsCmd := m.matchResults.Update(msg)
 		cmds = append(cmds, matchResultsCmd)
@@ -249,15 +269,17 @@ func (m mainModel) View() string {
 
 	switch m.screenID {
 	case StartScreenID:
-		content = ui.MainContentStyle.Render(m.startMenu.View())
+		content = m.startMenu.View()
 	case ServerDownScreenID:
-		content = ui.MainContentStyle.Render(m.serverDown.View())
+		content = m.serverDown.View()
 	case GameScreenID:
-		content = ui.MainContentStyle.Render(m.game.View())
+		content = m.game.View()
 	case WaitingOpponentScreenID:
-		content = ui.MainContentStyle.Render(m.waitingOpponent.View())
+		content = m.waitingOpponent.View()
+	case RequestRematchScreenID:
+		content = m.requestRematch.View()
 	case MatchResultsScreenID:
-		content = ui.MainContentStyle.Render(m.matchResults.View())
+		content = m.matchResults.View()
 	}
 
 	return lipgloss.Place(
@@ -265,7 +287,7 @@ func (m mainModel) View() string {
 		m.height,
 		lipgloss.Center,
 		lipgloss.Center,
-		content,
+		ui.MainContentStyle.Render(content),
 	)
 }
 

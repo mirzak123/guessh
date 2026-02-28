@@ -15,6 +15,7 @@ type matchResultsModel struct {
 	roundsPlayed  int
 	roundOutcomes []*protocol.Outcome
 	matchOutcome  protocol.Outcome
+	confirm       bool
 
 	form *huh.Form
 }
@@ -31,9 +32,12 @@ func NewMatchResults(
 		roundsPlayed:  roundsPlayed,
 		roundOutcomes: roundOutcomes,
 		matchOutcome:  matchOutcome,
+		confirm:       true,
 	}
 
+	var confirmInput *huh.Confirm
 	var results string
+
 	switch m.mode {
 	case protocol.MULTI_REMOTE:
 		if opponentLeft {
@@ -57,11 +61,25 @@ func NewMatchResults(
 				"📊 Results • ",
 				ui.ViewRoundOutcomes(m.roundOutcomes)),
 		)
+
+		confirmInput = huh.NewConfirm().
+			Title("Rematch?").
+			Affirmative("Request rematch").
+			Negative("Continue to main screen").
+			Value(&m.confirm).
+			WithButtonAlignment(lipgloss.Left)
 	case protocol.SINGLE:
 		results = lipgloss.JoinHorizontal(
 			lipgloss.Left,
 			"📊 Results • ",
 			ui.ViewRoundOutcomes(m.roundOutcomes))
+
+		confirmInput = huh.NewConfirm().
+			Title("Continue to Main Screen").
+			Affirmative("Continue").
+			Negative("").
+			Value(&m.confirm).
+			WithButtonAlignment(lipgloss.Left)
 	}
 
 	m.form = huh.NewForm(
@@ -69,11 +87,7 @@ func NewMatchResults(
 			huh.NewNote().
 				Title("Match Results").
 				Description(results),
-			huh.NewConfirm().
-				Title("Continue to Main Screen").
-				Affirmative("Continue").
-				Negative("").
-				WithButtonAlignment(lipgloss.Left),
+			confirmInput,
 		),
 	).WithShowHelp(false)
 
@@ -101,7 +115,25 @@ func (m matchResultsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.form = updatedModel.(*huh.Form)
 
 	if m.form.State == huh.StateCompleted {
-		return m, emit(game.StartGameIntent{})
+		if m.confirm {
+			switch m.mode {
+
+			case protocol.MULTI_REMOTE:
+				return m, emit(game.RequestRematchIntent{})
+
+			case protocol.SINGLE:
+				return m, tea.Batch(
+					emit(game.StartGameIntent{}),
+				)
+
+			}
+		} else {
+			// only MULTI_REMOTE can get here
+			return m, tea.Batch(
+				emit(game.DenyRematchIntent{}),
+				emit(game.StartGameIntent{}),
+			)
+		}
 	}
 
 	return m, cmd

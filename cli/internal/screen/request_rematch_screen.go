@@ -1,7 +1,6 @@
 package screen
 
 import (
-	"fmt"
 	"guessh/internal/game"
 	"guessh/internal/ui"
 	"math/rand"
@@ -12,18 +11,19 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-type waitingOpponentModel struct {
-	spinner spinner.Model
-	form    *huh.Form
-	roomID  string
+type requestRematchModel struct {
+	spinner      spinner.Model
+	opponentName string
+	form         *huh.Form
 }
 
-func NewWaitingOpponentModel() *waitingOpponentModel {
+func NewRequestRematchModel(opponentName string) *requestRematchModel {
 	s := spinner.New()
 	s.Spinner = ui.Spinners[rand.Intn(len(ui.Spinners))]
 
-	m := &waitingOpponentModel{
-		spinner: s,
+	m := &requestRematchModel{
+		spinner:      s,
+		opponentName: opponentName,
 	}
 
 	m.form = m.buildForm()
@@ -31,14 +31,14 @@ func NewWaitingOpponentModel() *waitingOpponentModel {
 	return m
 }
 
-func (m *waitingOpponentModel) Init() tea.Cmd {
+func (m *requestRematchModel) Init() tea.Cmd {
 	return tea.Batch(
 		m.spinner.Tick,
 		m.form.Init(),
 	)
 }
 
-func (m *waitingOpponentModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *requestRematchModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	var spinnerCmd tea.Cmd
@@ -53,51 +53,38 @@ func (m *waitingOpponentModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	if m.form.State == huh.StateCompleted {
-		return m, emit(game.LeaveMatchIntent{})
+		return m, emit(game.DenyRematchIntent{})
 	}
 
 	return m, tea.Batch(cmds...)
 }
 
-func (m *waitingOpponentModel) View() string {
+func (m *requestRematchModel) View() string {
 	return m.form.View()
 }
 
-func (m *waitingOpponentModel) buildForm() *huh.Form {
+func (m *requestRematchModel) buildForm() *huh.Form {
 	form := huh.NewForm(
 		huh.NewGroup(
 			huh.NewNote().
-				Title("🏠 Room").
+				Title("🤔 Rematch Requested").
 				Description(func() string {
-					var roomID string
-					if m.roomID == "" {
-						roomID = m.spinner.View()
-					} else {
-						roomID = lipgloss.NewStyle().
-							Border(lipgloss.RoundedBorder()).
-							BorderForeground(ui.Purple).
-							Padding(0, 1).
-							Bold(true).
-							Render(m.roomID)
-					}
-					return lipgloss.JoinHorizontal(lipgloss.Center, "Room ID: ", roomID)
-				}()),
-
-			huh.NewNote().
-				Title("Status").
-				Description(
-					fmt.Sprintf(
-						"Waiting for opponent to join... %s",
+					return lipgloss.JoinHorizontal(
+						lipgloss.Center,
+						"Waiting for ",
+						lipgloss.NewStyle().Foreground(ui.Rose).Render(m.opponentName),
+						" to confirm rematch... ",
 						m.spinner.View(),
-					),
+					)
+				}(),
 				),
 
 			huh.NewConfirm().
 				Title("").
-				Affirmative("Leave room").
+				Affirmative("Abort").
 				Negative(""),
 		),
-	)
+	).WithShowHelp(false)
 
 	form.NextField()
 

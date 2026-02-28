@@ -6,7 +6,6 @@ const (
 	CREATE_MATCH        EventType = "CREATE_MATCH"
 	JOIN_ROOM           EventType = "JOIN_ROOM"
 	MAKE_GUESS          EventType = "MAKE_GUESS"
-	REQUEST_REMATCH     EventType = "REQUEST_REMATCH"
 	LEAVE_MATCH         EventType = "LEAVE_MATCH"
 	ERROR               EventType = "ERROR"
 	CONNECTED           EventType = "CONNECTED"
@@ -14,6 +13,8 @@ const (
 	ROOM_JOINED         EventType = "ROOM_JOINED"
 	ROOM_JOIN_FAILED    EventType = "ROOM_JOIN_FAILED"
 	WAIT_OPPONENT_JOIN  EventType = "WAIT_OPPONENT_JOIN"
+	REQUEST_REMATCH     EventType = "REQUEST_REMATCH"
+	DENY_REMATCH        EventType = "DENY_REMATCH"
 	MATCH_STARTED       EventType = "MATCH_STARTED"
 	ROUND_STARTED       EventType = "ROUND_STARTED"
 	WAIT_GUESS          EventType = "WAIT_GUESS"
@@ -83,6 +84,26 @@ func NewJoinRoomEvent(roomID string, playerName string) *JoinRoomEvent {
 		Type:       JOIN_ROOM,
 		RoomID:     roomID,
 		PlayerName: playerName,
+	}
+}
+
+type RequestRematchEvent struct {
+	Type EventType `json:"type"`
+}
+
+func NewRequestRematchEvent() *RequestRematchEvent {
+	return &RequestRematchEvent{
+		Type: REQUEST_REMATCH,
+	}
+}
+
+type DenyRematchEvent struct {
+	Type EventType `json:"type"`
+}
+
+func NewDenyRematchEvent() *DenyRematchEvent {
+	return &DenyRematchEvent{
+		Type: DENY_REMATCH,
 	}
 }
 
