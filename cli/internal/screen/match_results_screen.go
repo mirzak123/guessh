@@ -15,6 +15,7 @@ type matchResultsModel struct {
 	roundsPlayed  int
 	roundOutcomes []*protocol.Outcome
 	matchOutcome  protocol.Outcome
+	canRematch    bool
 	confirm       bool
 
 	form *huh.Form
@@ -32,6 +33,7 @@ func NewMatchResults(
 		roundsPlayed:  roundsPlayed,
 		roundOutcomes: roundOutcomes,
 		matchOutcome:  matchOutcome,
+		canRematch:    mode == protocol.MULTI_REMOTE && !opponentLeft,
 		confirm:       true,
 	}
 
@@ -62,18 +64,21 @@ func NewMatchResults(
 				ui.ViewRoundOutcomes(m.roundOutcomes)),
 		)
 
+	case protocol.SINGLE:
+		results = lipgloss.JoinHorizontal(
+			lipgloss.Left,
+			"Round outcomes • ",
+			ui.ViewRoundOutcomes(m.roundOutcomes))
+	}
+
+	if m.canRematch {
 		confirmInput = huh.NewConfirm().
 			Title("Rematch?").
 			Affirmative("Request rematch").
 			Negative("Continue to main screen").
 			Value(&m.confirm).
 			WithButtonAlignment(lipgloss.Left)
-	case protocol.SINGLE:
-		results = lipgloss.JoinHorizontal(
-			lipgloss.Left,
-			"Round outcomes • ",
-			ui.ViewRoundOutcomes(m.roundOutcomes))
-
+	} else {
 		confirmInput = huh.NewConfirm().
 			Title("Continue to Main Screen").
 			Affirmative("Continue").
@@ -116,16 +121,12 @@ func (m matchResultsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	if m.form.State == huh.StateCompleted {
 		if m.confirm {
-			switch m.mode {
-
-			case protocol.MULTI_REMOTE:
+			if m.canRematch {
 				return m, emit(game.RequestRematchIntent{})
-
-			case protocol.SINGLE:
+			} else {
 				return m, tea.Batch(
 					emit(game.StartGameIntent{}),
 				)
-
 			}
 		} else {
 			// only MULTI_REMOTE can get here

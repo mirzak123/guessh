@@ -154,6 +154,7 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
 
     Match *match = NULL;
     if (client->player != NULL) {
+      client->player->wants_rematch = false;
       match = client->player->match;
       Room *room = client->player->room;
       if (room != NULL) {
@@ -184,6 +185,7 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
 
     Match *match = NULL;
     if (client->player != NULL) {
+      client->player->wants_rematch = false;
       match = client->player->match;
       Room *room = client->player->room;
       if (room != NULL) {
