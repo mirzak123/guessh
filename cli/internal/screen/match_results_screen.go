@@ -58,7 +58,7 @@ func NewMatchResults(
 			results,
 			lipgloss.JoinHorizontal(
 				lipgloss.Left,
-				"📊 Results • ",
+				"Round outcomes • ",
 				ui.ViewRoundOutcomes(m.roundOutcomes)),
 		)
 
@@ -71,7 +71,7 @@ func NewMatchResults(
 	case protocol.SINGLE:
 		results = lipgloss.JoinHorizontal(
 			lipgloss.Left,
-			"📊 Results • ",
+			"Round outcomes • ",
 			ui.ViewRoundOutcomes(m.roundOutcomes))
 
 		confirmInput = huh.NewConfirm().
