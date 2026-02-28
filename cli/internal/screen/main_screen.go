@@ -42,14 +42,15 @@ type RoomCreatedMsg struct {
 type mainModel struct {
 	width, height int
 	client        *client.Client
+	connected     bool
 	event         chan transport.EventMsg
 	eventBuffer   []transport.EventMsg
 	eventsPaused  bool
-	screenID      ScreenID
+	flushing      bool
 	matchInfo     *game.MatchInfo
 	confirm       *bool
-	connected     bool
 
+	screenID        ScreenID
 	startMenu       *huh.Form
 	game            *gameModel
 	waitingOpponent *waitingOpponentModel
@@ -154,6 +155,7 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case game.ContinueIntent:
 		logger.Debug("Continuing events, flushing buffer")
 		m.eventsPaused = false
+		m.flushing = true
 
 		for _, bufferedEvent := range m.eventBuffer {
 			msgFromEvent := m.handleEvent(bufferedEvent)
@@ -161,6 +163,8 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cmds = append(cmds, emit(msgFromEvent))
 			}
 		}
+
+		m.flushing = false
 		m.eventBuffer = nil
 
 	case game.LeaveMatchIntent:
@@ -185,6 +189,7 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cmds = append(cmds, emit(msgFromEvent))
 			}
 		}
+		logger.Debug("[%s] event buffer: %v", m.matchInfo.PlayerName, m.eventBuffer)
 	}
 
 	switch m.screenID {
@@ -374,7 +379,9 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 		m.matchInfo.RoundOutcomes[m.matchInfo.CurrentRound-1] = &roundFinishedEvent.Outcome
 
 		logger.Debug("Pausing events...")
-		m.eventsPaused = true
+		if !m.flushing {
+			m.eventsPaused = true
+		}
 		return nil
 
 	case protocol.MATCH_FINISHED:
