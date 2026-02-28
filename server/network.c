@@ -1,7 +1,9 @@
 #include "network.h"
 #include "client.h"
+#include "game_server.h"
 #include "game_types.h"
 #include "hash_table.h"
+#include "room.h"
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -15,6 +17,8 @@
 #include <sys/signal.h>
 #include <sys/socket.h>
 #include <unistd.h>
+
+static void cleanup_game(Client *client);
 
 void sigchld_handler(void) {
   // waitpid() might overwrite errno, so we save and restore it:
@@ -148,17 +152,9 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
       perror("recv");
     }
 
+    cleanup_game(client);
+
     close(client_fd);
-
-    Match *match = NULL;
-    if (client->player != NULL)
-      match = client->player->match;
-
-    // Delete match if it exists
-    if (match != NULL) {
-      GS_end_match(gs, match, client->player);
-    }
-
     free(client);
     HT_delete(gs->clients, KEY(client_fd));
     del_from_pfds(pfds, *pfd_i, fd_count);
@@ -174,10 +170,7 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
   if ((client->buf_len + nbytes) - (client->buf_start - client->buffer) > BUFSIZE) {
     printf("[handle_client_data] error: buffer overflow\n");
 
-    Match *match = client->player->match;
-    if (match != NULL) {
-      GS_end_match(gs, match, NULL);
-    }
+    cleanup_game(client);
 
     close(client_fd);
     del_from_pfds(pfds, *pfd_i, fd_count);
@@ -241,5 +234,23 @@ void process_connections(GameServer *gs, int listen_fd, int *fd_size, int *fd_co
         handle_client_data(gs, fd_count, *pfds, &i);
       }
     }
+  }
+}
+
+static void cleanup_game(Client *client) {
+  Match *match = NULL;
+  if (client->player != NULL) {
+    client->player->wants_rematch = false;
+    match = client->player->match;
+    Room *room = client->player->room;
+    if (room != NULL) {
+      Player *opponent = get_opponent(room->player1, room->player2, client->player);
+      send_only_type(opponent->client_fd, STR(OPPONENT_LEFT));
+    }
+  }
+
+  // Delete match if it exists
+  if (match != NULL) {
+    GS_end_match(match, client->player);
   }
 }

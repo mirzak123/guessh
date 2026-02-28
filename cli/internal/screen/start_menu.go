@@ -124,8 +124,11 @@ func NewStartMenu(matchInfo *game.MatchInfo) (*huh.Form, *bool) {
 
 				var lines []string
 				lines = append(lines, line("Mode: ", GameModeLabels[matchInfo.Mode]))
-				lines = append(lines, line("Word length: ", fmt.Sprintf("%d", matchInfo.WordLen)))
-				lines = append(lines, line("Rounds: ", matchInfo.RawTotalRounds))
+
+				if !matchInfo.JoinExisting {
+					lines = append(lines, line("Word length: ", fmt.Sprintf("%d", matchInfo.WordLen)))
+					lines = append(lines, line("Rounds: ", matchInfo.RawTotalRounds))
+				}
 
 				if matchInfo.Mode == protocol.MULTI_REMOTE {
 					lines = append(lines, line("Player name: ", matchInfo.PlayerName))
@@ -136,7 +139,7 @@ func NewStartMenu(matchInfo *game.MatchInfo) (*huh.Form, *bool) {
 
 				return lipgloss.JoinVertical(lipgloss.Left, lines...)
 
-			}, &matchInfo.RoomID).Height(10) // BUG: Rerender this if other fields change, not only RoomID
+			}, &matchInfo).Height(10)
 	)
 
 	form := huh.NewForm(

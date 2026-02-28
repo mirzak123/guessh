@@ -94,7 +94,7 @@ func (m *waitingOpponentModel) buildForm() *huh.Form {
 
 			huh.NewConfirm().
 				Title("").
-				Affirmative("Leave Room").
+				Affirmative("Leave room").
 				Negative(""),
 		),
 	)

@@ -23,6 +23,7 @@ const (
 	StartScreenID ScreenID = iota
 	GameScreenID
 	WaitingOpponentScreenID
+	RequestRematchScreenID
 	MatchResultsScreenID
 	ServerDownScreenID
 )
@@ -41,27 +42,30 @@ type RoomCreatedMsg struct {
 type mainModel struct {
 	width, height int
 	client        *client.Client
+	connected     bool
 	event         chan transport.EventMsg
 	eventBuffer   []transport.EventMsg
 	eventsPaused  bool
-	screenID      ScreenID
+	flushing      bool
 	matchInfo     *game.MatchInfo
 	confirm       *bool
-	connected     bool
 
-	startMenu       *huh.Form
-	game            *gameModel
-	waitingOpponent *waitingOpponentModel
-	matchResults    *matchResultsModel
-	serverDown      *huh.Form
+	screenID              ScreenID
+	startMenu             *huh.Form
+	game                  *gameModel
+	waitingOpponentScreen *waitingOpponentModel
+	requestRematchScreen  *requestRematchModel
+	matchResultsScreen    *matchResultsModel
+	serverDownScreen      *huh.Form
 }
 
 func InitialModel() mainModel {
 	m := mainModel{
-		screenID:   StartScreenID,
-		matchInfo:  game.NewMatchInfo(),
-		event:      make(chan transport.EventMsg),
-		serverDown: NewServerDownForm(),
+		screenID:             StartScreenID,
+		matchInfo:            game.NewMatchInfo(),
+		event:                make(chan transport.EventMsg),
+		serverDownScreen:     NewServerDownForm(),
+		requestRematchScreen: NewRequestRematchModel(),
 	}
 
 	conn, err := net.Dial("tcp", "localhost:2480")
@@ -118,7 +122,7 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case MatchFinishedMsg:
 		m.screenID = MatchResultsScreenID
-		m.matchResults = NewMatchResults(
+		m.matchResultsScreen = NewMatchResults(
 			m.matchInfo.Mode,
 			msg.roundsPlayed,
 			msg.roundOutcomes,
@@ -129,7 +133,7 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case RoomCreatedMsg:
 		logger.Debug("Setting room ID: %s", msg.roomID)
 		m.matchInfo.RoomID = msg.roomID
-		m.waitingOpponent.roomID = msg.roomID
+		m.waitingOpponentScreen.roomID = msg.roomID
 
 	case game.CreateMatchIntent:
 		m.client.CreateMatch(msg.Mode, msg.WordLen, msg.Rounds, msg.PlayerName)
@@ -137,12 +141,22 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case game.JoinRoomIntent:
 		m.client.JoinRoom(msg.RoomId, msg.PlayerName)
 
+	case game.RequestRematchIntent:
+		m.client.RequestRematch()
+		m.screenID = RequestRematchScreenID
+		cmds = append(cmds, m.requestRematchScreen.Init())
+
+	case game.DenyRematchIntent:
+		m.client.DenyRematch()
+		cmds = append(cmds, emit(game.StartGameIntent{}))
+
 	case game.MakeGuessIntent:
 		m.client.MakeGuess(msg.Guess)
 
 	case game.ContinueIntent:
 		logger.Debug("Continuing events, flushing buffer")
 		m.eventsPaused = false
+		m.flushing = true
 
 		for _, bufferedEvent := range m.eventBuffer {
 			msgFromEvent := m.handleEvent(bufferedEvent)
@@ -150,6 +164,8 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cmds = append(cmds, emit(msgFromEvent))
 			}
 		}
+
+		m.flushing = false
 		m.eventBuffer = nil
 
 	case game.LeaveMatchIntent:
@@ -157,7 +173,9 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, emit(game.StartGameIntent{}))
 
 	case game.TypingIntent:
-		m.client.Typing(msg.Value)
+		if m.matchInfo.Mode == protocol.MULTI_REMOTE {
+			m.client.Typing(msg.Value)
+		}
 
 	case transport.ServerDisconnectedMsg:
 		m.screenID = ServerDownScreenID
@@ -174,6 +192,7 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cmds = append(cmds, emit(msgFromEvent))
 			}
 		}
+		logger.Debug("[%s] event buffer: %v", m.matchInfo.PlayerName, m.eventBuffer)
 	}
 
 	switch m.screenID {
@@ -205,8 +224,8 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					cmds = append(cmds, m.game.Init())
 				} else {
 					m.screenID = WaitingOpponentScreenID
-					m.waitingOpponent = NewWaitingOpponentModel()
-					cmds = append(cmds, m.game.Init(), m.waitingOpponent.Init())
+					m.waitingOpponentScreen = NewWaitingOpponentModel()
+					cmds = append(cmds, m.game.Init(), m.waitingOpponentScreen.Init())
 				}
 			case protocol.SINGLE:
 				m.screenID = GameScreenID
@@ -215,10 +234,10 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case ServerDownScreenID:
-		updatedModel, formCmd := m.serverDown.Update(msg)
-		m.serverDown = updatedModel.(*huh.Form)
+		updatedModel, formCmd := m.serverDownScreen.Update(msg)
+		m.serverDownScreen = updatedModel.(*huh.Form)
 
-		if m.serverDown.State == huh.StateCompleted {
+		if m.serverDownScreen.State == huh.StateCompleted {
 			return m, tea.Quit
 		}
 
@@ -229,15 +248,23 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, gameCmd)
 
 	case WaitingOpponentScreenID:
-		_, waitingOpponentCmd := m.waitingOpponent.Update(msg)
+		_, waitingOpponentCmd := m.waitingOpponentScreen.Update(msg)
 		cmds = append(cmds, waitingOpponentCmd)
 
-		if m.waitingOpponent.form.State == huh.StateCompleted {
+		if m.waitingOpponentScreen.form.State == huh.StateCompleted {
 			cmds = append(cmds, emit(game.LeaveMatchIntent{}))
 		}
 
+	case RequestRematchScreenID:
+		_, rematchRequestedCmd := m.requestRematchScreen.Update(msg)
+		cmds = append(cmds, rematchRequestedCmd)
+
+		if m.requestRematchScreen.form.State == huh.StateCompleted {
+			cmds = append(cmds, emit(game.DenyRematchIntent{}))
+		}
+
 	case MatchResultsScreenID:
-		_, matchResultsCmd := m.matchResults.Update(msg)
+		_, matchResultsCmd := m.matchResultsScreen.Update(msg)
 		cmds = append(cmds, matchResultsCmd)
 	}
 
@@ -249,15 +276,17 @@ func (m mainModel) View() string {
 
 	switch m.screenID {
 	case StartScreenID:
-		content = ui.MainContentStyle.Render(m.startMenu.View())
+		content = m.startMenu.View()
 	case ServerDownScreenID:
-		content = ui.MainContentStyle.Render(m.serverDown.View())
+		content = m.serverDownScreen.View()
 	case GameScreenID:
-		content = ui.MainContentStyle.Render(m.game.View())
+		content = m.game.View()
 	case WaitingOpponentScreenID:
-		content = ui.MainContentStyle.Render(m.waitingOpponent.View())
+		content = m.waitingOpponentScreen.View()
+	case RequestRematchScreenID:
+		content = m.requestRematchScreen.View()
 	case MatchResultsScreenID:
-		content = ui.MainContentStyle.Render(m.matchResults.View())
+		content = m.matchResultsScreen.View()
 	}
 
 	return lipgloss.Place(
@@ -265,7 +294,7 @@ func (m mainModel) View() string {
 		m.height,
 		lipgloss.Center,
 		lipgloss.Center,
-		content,
+		ui.MainContentStyle.Render(content),
 	)
 }
 
@@ -301,6 +330,10 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 
 		m.game.input.CharLimit = m.matchInfo.WordLen
 		m.game.input.Width = m.matchInfo.WordLen
+		m.game.input.SetValue("")
+
+		m.requestRematchScreen.opponentName = matchStartedEvent.OpponentName
+		m.requestRematchScreen.opponentDeniedRematch = false
 
 	case protocol.ROUND_STARTED:
 		roundStartedEvent := &protocol.RoundStartedEvent{}
@@ -352,7 +385,9 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 		m.matchInfo.RoundOutcomes[m.matchInfo.CurrentRound-1] = &roundFinishedEvent.Outcome
 
 		logger.Debug("Pausing events...")
-		m.eventsPaused = true
+		if !m.flushing {
+			m.eventsPaused = true
+		}
 		return nil
 
 	case protocol.MATCH_FINISHED:
@@ -410,6 +445,12 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 			return nil
 		}
 		m.game.input.SetValue(opponentTypingEvent.Value)
+
+	case protocol.OPPONENT_DENIED_REMATCH:
+		m.requestRematchScreen.opponentDeniedRematch = true
+
+	case protocol.OPPONENT_LEFT:
+		m.requestRematchScreen.opponentDeniedRematch = true
 
 	default:
 		logger.Info("Ignoring event: %s", event.Type)

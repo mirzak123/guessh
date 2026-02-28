@@ -25,8 +25,8 @@ func (c *Client) CreateMatch(mode protocol.GameMode, wordLen, rounds int, player
 		err error
 	)
 
-	createMatchMsg := protocol.NewCreateMatchEvent(mode, wordLen, rounds, playerName)
-	if msg, err = json.Marshal(createMatchMsg); err != nil {
+	createMatchEvent := protocol.NewCreateMatchEvent(mode, wordLen, rounds, playerName)
+	if msg, err = json.Marshal(createMatchEvent); err != nil {
 		logger.Error("[Client.CreateMatch] Failed to marshal CreateMatchEvent: %v", err)
 		os.Exit(1)
 	}
@@ -40,8 +40,8 @@ func (c *Client) MakeGuess(guess string) {
 		err error
 	)
 
-	makeGuessMsg := protocol.NewMakeGuessEvent(guess)
-	if msg, err = json.Marshal(makeGuessMsg); err != nil {
+	makeGuessEvent := protocol.NewMakeGuessEvent(guess)
+	if msg, err = json.Marshal(makeGuessEvent); err != nil {
 		logger.Error("[Client.MakeGuess] Failed to marshal MakeGuessEvent: %v", err)
 		os.Exit(1)
 	}
@@ -55,8 +55,8 @@ func (c *Client) JoinRoom(roomID string, playerName string) {
 		err error
 	)
 
-	joinRoomMsg := protocol.NewJoinRoomEvent(roomID, playerName)
-	if msg, err = json.Marshal(joinRoomMsg); err != nil {
+	joinRoomEvent := protocol.NewJoinRoomEvent(roomID, playerName)
+	if msg, err = json.Marshal(joinRoomEvent); err != nil {
 		logger.Error("[Client.MakeGuess] Failed to marshal JoinRoomEvent: %v", err)
 		os.Exit(1)
 	}
@@ -70,8 +70,8 @@ func (c *Client) Typing(value string) {
 		err error
 	)
 
-	typingMsg := protocol.NewTypingEvent(value)
-	if msg, err = json.Marshal(typingMsg); err != nil {
+	typingEvent := protocol.NewTypingEvent(value)
+	if msg, err = json.Marshal(typingEvent); err != nil {
 		logger.Error("[Client.MakeGuess] Failed to marshal TypingEvent: %v", err)
 		os.Exit(1)
 	}
@@ -85,9 +85,39 @@ func (c *Client) LeaveMatch() {
 		err error
 	)
 
-	leaveMatchMsg := protocol.NewLeaveMatchEvent()
-	if msg, err = json.Marshal(leaveMatchMsg); err != nil {
+	leaveMatchEvent := protocol.NewLeaveMatchEvent()
+	if msg, err = json.Marshal(leaveMatchEvent); err != nil {
 		logger.Error("[Client.MakeGuess] Failed to marshal LeaveMatchEvent: %v", err)
+		os.Exit(1)
+	}
+
+	c.send(msg)
+}
+
+func (c *Client) RequestRematch() {
+	var (
+		msg []byte
+		err error
+	)
+
+	requestRematchEvent := protocol.NewRequestRematchEvent()
+	if msg, err = json.Marshal(requestRematchEvent); err != nil {
+		logger.Error("[Client.MakeGuess] Failed to marshal RequestRematchEvent: %v", err)
+		os.Exit(1)
+	}
+
+	c.send(msg)
+}
+
+func (c *Client) DenyRematch() {
+	var (
+		msg []byte
+		err error
+	)
+
+	denyRematchEvent := protocol.NewDenyRematchEvent()
+	if msg, err = json.Marshal(denyRematchEvent); err != nil {
+		logger.Error("[Client.MakeGuess] Failed to marshal DenyRematchEvent: %v", err)
 		os.Exit(1)
 	}
 

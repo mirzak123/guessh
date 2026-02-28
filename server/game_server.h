@@ -31,6 +31,7 @@
 #define E_NOT_ON_TURN "Opponent is currently on turn"
 #define E_UNSUPPORTED_MODE "Unsupported mode"
 #define E_PLAYER_NOT_IN_MATCH "Player is not in an active match"
+#define E_PLAYER_NOT_IN_ROOM "Player is not in a room"
 #define E_ROOM_FULL "Room is full"
 #define E_ROOM_NOT_FOUND "Room could not be found"
 
@@ -43,15 +44,17 @@ typedef enum {
   JOIN_ROOM,
   MAKE_GUESS,
   REQUEST_REMATCH,
+  DENY_REMATCH,
   LEAVE_MATCH,
   TYPING,
 
   // Server
-  CONNECTED,
   ROOM_CREATED,
   ROOM_JOINED,
   ROOM_JOIN_FAILED,
   WAIT_OPPONENT_JOIN,
+  OPPONENT_DENIED_REMATCH,
+  OPPONENT_LEFT,
   MATCH_STARTED,
   ROUND_STARTED,
   WAIT_GUESS,
@@ -60,7 +63,6 @@ typedef enum {
   ROUND_FINISHED,
   MATCH_FINISHED,
   OPPONENT_TYPING,
-  BYE,
   ERROR,
 } MessageType;
 
@@ -81,12 +83,16 @@ void GS_handle_request(GameServer *gs, Client *client);
 void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request);
 void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request);
 void GS_handle_join_room(GameServer *gs, Client *client, cJSON *json_request);
+void GS_handle_request_rematch(GameServer *gs, Client *client);
+void GS_handle_deny_rematch(GameServer *gs, Client *client);
 void GS_handle_typing(Client *client, cJSON *json_request);
-void GS_handle_leave_match(GameServer *gs, Client *client);
+void GS_handle_leave_match(Client *client);
 void GS_start_match(GameServer *gs, Match *match);
 void GS_start_round(GameServer *gs, Match *match);
-void GS_end_match(GameServer *gs, Match *match, Player *disconnected_player);
+void GS_end_match(Match *match, Player *disconnected_player);
 void GS_end_round(GameServer *gs, Match *match);
-void GS_add_player_to_match(GameServer *gs, Match *match, Player *player);
+bool GS_add_player_to_match(Match *match, Player *player);
+
+Player *get_opponent(Player *player1, Player *player2, Player *current);
 
 #endif // !GAME_SERVER_H

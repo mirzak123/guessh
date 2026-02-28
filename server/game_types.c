@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-Match *new_match(size_t round_capacity, GameMode mode, size_t word_len) {
+Match *new_match(GameMode mode, size_t round_capacity, size_t word_len) {
   Match *match = malloc(sizeof(Match));
   if (match == NULL) {
     perror("malloc");
@@ -26,7 +26,7 @@ Match *new_match(size_t round_capacity, GameMode mode, size_t word_len) {
   return match;
 }
 
-void delete_match(Match *match) {
+void delete_match(Match *match) { // TODO: Call this somewhere. Currently no match is ever deleted.
   free(match->id);
   free(match->room_id);
   if (match->player1 != NULL)
@@ -96,6 +96,7 @@ Player *new_player(int client_fd, char *name) {
 
   player->client_fd = client_fd;
   player->match = NULL;
+  player->wants_rematch = false;
 
   if (name != NULL) {
     player->name = strdup(name);

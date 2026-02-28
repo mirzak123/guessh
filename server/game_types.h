@@ -7,6 +7,8 @@
 
 #define MAX_CLIENT_DATA 1024
 
+struct Room;
+
 typedef enum { OUTCOME_NONE, OUTCOME_PLAYER1, OUTCOME_PLAYER2 } Outcome;
 
 typedef enum {
@@ -14,16 +16,18 @@ typedef enum {
   MULTI_REMOTE,
 } GameMode;
 
-typedef struct {
+typedef struct Player {
   int client_fd;
   char *name;
   struct Match *match;
+  struct Room *room;
+  bool wants_rematch;
 } Player;
 
 Player *new_player(int client_fd, char *name);
 void delete_player(Player *player);
 
-typedef struct {
+typedef struct WordChallenge {
   char *word;
   size_t word_len;
   size_t attempt_count; /* how many attempts have been made */
@@ -36,7 +40,7 @@ typedef struct {
 WordChallenge *new_word_challenge(WordStore *store, int max_attempts);
 void delete_word_challenge(WordChallenge *word_challenge);
 
-typedef struct {
+typedef struct Round {
   /* When we turn this into a quordle-style game, we would store an array
    * of WordChallenge structs */
   WordChallenge *wc;
@@ -61,7 +65,7 @@ typedef struct Match {
   struct Match *next;
 } Match;
 
-Match *new_match(size_t round_capacity, GameMode mode, size_t word_len);
+Match *new_match(GameMode mode, size_t round_capacity, size_t word_len);
 void Match_start_match(Match *match);
 void Match_start_round(Match *match);
 void delete_match(Match *match);
