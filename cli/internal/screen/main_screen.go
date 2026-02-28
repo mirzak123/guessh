@@ -61,10 +61,11 @@ type mainModel struct {
 
 func InitialModel() mainModel {
 	m := mainModel{
-		screenID:         StartScreenID,
-		matchInfo:        game.NewMatchInfo(),
-		event:            make(chan transport.EventMsg),
-		serverDownScreen: NewServerDownForm(),
+		screenID:             StartScreenID,
+		matchInfo:            game.NewMatchInfo(),
+		event:                make(chan transport.EventMsg),
+		serverDownScreen:     NewServerDownForm(),
+		requestRematchScreen: NewRequestRematchModel(),
 	}
 
 	conn, err := net.Dial("tcp", "localhost:2480")
@@ -143,7 +144,6 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case game.RequestRematchIntent:
 		m.client.RequestRematch()
 		m.screenID = RequestRematchScreenID
-		m.requestRematchScreen = NewRequestRematchModel(m.matchInfo.OpponentName)
 		cmds = append(cmds, m.requestRematchScreen.Init())
 
 	case game.DenyRematchIntent:
@@ -324,6 +324,7 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 		m.matchInfo.WordLen = matchStartedEvent.WordLength
 		m.matchInfo.TotalRounds = matchStartedEvent.Rounds
 		m.matchInfo.OpponentName = matchStartedEvent.OpponentName
+		m.requestRematchScreen.opponentName = matchStartedEvent.OpponentName
 
 		m.matchInfo.RawTotalRounds = fmt.Sprintf("%d", matchStartedEvent.Rounds)
 		m.matchInfo.RoundOutcomes = make([]*protocol.Outcome, matchStartedEvent.Rounds)

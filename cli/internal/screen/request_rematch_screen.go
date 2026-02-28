@@ -18,13 +18,12 @@ type requestRematchModel struct {
 	form                  *huh.Form
 }
 
-func NewRequestRematchModel(opponentName string) *requestRematchModel {
+func NewRequestRematchModel() *requestRematchModel {
 	s := spinner.New()
 	s.Spinner = ui.Spinners[rand.Intn(len(ui.Spinners))]
 
 	m := &requestRematchModel{
-		spinner:      s,
-		opponentName: opponentName,
+		spinner: s,
 	}
 
 	m.form = m.buildForm()

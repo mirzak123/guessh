@@ -30,7 +30,6 @@ type MatchInfo struct {
 	RoomID                string
 	JoinExisting          bool
 	RoomValidationError   error
-	OpponentDeniedRematch bool
 }
 
 func NewMatchInfo() *MatchInfo {
