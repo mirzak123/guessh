@@ -172,7 +172,9 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, emit(game.StartGameIntent{}))
 
 	case game.TypingIntent:
-		m.client.Typing(msg.Value)
+		if m.matchInfo.Mode == protocol.MULTI_REMOTE {
+			m.client.Typing(msg.Value)
+		}
 
 	case transport.ServerDisconnectedMsg:
 		m.screenID = ServerDownScreenID
