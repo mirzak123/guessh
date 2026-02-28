@@ -12,9 +12,10 @@ import (
 )
 
 type requestRematchModel struct {
-	spinner      spinner.Model
-	opponentName string
-	form         *huh.Form
+	spinner               spinner.Model
+	opponentName          string
+	opponentDeniedRematch bool
+	form                  *huh.Form
 }
 
 func NewRequestRematchModel(opponentName string) *requestRematchModel {
@@ -53,7 +54,11 @@ func (m *requestRematchModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	if m.form.State == huh.StateCompleted {
-		return m, emit(game.DenyRematchIntent{})
+		if m.opponentDeniedRematch {
+			return m, emit(game.StartGameIntent{})
+		} else {
+			return m, emit(game.DenyRematchIntent{})
+		}
 	}
 
 	return m, tea.Batch(cmds...)
@@ -64,24 +69,38 @@ func (m *requestRematchModel) View() string {
 }
 
 func (m *requestRematchModel) buildForm() *huh.Form {
+	var (
+		title       string
+		description string
+		confirmText string
+		opponent    = lipgloss.NewStyle().Foreground(ui.Rose).Render(m.opponentName)
+	)
+
+	if m.opponentDeniedRematch {
+		title = lipgloss.JoinHorizontal(lipgloss.Center, "🚫 ", opponent, " denied the rematch")
+		description = "Press enter to continue to main screen"
+		confirmText = "Continue"
+	} else {
+		title = "🤔 Rematch Requested"
+		description = lipgloss.JoinHorizontal(
+			lipgloss.Center,
+			"Waiting for ",
+			opponent,
+			" to confirm rematch... ",
+			m.spinner.View(),
+		)
+		confirmText = "Abort rematch"
+	}
+
 	form := huh.NewForm(
 		huh.NewGroup(
 			huh.NewNote().
-				Title("🤔 Rematch Requested").
-				Description(func() string {
-					return lipgloss.JoinHorizontal(
-						lipgloss.Center,
-						"Waiting for ",
-						lipgloss.NewStyle().Foreground(ui.Rose).Render(m.opponentName),
-						" to confirm rematch... ",
-						m.spinner.View(),
-					)
-				}(),
-				),
+				Title(title).
+				Description(description),
 
 			huh.NewConfirm().
 				Title("").
-				Affirmative("Abort").
+				Affirmative(confirmText).
 				Negative(""),
 		),
 	).WithShowHelp(false)

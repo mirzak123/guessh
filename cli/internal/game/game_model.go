@@ -18,24 +18,23 @@ const (
 )
 
 type MatchInfo struct {
-	Mode                protocol.GameMode
-	WordLen             int
-	CurrentRound        int
-	RawTotalRounds      string
-	TotalRounds         int
-	MaxAttempts         int
-	RoundOutcomes       []*protocol.Outcome
-	PlayerName          string
-	OpponentName        string
-	RoomID              string
-	JoinExisting        bool
-	RoomValidationError error
+	Mode                  protocol.GameMode
+	WordLen               int
+	CurrentRound          int
+	RawTotalRounds        string
+	TotalRounds           int
+	MaxAttempts           int
+	RoundOutcomes         []*protocol.Outcome
+	PlayerName            string
+	OpponentName          string
+	RoomID                string
+	JoinExisting          bool
+	RoomValidationError   error
+	OpponentDeniedRematch bool
 }
 
 func NewMatchInfo() *MatchInfo {
-	return &MatchInfo{
-		CurrentRound: 0,
-	}
+	return &MatchInfo{}
 }
 
 type RoundInfo struct {
