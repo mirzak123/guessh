@@ -449,6 +449,9 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 	case protocol.OPPONENT_DENIED_REMATCH:
 		m.requestRematchScreen.opponentDeniedRematch = true
 
+	case protocol.OPPONENT_LEFT:
+		m.requestRematchScreen.opponentDeniedRematch = true
+
 	default:
 		logger.Info("Ignoring event: %s", event.Type)
 	}

@@ -15,6 +15,7 @@ const (
 	REQUEST_REMATCH         EventType = "REQUEST_REMATCH"
 	DENY_REMATCH            EventType = "DENY_REMATCH"
 	OPPONENT_DENIED_REMATCH EventType = "OPPONENT_DENIED_REMATCH"
+	OPPONENT_LEFT           EventType = "OPPONENT_LEFT"
 	MATCH_STARTED           EventType = "MATCH_STARTED"
 	ROUND_STARTED           EventType = "ROUND_STARTED"
 	WAIT_GUESS              EventType = "WAIT_GUESS"

@@ -17,7 +17,6 @@ static MessageType parse_message(char *data, size_t size, cJSON **out);
 static void create_room(GameServer *gs, Match *match, Client *client);
 static Outcome calculate_match_outcome(Match *match);
 static WordStore *get_word_store(GameServer *gs, size_t word_len);
-static Player *get_opponent(Player *player1, Player *player2, Player *current);
 
 GameServer *GS_create(void) {
   GameServer *gs;
@@ -239,6 +238,8 @@ static MessageType parse_message(char *data, size_t size, cJSON **json_out) {
     mt = DENY_REMATCH;
   } else if (!strcmp("LEAVE_MATCH", type)) {
     mt = LEAVE_MATCH;
+  } else if (!strcmp("OPPONENT_LEFT", type)) {
+    mt = OPPONENT_LEFT;
   } else if (!strcmp("ROOM_CREATED", type)) {
     mt = ROOM_CREATED;
   } else if (!strcmp("ROOM_JOINED", type)) {
@@ -722,6 +723,8 @@ void GS_start_round(GameServer *gs, Match *match) {
   cJSON_Delete(round_started_json);
 }
 
+Player *get_opponent(Player *player1, Player *player2, Player *current) { return player1 == current ? player2 : player1; }
+
 static Outcome calculate_match_outcome(Match *match) {
   int outcome = 0;
   for (int i = 0; i <= match->round_idx; i++) {
@@ -751,5 +754,3 @@ static WordStore *get_word_store(GameServer *gs, size_t word_len) {
   printf("Tried to get word store for unsupported word length: %lu\n", word_len);
   exit(EXIT_FAILURE);
 }
-
-static Player *get_opponent(Player *player1, Player *player2, Player *current) { return player1 == current ? player2 : player1; }

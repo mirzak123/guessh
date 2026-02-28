@@ -67,6 +67,7 @@ Find a better way to represent flow below 🙏🙏🙏
 | ROOM_JOIN_FAILED        | {"type": "ROOM_JOIN_FAILED", "roomId": string, "reason": string}                                              | Room full or invalid room ID                            |
 | WAIT_OPPONENT_JOIN      | {"type": "WAIT_OPPONENT_JOIN"}                                                                                |                                                         |
 | OPPONENT_DENIED_REMATCH | {"type": "OPPONENT_DENIED_REMATCH"}                                                                           |                                                         |
+| OPPONENT_LEFT           | {"type": "OPPONENT_LEFT"}                                                                                     |                                                         |
 | MATCH_STARTED           | {"type": "MATCH_STARTED", "matchId": string, "rounds": number, "wordLength": number, "opponentName"?: string} | opponentName will not be included in single player mode |
 | ROUND_STARTED           | {"type": "ROUND_STARTED", "roundNumber": number, "maxAttempts": number}                                       |                                                         |
 | WAIT_GUESS              | {"type": "WAIT_GUESS"}                                                                                        |                                                         |

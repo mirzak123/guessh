@@ -54,6 +54,7 @@ typedef enum {
   ROOM_JOIN_FAILED,
   WAIT_OPPONENT_JOIN,
   OPPONENT_DENIED_REMATCH,
+  OPPONENT_LEFT,
   MATCH_STARTED,
   ROUND_STARTED,
   WAIT_GUESS,
@@ -91,5 +92,7 @@ void GS_start_round(GameServer *gs, Match *match);
 void GS_end_match(Match *match, Player *disconnected_player);
 void GS_end_round(GameServer *gs, Match *match);
 bool GS_add_player_to_match(Match *match, Player *player);
+
+Player *get_opponent(Player *player1, Player *player2, Player *current);
 
 #endif // !GAME_SERVER_H

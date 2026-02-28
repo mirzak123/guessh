@@ -1,7 +1,9 @@
 #include "network.h"
 #include "client.h"
+#include "game_server.h"
 #include "game_types.h"
 #include "hash_table.h"
+#include "room.h"
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -151,8 +153,14 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
     close(client_fd);
 
     Match *match = NULL;
-    if (client->player != NULL)
+    if (client->player != NULL) {
       match = client->player->match;
+      Room *room = client->player->room;
+      if (room != NULL) {
+        Player *opponent = get_opponent(room->player1, room->player2, client->player);
+        send_only_type(opponent->client_fd, STR(OPPONENT_LEFT));
+      }
+    }
 
     // Delete match if it exists
     if (match != NULL) {
@@ -174,7 +182,16 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
   if ((client->buf_len + nbytes) - (client->buf_start - client->buffer) > BUFSIZE) {
     printf("[handle_client_data] error: buffer overflow\n");
 
-    Match *match = client->player->match;
+    Match *match = NULL;
+    if (client->player != NULL) {
+      match = client->player->match;
+      Room *room = client->player->room;
+      if (room != NULL) {
+        Player *opponent = get_opponent(room->player1, room->player2, client->player);
+        send_only_type(opponent->client_fd, STR(OPPONENT_LEFT));
+      }
+    }
+
     if (match != NULL) {
       GS_end_match(match, NULL);
     }
