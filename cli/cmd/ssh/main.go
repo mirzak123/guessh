@@ -1,10 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"guessh/internal/logger"
 	"guessh/internal/screen"
-	"log"
 	"os"
 	"time"
 
@@ -15,20 +13,12 @@ import (
 )
 
 func main() {
-	var (
-		logFileName = "cli.log"
-		logFile     *os.File
-		err         error
-	)
+	logger.EnsureLoggerSetup("ssh.log")
 
-	if logFile, err = os.OpenFile("cli.log", os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o777); err != nil {
-		log.Fatalf("Failed to open log file %s: %v", logFileName, err)
-	}
-
-	logger.Init(logFile, logger.GetLogLevelFromEnv())
 	var (
 		server *ssh.Server
 		addr   = "0.0.0.0:2222"
+		err    error
 	)
 
 	server, err = wish.NewServer(
@@ -47,12 +37,14 @@ func main() {
 		),
 	)
 	if err != nil {
-		fmt.Printf("Could not create server: %v", err)
+		logger.Error("Could not create server: %v", err)
+		os.Exit(1)
 	}
 
-	fmt.Printf("Listening on [%s]...", addr)
+	logger.Info("Listening on [%s]...", addr)
 	if err = server.ListenAndServe(); err != nil {
-		fmt.Printf("Failed starting server: %v", err)
+		logger.Error("Failed starting server: %v", err)
+		os.Exit(1)
 	}
 
 }
