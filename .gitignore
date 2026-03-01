@@ -2,3 +2,4 @@ bin/
 .cache/
 *.log
 compile_commands.json
+.env
