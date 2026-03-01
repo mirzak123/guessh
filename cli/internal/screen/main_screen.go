@@ -473,6 +473,10 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 	return nil
 }
 
+func (m *mainModel) GetClient() *client.Client {
+	return m.client
+}
+
 func (m *mainModel) SetSSHContext(ctx context.Context) {
 	if ctx != nil {
 		m.sshContext = ctx

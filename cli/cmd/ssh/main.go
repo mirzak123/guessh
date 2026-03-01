@@ -33,6 +33,17 @@ func main() {
 				model := screen.InitialModel()
 				model.SetSSHContext(session.Context())
 
+				go func() {
+					<-session.Context().Done()
+					if model.GetClient() != nil && model.GetClient().Conn != nil {
+						if err := model.GetClient().Conn.Close(); err != nil {
+							logger.Error("Failed to close TCP connection for %s: %v", session.User(), err)
+							os.Exit(1)
+						}
+						logger.Info("SSH session closed: TCP connection for %s forced shut", session.User())
+					}
+				}()
+
 				return model, nil
 			}),
 		),
