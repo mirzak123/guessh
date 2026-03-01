@@ -60,6 +60,8 @@ type mainModel struct {
 }
 
 func InitialModel() mainModel {
+	game.EnsureDictionariesLoaded()
+
 	m := mainModel{
 		screenID:             StartScreenID,
 		matchInfo:            game.NewMatchInfo(),

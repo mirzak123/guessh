@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
+	"strings"
 )
 
 type LogLevel string
@@ -54,4 +56,20 @@ func Error(msg string, args ...any) {
 
 func logf(l *log.Logger, depth int, format string, v ...any) {
 	_ = l.Output(depth, fmt.Sprintf(format, v...))
+}
+
+func GetLogLevelFromEnv() LogLevel {
+	logLevelStr, ok := os.LookupEnv("LOG_LEVEL")
+	if !ok {
+		logLevelStr = "INFO"
+	}
+
+	logLevelStr = strings.ToUpper(logLevelStr)
+
+	switch logLevelStr {
+	case "DEBUG":
+		return LogLevelDebug
+	default:
+		return LogLevelInfo
+	}
 }
