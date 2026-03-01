@@ -31,6 +31,7 @@ func main() {
 					wish.Fatalf(session, "no active terminal, skipping")
 				}
 				model := screen.InitialModel()
+				model.SetSSHContext(session.Context())
 
 				return model, nil
 			}),
