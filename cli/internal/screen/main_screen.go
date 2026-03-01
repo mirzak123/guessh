@@ -1,6 +1,7 @@
 package screen
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -41,6 +42,7 @@ type RoomCreatedMsg struct {
 
 type mainModel struct {
 	width, height int
+	sshContext    context.Context
 	client        *client.Client
 	connected     bool
 	event         chan transport.EventMsg
@@ -59,8 +61,10 @@ type mainModel struct {
 	serverDownScreen      *huh.Form
 }
 
-func InitialModel() mainModel {
-	m := mainModel{
+func InitialModel() *mainModel {
+	game.EnsureDictionariesLoaded()
+
+	m := &mainModel{
 		screenID:             StartScreenID,
 		matchInfo:            game.NewMatchInfo(),
 		event:                make(chan transport.EventMsg),
@@ -81,20 +85,30 @@ func InitialModel() mainModel {
 	return m
 }
 
-func (m mainModel) Init() tea.Cmd {
+func (m *mainModel) Init() tea.Cmd {
+	var cmds []tea.Cmd
 
-	if !m.connected {
-		return tea.EnterAltScreen
+	ctx := m.sshContext
+	if ctx == nil {
+		ctx = context.Background()
 	}
 
-	return tea.Batch(
+	cmds = append(cmds,
 		tea.EnterAltScreen,
-		transport.ListenForActivity(m.client.Conn, m.event),
-		transport.WaitForEvent(m.event),
+		waitForContextDone(ctx),
 	)
+
+	if m.connected {
+		cmds = append(cmds,
+			transport.ListenForActivity(m.client.Conn, m.event),
+			transport.WaitForEvent(m.event),
+		)
+	}
+
+	return tea.Batch(cmds...)
 }
 
-func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
@@ -271,7 +285,7 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func (m mainModel) View() string {
+func (m *mainModel) View() string {
 	var content string
 
 	switch m.screenID {
@@ -457,4 +471,23 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 	}
 
 	return nil
+}
+
+func (m *mainModel) GetClient() *client.Client {
+	return m.client
+}
+
+func (m *mainModel) SetSSHContext(ctx context.Context) {
+	if ctx != nil {
+		m.sshContext = ctx
+	}
+}
+
+// waitForContextDone is used to end the process immidiately
+// after client disconnects from the SSH server
+func waitForContextDone(ctx context.Context) tea.Cmd {
+	return func() tea.Msg {
+		<-ctx.Done()
+		return tea.Quit()
+	}
 }

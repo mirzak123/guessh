@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
+	"strings"
+	"sync"
 )
 
 type LogLevel string
@@ -18,9 +21,24 @@ var (
 	debugLogger *log.Logger
 	warnLogger  *log.Logger
 	errorLogger *log.Logger
+
+	setupOnce sync.Once
 )
 
-func Init(out io.Writer, level LogLevel) {
+func EnsureLoggerSetup(logFileName string) {
+	setupOnce.Do(func() {
+		logFile, err := os.OpenFile(logFileName, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o644)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to open log file %s: %v. Falling back to stderr.\n", logFileName, err)
+			initLogger(os.Stderr, getLogLevelFromEnv())
+			return
+		}
+
+		initLogger(logFile, getLogLevelFromEnv())
+	})
+}
+
+func initLogger(out io.Writer, level LogLevel) {
 	flags := log.Lshortfile | log.Ldate | log.Ltime
 
 	infoLogger = log.New(out, "[INFO] ", flags)
@@ -54,4 +72,20 @@ func Error(msg string, args ...any) {
 
 func logf(l *log.Logger, depth int, format string, v ...any) {
 	_ = l.Output(depth, fmt.Sprintf(format, v...))
+}
+
+func getLogLevelFromEnv() LogLevel {
+	logLevelStr, ok := os.LookupEnv("LOG_LEVEL")
+	if !ok {
+		logLevelStr = "INFO"
+	}
+
+	logLevelStr = strings.ToUpper(logLevelStr)
+
+	switch logLevelStr {
+	case "DEBUG":
+		return LogLevelDebug
+	default:
+		return LogLevelInfo
+	}
 }
