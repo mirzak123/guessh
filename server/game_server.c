@@ -13,7 +13,6 @@
 #include <sys/socket.h>
 
 static MessageType parse_message(char *data, size_t size, cJSON **out);
-static void create_room(GameServer *gs, Match *match, Client *client);
 static Outcome calculate_match_outcome(Match *match);
 static WordStore *get_word_store(GameServer *gs, size_t word_len);
 
@@ -209,7 +208,7 @@ void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request)
   client->player = player;
 
   if (match->mode == MULTI_REMOTE) {
-    create_room(gs, match, client);
+    GS_create_room(gs, match, client);
   }
 
   bool can_start = GS_add_player_to_match(match, player);
@@ -289,7 +288,7 @@ static MessageType parse_message(char *data, size_t size, cJSON **json_out) {
   return mt;
 }
 
-void create_room(GameServer *gs, Match *match, Client *client) {
+void GS_create_room(GameServer *gs, Match *match, Client *client) {
   Room *room = new_room();
   printf("[create_room] room created with id: %s\n", room->id);
   HT_set(gs->rooms, KEY(room->id), room);
@@ -410,8 +409,10 @@ void GS_handle_deny_rematch(GameServer *gs, Client *client) {
   player->wants_rematch = false;
 
   opponent = get_opponent(room->player1, room->player2, player);
-  send_only_type(opponent->client_fd, STR(OPPONENT_DENIED_REMATCH));
   HT_delete(gs->rooms, KEY(room->id));
+  if (opponent) {
+    send_only_type(opponent->client_fd, STR(OPPONENT_DENIED_REMATCH));
+  }
 }
 
 void GS_handle_typing(Client *client, cJSON *json_request) {

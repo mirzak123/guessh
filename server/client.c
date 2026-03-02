@@ -27,15 +27,6 @@ Client *new_client(int client_fd) {
 
 void delete_client(Client *client) {
   if (client->player) {
-    Player *player = client->player;
-    if (player->match) {
-      Match *match = player->match;
-      if (player == match->player1) {
-        match->player1 = NULL;
-      } else if (player == match->player2) {
-        match->player2 = NULL;
-      }
-    }
     delete_player(client->player);
   }
   free(client);

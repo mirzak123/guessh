@@ -1,5 +1,6 @@
 #include "game_types.h"
 #include "game_logic.h"
+#include "room.h"
 #include "util.h"
 
 #include <cjson/cJSON.h>
@@ -116,6 +117,24 @@ Player *new_player(int client_fd, char *name) {
 }
 
 void delete_player(Player *player) {
+  if (player->match) {
+    Match *match = player->match;
+    if (player == match->player1) {
+      match->player1 = NULL;
+    } else if (player == match->player2) {
+      match->player2 = NULL;
+    }
+  }
+
+  if (player->room) {
+    Room *room = player->room;
+    if (player == room->player1) {
+      room->player1 = NULL;
+    } else if (player == room->player2) {
+      room->player2 = NULL;
+    }
+  }
+
   free(player->name);
   free(player);
 }
