@@ -542,6 +542,7 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
     break;
   }
   free(feedback);
+  cJSON_Delete(guess_result_json);
 
   if (!is_round_finished)
     return;
