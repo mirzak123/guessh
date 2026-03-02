@@ -34,6 +34,7 @@
 #define E_PLAYER_NOT_IN_ROOM "Player is not in a room"
 #define E_ROOM_FULL "Room is full"
 #define E_ROOM_NOT_FOUND "Room could not be found"
+#define E_UNKNOWN "An unknown error has occured"
 
 typedef enum {
   MALFORMED_MESSAGE = -1,

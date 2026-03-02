@@ -1,4 +1,5 @@
 #include "client.h"
+#include "game_types.h"
 #include "json_messages.h"
 
 #include <arpa/inet.h>
@@ -24,7 +25,21 @@ Client *new_client(int client_fd) {
   return client;
 }
 
-void delete_client(Client *client) { free(client); }
+void delete_client(Client *client) {
+  if (client->player) {
+    Player *player = client->player;
+    if (player->match) {
+      Match *match = player->match;
+      if (player == match->player1) {
+        match->player1 = NULL;
+      } else if (player == match->player2) {
+        match->player2 = NULL;
+      }
+    }
+    delete_player(client->player);
+  }
+  free(client);
+}
 
 void send_json(int client_fd, cJSON *json) {
   size_t length;
