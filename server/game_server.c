@@ -413,7 +413,7 @@ void GS_handle_deny_rematch(GameServer *gs, Client *client) {
   Room *room = client->player->room;
 
   if (room == NULL) {
-    send_error(client->fd, E_PLAYER_NOT_IN_MATCH);
+    // silently ignore, rematch likely denied by other player
     return;
   }
   player->wants_rematch = false;
