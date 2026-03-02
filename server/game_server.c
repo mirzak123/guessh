@@ -349,7 +349,17 @@ void GS_handle_join_room(GameServer *gs, Client *client, cJSON *json_request) {
     return;
   }
 
+  if (client->player != NULL) {
+    delete_player(client->player);
+    client->player = NULL;
+  }
+
   Player *player = new_player(client->fd, player_name);
+  if (player == NULL) {
+    send_error(client->fd, E_UNKNOWN);
+    return;
+  }
+
   client->player = player;
   room->player2 = player;
   room->player2->room = room;
