@@ -440,9 +440,9 @@ bool GS_add_player_to_match(Match *match, Player *player) {
       match->player2 = player;
 
       if (rand() % 2) {
-        match->on_turn = match->player1;
+        match->round_starter = match->player1;
       } else {
-        match->on_turn = match->player2;
+        match->round_starter = match->player2;
       }
 
       can_start = true;
