@@ -2,6 +2,17 @@
 
 Welcome to GueSSH, a wordle-like head-to-head multiplayer game, available over SSH.
 
+## Environment Variables
+
+| Variable           | Default         | Description                                          |
+| ------------------ | --------------- | ---------------------------------------------------- |
+| GUESSH_SERVER_PORT | 2480            | Port the C Game Server listens on.                   |
+| GAME_SERVER_ADDR   | localhost:2480  | Address the Go Frontend dials to reach the C Server. |
+| WORDS_PATH         | ./words         | Directory containing the .txt word lists.            |
+| GUESSH_SSH_ADDR    | :2222           | Address the Go SSH Server listens on.                |
+| HOST_KEY_PATH      | .ssh/id_ed25519 | Path to the SSH Server's persistent identity key.    |
+| LOG_LEVEL          | INFO            | Logging verbosity (DEBUG \| INFO \| ERROR).          |
+
 ## Server
 
 ### File structure
