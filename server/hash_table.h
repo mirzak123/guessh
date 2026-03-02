@@ -36,8 +36,10 @@ typedef struct {
   Entry *entries;
 } HashTable;
 
+typedef void (*ValueDestructor)(const void *value);
+
 HashTable *HT_create(void);
-void HT_destroy(HashTable *table);
+void HT_destroy(HashTable *table, ValueDestructor destructor);
 void HT_set(HashTable *table, Key key, Value value);
 Value HT_get(HashTable *table, Key key);
 void HT_delete(HashTable *table, Key key);

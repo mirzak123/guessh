@@ -67,6 +67,7 @@ typedef enum {
 } MessageType;
 
 typedef struct {
+  HashTable *matches;
   HashTable *clients;
   HashTable *rooms;
   struct {

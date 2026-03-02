@@ -37,8 +37,9 @@ GameServer *GS_create(void) {
 }
 
 void GS_destroy(GameServer *gs) {
-  HT_destroy(gs->rooms);
-  HT_destroy(gs->clients);
+  HT_destroy(gs->rooms, (ValueDestructor)delete_room);
+  HT_destroy(gs->clients, (ValueDestructor)delete_client);
+  HT_destroy(gs->matches, (ValueDestructor)delete_match);
 
   delete_word_store(gs->word_store.five);
   delete_word_store(gs->word_store.six);
