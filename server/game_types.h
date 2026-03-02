@@ -62,7 +62,6 @@ typedef struct Match {
   Player *player1;
   Player *player2;
   Player *on_turn;
-  struct Match *next;
 } Match;
 
 Match *new_match(GameMode mode, size_t round_capacity, size_t word_len);
