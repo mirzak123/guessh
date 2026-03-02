@@ -409,10 +409,12 @@ void GS_handle_deny_rematch(GameServer *gs, Client *client) {
   player->wants_rematch = false;
 
   opponent = get_opponent(room->player1, room->player2, player);
-  HT_delete(gs->rooms, KEY(room->id));
   if (opponent) {
     send_only_type(opponent->client_fd, STR(OPPONENT_DENIED_REMATCH));
   }
+
+  HT_delete(gs->rooms, KEY(room->id));
+  delete_room(room);
 }
 
 void GS_handle_typing(Client *client, cJSON *json_request) {
