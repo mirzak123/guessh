@@ -20,12 +20,13 @@ static WordStore *get_word_store(GameServer *gs, size_t word_len);
 GameServer *GS_create(void) {
   GameServer *gs;
 
-  gs = malloc(sizeof(GameServer));
-  if (!gs) {
-    perror("malloc");
+  gs = calloc(1, sizeof(GameServer));
+  if (gs == NULL) {
+    perror("calloc");
     exit(1);
   }
 
+  gs->matches = HT_create();
   gs->clients = HT_create();
   gs->rooms = HT_create();
 
@@ -192,6 +193,7 @@ void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request)
     printf("[GS_handle_create_match] error: new_match() returned NULL\n");
     return;
   }
+  HT_set(gs->matches, KEY(match->id), match);
 
   Player *player = new_player(client->fd, player_name_str);
   client->player = player;
@@ -372,7 +374,14 @@ void GS_handle_request_rematch(GameServer *gs, Client *client) {
 
   player->wants_rematch = false;
   opponent->wants_rematch = false;
+
   match = new_match(old_match->mode, old_match->round_capacity, old_match->word_len);
+  if (match == NULL) {
+    printf("[GS_handle_request_rematch] error: new_match() returned NULL\n");
+    return;
+  }
+  HT_set(gs->matches, KEY(match->id), match);
+
   GS_add_player_to_match(match, player);
   GS_add_player_to_match(match, opponent);
   GS_start_match(gs, match);

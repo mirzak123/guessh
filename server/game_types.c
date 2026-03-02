@@ -85,8 +85,6 @@ WordChallenge *new_word_challenge(WordStore *store, int max_attempts) {
 }
 
 void delete_word_challenge(WordChallenge *wc) {
-  free(wc->word);
-
   printf("Deleting word challenge. Attempt count: %d\n", (int)wc->attempt_count);
   for (int i = 0; i < (int)wc->attempt_count; i++) {
     free(wc->guess_attempts[i]);
