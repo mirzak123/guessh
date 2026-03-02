@@ -8,7 +8,7 @@
 #include <string.h>
 
 Match *new_match(GameMode mode, size_t round_capacity, size_t word_len) {
-  Match *match = malloc(sizeof(Match));
+  Match *match = calloc(1, sizeof(Match));
   if (match == NULL) {
     perror("malloc");
     return NULL;
