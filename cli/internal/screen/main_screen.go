@@ -364,6 +364,7 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 		m.matchInfo.MaxAttempts = roundStartedEvent.MaxAttempts
 		m.matchInfo.CurrentRound = roundStartedEvent.RoundNumber
 		m.game.guesses = nil
+		m.game.input.SetValue("")
 
 	case protocol.WAIT_GUESS:
 		m.game.state = game.StateWaitGuess
