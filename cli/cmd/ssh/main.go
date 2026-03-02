@@ -1,6 +1,7 @@
 package main
 
 import (
+	"guessh/internal/config"
 	"guessh/internal/logger"
 	"guessh/internal/screen"
 	"os"
@@ -17,12 +18,15 @@ func main() {
 
 	var (
 		server *ssh.Server
-		addr   = "0.0.0.0:2222"
 		err    error
 	)
 
+	addr := config.GetEnv("GUESSH_SSH_ADDR", "0.0.0.0:2222")
+	keyPath := config.GetEnv("HOST_KEY_PATH", ".ssh/term_info_ed25519")
+
 	server, err = wish.NewServer(
 		wish.WithAddress(addr),
+		wish.WithHostKeyPath(keyPath),
 		wish.WithIdleTimeout(10*time.Minute),
 		wish.WithMiddleware(
 			wtea.Middleware(func(session ssh.Session) (tea.Model, []tea.ProgramOption) {
