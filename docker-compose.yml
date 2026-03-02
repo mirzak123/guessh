@@ -22,7 +22,10 @@ services:
       - WORDS_PATH=./words
       - HOST_KEY_PATH=/app/.ssh/id_ed25519
     volumes:
-      - ./ssh_key_data:/app/.ssh
+      - guessh_ssh_keys:/app/.ssh
     depends_on:
       - guessh-server
     restart: always
+
+volumes:
+  guessh_ssh_keys:
