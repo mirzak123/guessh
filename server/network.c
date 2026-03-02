@@ -42,7 +42,7 @@ int start_listening(char *port) {
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_flags = AI_PASSIVE;
 
-  if ((status = getaddrinfo("localhost", port, &hints, &servinfo)) != 0) {
+  if ((status = getaddrinfo(NULL, port, &hints, &servinfo)) != 0) {
     fprintf(stderr, "gai error: %s\n", gai_strerror(status));
     exit(1);
   }

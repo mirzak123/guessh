@@ -1,6 +1,9 @@
 bin/
 .cache/
+
 .ssh/
-*.log
+ssh_key_data/
+
 compile_commands.json
+*.log
 .env

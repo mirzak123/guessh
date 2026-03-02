@@ -8,12 +8,15 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/ssh"
 	"github.com/charmbracelet/wish"
 	wtea "github.com/charmbracelet/wish/bubbletea"
+	"github.com/muesli/termenv"
 )
 
 func main() {
+	lipgloss.SetColorProfile(termenv.TrueColor)
 	logger.EnsureLoggerSetup("ssh.log")
 
 	var (

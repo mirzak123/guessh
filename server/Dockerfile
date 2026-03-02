@@ -8,7 +8,6 @@ RUN make build-server
 
 # Stage 2: Runtime
 FROM alpine:3.19
-# Use 'cjson' instead of 'libcjson'
 RUN apk add --no-cache cjson
 WORKDIR /app
 COPY --from=builder /app/bin/server .
