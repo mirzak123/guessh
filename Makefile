@@ -15,11 +15,12 @@ $(shell mkdir -p $(BUILD_DIR))
 # 2. C SERVER CONFIGURATION
 # ==========================================
 SERVER_DIR := server
-BREW_PREFIX := /opt/homebrew
+CC         := gcc
+CFLAGS     := -std=c17 -Wall -Wextra -pedantic
+LDFLAGS    := 
 
-CC := gcc
-CFLAGS := -std=c17 -Wall -Wextra -pedantic -I$(BREW_PREFIX)/include
-LDFLAGS := -L$(BREW_PREFIX)/lib -lcjson
+CFLAGS  += $(shell pkg-config --cflags libcjson)
+LDFLAGS += $(shell pkg-config --libs libcjson)
 
 _SRCS := main.c network.c game_logic.c game_server.c game_types.c json_messages.c client.c util.c hash_table.c room.c
 SERVER_SRC := $(addprefix $(SERVER_DIR)/,$(_SRCS))
