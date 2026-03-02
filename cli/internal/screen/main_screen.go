@@ -268,10 +268,6 @@ func (m *mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		_, waitingOpponentCmd := m.waitingOpponentScreen.Update(msg)
 		cmds = append(cmds, waitingOpponentCmd)
 
-		if m.waitingOpponentScreen.form.State == huh.StateCompleted {
-			cmds = append(cmds, emit(game.LeaveMatchIntent{}))
-		}
-
 	case RequestRematchScreenID:
 		_, rematchRequestedCmd := m.requestRematchScreen.Update(msg)
 		cmds = append(cmds, rematchRequestedCmd)
