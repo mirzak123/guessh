@@ -15,7 +15,7 @@ services:
       dockerfile: cli/Dockerfile
     container_name: guessh-ssh
     ports:
-      - "2222:2222"
+      - "22:2222"
     environment:
       - GAME_SERVER_ADDR=guessh-server:2480
       - GUESSH_SSH_ADDR=0.0.0.0:2222
