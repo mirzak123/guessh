@@ -96,9 +96,9 @@ void delete_word_challenge(WordChallenge *wc) {
 }
 
 Player *new_player(int client_fd, char *name) {
-  Player *player = malloc(sizeof(Player));
+  Player *player = calloc(1, sizeof(Player));
   if (player == NULL) {
-    perror("malloc");
+    perror("calloc");
     return NULL;
   }
 
