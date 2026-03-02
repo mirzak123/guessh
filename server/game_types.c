@@ -15,14 +15,21 @@ Match *new_match(GameMode mode, size_t round_capacity, size_t word_len) {
     return NULL;
   }
 
-  match->id = malloc(sizeof(long));
-  sprintf(match->id, "%d", generate_unique_id());
+  match->id = malloc(16);
+  snprintf(match->id, 16, "%d", generate_unique_id());
 
   match->round_capacity = round_capacity;
   match->mode = mode;
-  match->round_idx = -1;
-  match->rounds = malloc(sizeof(Round) * round_capacity);
   match->word_len = word_len;
+  match->round_idx = -1;
+
+  match->rounds = calloc(round_capacity, sizeof(Round *));
+  if (match->rounds == NULL) {
+    perror("calloc rounds");
+    free(match->id);
+    free(match);
+    return NULL;
+  }
 
   return match;
 }
@@ -44,9 +51,9 @@ void delete_match(Match *match) { // TODO: Call this somewhere. Currently no mat
 }
 
 Round *new_round(WordChallenge *word_challenge) {
-  Round *round = malloc(sizeof(Round));
+  Round *round = calloc(1, sizeof(Round));
   if (round == NULL) {
-    perror("malloc");
+    perror("calloc");
     return NULL;
   }
 
