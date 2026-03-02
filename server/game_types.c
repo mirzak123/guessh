@@ -1,6 +1,8 @@
 #include "game_types.h"
 #include "game_logic.h"
+#include "room.h"
 #include "util.h"
+
 #include <cjson/cJSON.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -8,31 +10,34 @@
 #include <string.h>
 
 Match *new_match(GameMode mode, size_t round_capacity, size_t word_len) {
-  Match *match = malloc(sizeof(Match));
+  Match *match = calloc(1, sizeof(Match));
   if (match == NULL) {
-    perror("malloc");
+    perror("calloc");
     return NULL;
   }
 
-  match->id = malloc(sizeof(long));
-  sprintf(match->id, "%d", generate_unique_id());
+  match->id = malloc(16);
+  snprintf(match->id, 16, "%d", generate_unique_id());
 
   match->round_capacity = round_capacity;
   match->mode = mode;
-  match->round_idx = -1;
-  match->rounds = malloc(sizeof(Round) * round_capacity);
   match->word_len = word_len;
+  match->round_idx = -1;
+
+  match->rounds = calloc(round_capacity, sizeof(Round *));
+  if (match->rounds == NULL) {
+    perror("calloc rounds");
+    free(match->id);
+    free(match);
+    return NULL;
+  }
 
   return match;
 }
 
-void delete_match(Match *match) { // TODO: Call this somewhere. Currently no match is ever deleted.
+void delete_match(Match *match) {
   free(match->id);
   free(match->room_id);
-  if (match->player1 != NULL)
-    delete_player(match->player1);
-  if (match->player2 != NULL)
-    delete_player(match->player2);
 
   for (int i = 0; i <= match->round_idx; i++) {
     printf("Deleting round idx: %d\n", i);
@@ -43,9 +48,9 @@ void delete_match(Match *match) { // TODO: Call this somewhere. Currently no mat
 }
 
 Round *new_round(WordChallenge *word_challenge) {
-  Round *round = malloc(sizeof(Round));
+  Round *round = calloc(1, sizeof(Round));
   if (round == NULL) {
-    perror("malloc");
+    perror("calloc");
     return NULL;
   }
 
@@ -60,16 +65,22 @@ void delete_round(Round *round) {
 }
 
 WordChallenge *new_word_challenge(WordStore *store, int max_attempts) {
-  WordChallenge *wc = malloc(sizeof(WordChallenge));
+  WordChallenge *wc = calloc(1, sizeof(WordChallenge));
   if (wc == NULL) {
-    perror("malloc");
+    perror("calloc");
     return NULL;
   }
 
   wc->word_len = store->word_len;
   wc->attempt_count = 0;
   wc->max_attempts = max_attempts;
-  wc->guess_attempts = malloc(sizeof(char *) * max_attempts);
+  wc->guess_attempts = calloc(max_attempts, sizeof(char *));
+  if (wc->guess_attempts == NULL) {
+    perror("calloc guess_attempts");
+    free(wc);
+    return NULL;
+  }
+
   wc->word = get_random_word(store);
   printf("[new_word_challenge] word: %s\n", wc->word);
 
@@ -77,8 +88,6 @@ WordChallenge *new_word_challenge(WordStore *store, int max_attempts) {
 }
 
 void delete_word_challenge(WordChallenge *wc) {
-  free(wc->word);
-
   printf("Deleting word challenge. Attempt count: %d\n", (int)wc->attempt_count);
   for (int i = 0; i < (int)wc->attempt_count; i++) {
     free(wc->guess_attempts[i]);
@@ -88,9 +97,9 @@ void delete_word_challenge(WordChallenge *wc) {
 }
 
 Player *new_player(int client_fd, char *name) {
-  Player *player = malloc(sizeof(Player));
+  Player *player = calloc(1, sizeof(Player));
   if (player == NULL) {
-    perror("malloc");
+    perror("calloc");
     return NULL;
   }
 
@@ -108,6 +117,24 @@ Player *new_player(int client_fd, char *name) {
 }
 
 void delete_player(Player *player) {
+  if (player->match) {
+    Match *match = player->match;
+    if (player == match->player1) {
+      match->player1 = NULL;
+    } else if (player == match->player2) {
+      match->player2 = NULL;
+    }
+  }
+
+  if (player->room) {
+    Room *room = player->room;
+    if (player == room->player1) {
+      room->player1 = NULL;
+    } else if (player == room->player2) {
+      room->player2 = NULL;
+    }
+  }
+
   free(player->name);
   free(player);
 }

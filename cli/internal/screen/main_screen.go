@@ -268,10 +268,6 @@ func (m *mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		_, waitingOpponentCmd := m.waitingOpponentScreen.Update(msg)
 		cmds = append(cmds, waitingOpponentCmd)
 
-		if m.waitingOpponentScreen.form.State == huh.StateCompleted {
-			cmds = append(cmds, emit(game.LeaveMatchIntent{}))
-		}
-
 	case RequestRematchScreenID:
 		_, rematchRequestedCmd := m.requestRematchScreen.Update(msg)
 		cmds = append(cmds, rematchRequestedCmd)
@@ -364,6 +360,7 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 		m.matchInfo.MaxAttempts = roundStartedEvent.MaxAttempts
 		m.matchInfo.CurrentRound = roundStartedEvent.RoundNumber
 		m.game.guesses = nil
+		m.game.input.SetValue("")
 
 	case protocol.WAIT_GUESS:
 		m.game.state = game.StateWaitGuess

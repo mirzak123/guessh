@@ -1,5 +1,7 @@
 #include "room.h"
+#include "game_types.h"
 #include "util.h"
+
 #include <stdlib.h>
 
 Room *new_room(void) {
@@ -11,6 +13,14 @@ Room *new_room(void) {
 }
 
 void delete_room(Room *room) {
+  if (room == NULL)
+    return;
+
+  if (room->player1)
+    room->player1->room = NULL;
+  if (room->player2)
+    room->player2->room = NULL;
+
   free(room->id);
   free(room);
 }

@@ -8,9 +8,10 @@ int generate_unique_id(void) {
 }
 
 char *generate_random_string(int len) {
-  char *str = malloc(sizeof(char) * len);
+  char *str = malloc(sizeof(char) * (len + 1));
   for (int i = 0; i < len; i++) {
     str[i] = rand() % ('Z' + 1 - 'A') + 'A';
   }
+  str[len] = '\0';
   return str;
 }

@@ -34,6 +34,7 @@
 #define E_PLAYER_NOT_IN_ROOM "Player is not in a room"
 #define E_ROOM_FULL "Room is full"
 #define E_ROOM_NOT_FOUND "Room could not be found"
+#define E_UNKNOWN "An unknown error has occured"
 
 typedef enum {
   MALFORMED_MESSAGE = -1,
@@ -67,6 +68,7 @@ typedef enum {
 } MessageType;
 
 typedef struct {
+  HashTable *matches;
   HashTable *clients;
   HashTable *rooms;
   struct {
@@ -87,6 +89,8 @@ void GS_handle_request_rematch(GameServer *gs, Client *client);
 void GS_handle_deny_rematch(GameServer *gs, Client *client);
 void GS_handle_typing(Client *client, cJSON *json_request);
 void GS_handle_leave_match(Client *client);
+
+void GS_create_room(GameServer *gs, Match *match, Client *client);
 void GS_start_match(GameServer *gs, Match *match);
 void GS_start_round(GameServer *gs, Match *match);
 void GS_end_match(Match *match, Player *disconnected_player);

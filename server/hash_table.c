@@ -31,10 +31,23 @@ HashTable *HT_create(void) {
   return table;
 }
 
-void HT_destroy(HashTable *table) {
-  for (int i = 0; i < table->capacity; i++)
-    if (table->entries[i].key.type == HT_KEY_STR)
-      free(table->entries[i].key.str);
+void HT_destroy(HashTable *table, ValueDestructor destructor) {
+  if (!table)
+    return;
+
+  for (int i = 0; i < table->capacity; i++) {
+    Entry *entry = &table->entries[i];
+
+    if (entry->key.type == HT_KEY_EMPTY)
+      continue;
+
+    if (entry->key.type == HT_KEY_STR)
+      free(entry->key.str);
+
+    if (destructor != NULL && entry->value != NULL) {
+      destructor(entry->value);
+    }
+  }
 
   free(table->entries);
   free(table);
