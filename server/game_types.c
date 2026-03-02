@@ -34,13 +34,9 @@ Match *new_match(GameMode mode, size_t round_capacity, size_t word_len) {
   return match;
 }
 
-void delete_match(Match *match) { // TODO: Call this somewhere. Currently no match is ever deleted.
+void delete_match(Match *match) {
   free(match->id);
   free(match->room_id);
-  if (match->player1 != NULL)
-    delete_player(match->player1);
-  if (match->player2 != NULL)
-    delete_player(match->player2);
 
   for (int i = 0; i <= match->round_idx; i++) {
     printf("Deleting round idx: %d\n", i);
@@ -68,16 +64,22 @@ void delete_round(Round *round) {
 }
 
 WordChallenge *new_word_challenge(WordStore *store, int max_attempts) {
-  WordChallenge *wc = malloc(sizeof(WordChallenge));
+  WordChallenge *wc = calloc(1, sizeof(WordChallenge));
   if (wc == NULL) {
-    perror("malloc");
+    perror("calloc");
     return NULL;
   }
 
   wc->word_len = store->word_len;
   wc->attempt_count = 0;
   wc->max_attempts = max_attempts;
-  wc->guess_attempts = malloc(sizeof(char *) * max_attempts);
+  wc->guess_attempts = calloc(max_attempts, sizeof(char *));
+  if (wc->guess_attempts == NULL) {
+    perror("calloc guess_attempts");
+    free(wc);
+    return NULL;
+  }
+
   wc->word = get_random_word(store);
   printf("[new_word_challenge] word: %s\n", wc->word);
 

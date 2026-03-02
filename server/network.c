@@ -156,7 +156,7 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
     cleanup_game(client);
 
     close(client_fd);
-    free(client);
+    delete_client(client);
     HT_delete(gs->clients, KEY(client_fd));
     del_from_pfds(pfds, *pfd_i, fd_count);
 
@@ -174,6 +174,7 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
     cleanup_game(client);
 
     close(client_fd);
+    delete_client(client);
     del_from_pfds(pfds, *pfd_i, fd_count);
     (*pfd_i)--;
     return;
@@ -239,19 +240,18 @@ void process_connections(GameServer *gs, int listen_fd, int *fd_size, int *fd_co
 }
 
 static void cleanup_game(Client *client) {
-  Match *match = NULL;
-  if (client->player != NULL) {
-    client->player->wants_rematch = false;
-    match = client->player->match;
-    Room *room = client->player->room;
-    if (room != NULL) {
-      Player *opponent = get_opponent(room->player1, room->player2, client->player);
-      send_only_type(opponent->client_fd, STR(OPPONENT_LEFT));
-    }
-  }
+  if (client == NULL || client->player == NULL)
+    return;
 
-  // Delete match if it exists
+  Match *match = client->player->match;
   if (match != NULL) {
     GS_end_match(match, client->player);
+  }
+
+  Room *room = client->player->room;
+  if (room != NULL) {
+    Player *opponent = get_opponent(room->player1, room->player2, client->player);
+    if (opponent != NULL)
+      send_only_type(opponent->client_fd, STR(OPPONENT_LEFT));
   }
 }
