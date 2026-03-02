@@ -3,8 +3,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/errno.h>
-#include <sys/poll.h>
 #include <sys/socket.h>
 #include <time.h>
 #include <unistd.h>
@@ -13,7 +11,8 @@
 #include "game_server.h"
 #include "network.h"
 
-#define PORT "2480"
+#define ENV_PORT "GUESSH_SERVER_PORT"
+#define DEFAULT_PORT "2480"
 #define BUFF_LEN 1000
 
 int main(void) {
@@ -23,8 +22,13 @@ int main(void) {
   int fd_count;    // current connections
   struct pollfd *pfds = malloc(sizeof *pfds * fd_size);
 
-  listen_fd = start_listening(PORT);
-  printf("Listening on port %s...\n", PORT);
+  char *port = getenv(ENV_PORT);
+  if (port == NULL) {
+    port = DEFAULT_PORT;
+  }
+
+  listen_fd = start_listening(port);
+  printf("Listening on port %s...\n", port);
 
   // Add listener to poll file descriptor list
   pfds[0].fd = listen_fd;

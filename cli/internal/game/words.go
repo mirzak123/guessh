@@ -1,8 +1,10 @@
 package game
 
 import (
+	"guessh/internal/config"
 	"guessh/internal/logger"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 )
@@ -18,9 +20,11 @@ var (
 func EnsureDictionariesLoaded() {
 	loadOnce.Do(func() {
 		// This executes exactly once even if CLI is served through SSH and multiple clients connect
-		FiveLetterWords = ExtractWordsFromFile("/Users/mirza/code/personal/guessh/words/five-letter.txt")
-		SixLetterWords = ExtractWordsFromFile("/Users/mirza/code/personal/guessh/words/six-letter.txt")
-		SevenLetterWords = ExtractWordsFromFile("/Users/mirza/code/personal/guessh/words/seven-letter.txt")
+		basePath := config.GetEnv("WORDS_PATH", "./words")
+
+		FiveLetterWords = ExtractWordsFromFile(filepath.Join(basePath, "five-letter.txt"))
+		SixLetterWords = ExtractWordsFromFile(filepath.Join(basePath, "six-letter.txt"))
+		SevenLetterWords = ExtractWordsFromFile(filepath.Join(basePath, "seven-letter.txt"))
 	})
 }
 

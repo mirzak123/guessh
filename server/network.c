@@ -4,18 +4,19 @@
 #include "game_types.h"
 #include "hash_table.h"
 #include "room.h"
+
 #include <arpa/inet.h>
+#include <errno.h>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <poll.h>
 #include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/errno.h>
-#include <sys/poll.h>
-#include <sys/signal.h>
 #include <sys/socket.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 static void cleanup_game(Client *client);
@@ -41,7 +42,7 @@ int start_listening(char *port) {
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_flags = AI_PASSIVE;
 
-  if ((status = getaddrinfo("localhost", port, &hints, &servinfo)) != 0) {
+  if ((status = getaddrinfo(NULL, port, &hints, &servinfo)) != 0) {
     fprintf(stderr, "gai error: %s\n", gai_strerror(status));
     exit(1);
   }

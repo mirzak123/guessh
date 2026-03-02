@@ -1,9 +1,10 @@
 #include "game_logic.h"
+
+#include <fcntl.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/fcntl.h>
 #include <unistd.h>
 
 static char **read_fixed_lines(FILE *file, size_t line_len, size_t *out_count);
@@ -45,12 +46,20 @@ char *get_random_word(WordStore *store) {
   return store->words[index];
 }
 
-WordStore *new_word_store(char *filepath, size_t word_len) {
+WordStore *new_word_store(char *filename, size_t word_len) {
   WordStore *store = malloc(sizeof(WordStore));
   if (store == NULL) {
     perror("malloc");
     exit(EXIT_FAILURE);
   }
+
+  char *words_base = getenv(ENV_WORDS_PATH);
+  if (words_base == NULL) {
+    words_base = DEFAULT_WORDS_PATH;
+  }
+
+  char filepath[512];
+  snprintf(filepath, sizeof(filepath), "%s/%s", words_base, filename);
 
   FILE *file = fopen(filepath, "r");
   if (file == NULL) {

@@ -1,6 +1,4 @@
 #include "hash_table.h"
-#include <_stdio.h>
-#include <_string.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>

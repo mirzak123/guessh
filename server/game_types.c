@@ -1,11 +1,11 @@
 #include "game_types.h"
 #include "game_logic.h"
 #include "util.h"
-#include <_string.h>
 #include <cjson/cJSON.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 Match *new_match(GameMode mode, size_t round_capacity, size_t word_len) {
   Match *match = malloc(sizeof(Match));

@@ -5,7 +5,6 @@
 #include "hash_table.h"
 #include "json_messages.h"
 #include "room.h"
-#include <_string.h>
 #include <assert.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -601,6 +600,7 @@ void GS_end_match(Match *match, Player *disconnected_player) {
       cJSON_Delete(match_finished_json);
     }
 
+    /* fallthrough */
   case SINGLE:
     if (match->player1 != disconnected_player) {
       match->player1->match = NULL;
@@ -633,6 +633,7 @@ void GS_end_round(GameServer *gs, Match *match) {
     round_finished_json = json_round_finished(outcome, round->wc->word);
     send_json(match->player2->client_fd, round_finished_json);
     cJSON_Delete(round_finished_json);
+    /* fallthrough */
   case SINGLE:
     round_finished_json = json_round_finished(round->outcome, round->wc->word);
     send_json(match->player1->client_fd, round_finished_json);

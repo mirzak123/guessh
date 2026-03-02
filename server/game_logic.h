@@ -7,9 +7,12 @@
 #define MIN_WORD_LEN 5
 #define MAX_WORD_LEN 7
 
-#define FIVE_LETTER_WORD_FILE "../words/five-letter.txt"
-#define SIX_LETTER_WORD_FILE "../words/six-letter.txt"
-#define SEVEN_LETTER_WORD_FILE "../words/seven-letter.txt"
+#define ENV_WORDS_PATH "WORDS_PATH"
+#define DEFAULT_WORDS_PATH "./words"
+
+#define FIVE_LETTER_WORD_FILE "five-letter.txt"
+#define SIX_LETTER_WORD_FILE "six-letter.txt"
+#define SEVEN_LETTER_WORD_FILE "seven-letter.txt"
 
 typedef enum {
   LETTER_ABSENT,
@@ -23,7 +26,7 @@ typedef struct {
   size_t word_count;
 } WordStore;
 
-WordStore *new_word_store(char *filepath, size_t word_len);
+WordStore *new_word_store(char *filename, size_t word_len);
 void delete_word_store(WordStore *store);
 
 bool evaluate_guess(const char *guess_word, const char *target_word, LetterFeedback *feedback, size_t len);

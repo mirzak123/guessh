@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"guessh/internal/client"
+	"guessh/internal/config"
 	"guessh/internal/game"
 	"guessh/internal/logger"
 	"guessh/internal/protocol"
@@ -72,7 +73,9 @@ func InitialModel() *mainModel {
 		requestRematchScreen: NewRequestRematchModel(),
 	}
 
-	conn, err := net.Dial("tcp", "localhost:2480")
+	serverAddr := config.GetEnv("GAME_SERVER_ADDR", "localhost:2480")
+
+	conn, err := net.Dial("tcp", serverAddr)
 	if err != nil {
 		logger.Error("net.Dial error: %v", err)
 		m.screenID = ServerDownScreenID
