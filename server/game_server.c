@@ -99,7 +99,11 @@ void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request)
   char *mode_str, *player_name_str = NULL;
   GameMode game_mode;
 
-  printf("[GS_handle_create_match] json_request: %s\n", cJSON_PrintUnformatted(json_request));
+  char *debug_json = cJSON_PrintUnformatted(json_request);
+  if (debug_json) {
+    printf("[GS_handle_create_match] json_request: %s\n", debug_json);
+    free(debug_json);
+  }
 
   if (client->player != NULL && client->player->match != NULL) {
     send_error(client->fd, E_ALREADY_IN_MATCH);
