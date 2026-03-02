@@ -1,6 +1,7 @@
 #include "game_types.h"
 #include "game_logic.h"
 #include "util.h"
+
 #include <cjson/cJSON.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -10,7 +11,7 @@
 Match *new_match(GameMode mode, size_t round_capacity, size_t word_len) {
   Match *match = calloc(1, sizeof(Match));
   if (match == NULL) {
-    perror("malloc");
+    perror("calloc");
     return NULL;
   }
 
