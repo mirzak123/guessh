@@ -16,7 +16,7 @@ $(shell mkdir -p $(BUILD_DIR))
 # ==========================================
 SERVER_DIR := server
 CC         := gcc
-CFLAGS     := -std=c17 -Wall -Wextra -pedantic
+CFLAGS     := -std=gnu17 -Wall -Wextra -pedantic
 LDFLAGS    := 
 
 CFLAGS  += $(shell pkg-config --cflags libcjson)

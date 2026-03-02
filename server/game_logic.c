@@ -1,9 +1,10 @@
 #include "game_logic.h"
+
+#include <fcntl.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/fcntl.h>
 #include <unistd.h>
 
 static char **read_fixed_lines(FILE *file, size_t line_len, size_t *out_count);
