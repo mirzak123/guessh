@@ -16,7 +16,7 @@ import (
 )
 
 func main() {
-	lipgloss.SetColorProfile(termenv.TrueColor)
+	lipgloss.SetColorProfile(termenv.ANSI256)
 	logger.EnsureLoggerSetup("ssh.log")
 
 	var (
