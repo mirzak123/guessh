@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <poll.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,6 +15,10 @@
 #define ENV_PORT "GUESSH_SERVER_PORT"
 #define DEFAULT_PORT "2480"
 #define BUFF_LEN 1000
+
+static void handle_shutdown(int sig);
+
+volatile sig_atomic_t server_running = true;
 
 int main(void) {
   GameServer *gs;
@@ -37,7 +42,11 @@ int main(void) {
 
   srand(time(NULL));
   gs = GS_create();
-  for (;;) {
+
+  signal(SIGINT, handle_shutdown);
+  signal(SIGTERM, handle_shutdown);
+
+  while (server_running) {
     int poll_count = poll(pfds, fd_count, -1);
 
     if (poll_count == -1) {
@@ -51,8 +60,14 @@ int main(void) {
     process_connections(gs, listen_fd, &fd_size, &fd_count, &pfds);
   }
 
+  printf("\nShutting down gracefully...\n");
   GS_destroy(gs);
   free(pfds);
 
   return 0;
+}
+
+static void handle_shutdown(int sig) {
+  (void)sig;
+  server_running = false;
 }
