@@ -184,6 +184,7 @@ func (m *gameModel) View() string {
 		lipgloss.Center,
 		headerRow,
 		emptyLine,
+		emptyLine,
 		guessGrid,
 		emptyLine,
 		m.statusBar(),
