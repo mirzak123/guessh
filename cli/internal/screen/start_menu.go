@@ -143,7 +143,8 @@ func NewStartMenu(matchInfo *game.MatchInfo) (*huh.Form, *bool) {
 	)
 
 	form := huh.NewForm(
-		huh.NewGroup(modeInput),
+		huh.NewGroup(modeInput).
+			WithShowHelp(false),
 
 		huh.NewGroup(joinExistingInput).
 			WithHideFunc(func() bool {
