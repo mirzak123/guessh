@@ -22,7 +22,8 @@ import (
 type ScreenID int
 
 const (
-	GameConfigScreenID ScreenID = iota
+	StartMenuScreenID ScreenID = iota
+	GameConfigScreenID
 	GameScreenID
 	WaitingOpponentScreenID
 	RequestRematchScreenID
@@ -54,6 +55,7 @@ type mainModel struct {
 	confirm       *bool
 
 	screenID              ScreenID
+	startMenuScreen       *startMenuModel
 	gameConfigMenu        *huh.Form
 	game                  *gameModel
 	waitingOpponentScreen *waitingOpponentModel
@@ -66,9 +68,10 @@ func InitialModel() *mainModel {
 	game.EnsureDictionariesLoaded()
 
 	m := &mainModel{
-		screenID:             GameConfigScreenID,
+		screenID:             StartMenuScreenID,
 		matchInfo:            game.NewMatchInfo(),
 		event:                make(chan transport.EventMsg),
+		startMenuScreen:      NewStartMenu(),
 		serverDownScreen:     NewServerDownForm(),
 		requestRematchScreen: NewRequestRematchModel(),
 	}
@@ -128,7 +131,7 @@ func (m *mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 		return m, tea.Batch(cmds...)
 
-	case game.StartGameIntent:
+	case game.StartGameIntent: // TODO: Rename to PlayGameIntent
 		m.screenID = GameConfigScreenID
 		m.matchInfo = game.NewMatchInfo()
 		m.gameConfigMenu, m.confirm = NewGameConfigMenu(m.matchInfo)
@@ -218,6 +221,10 @@ func (m *mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch m.screenID {
 
+	case StartMenuScreenID:
+		_, startMenuCmd := m.startMenuScreen.Update(msg)
+		cmds = append(cmds, startMenuCmd)
+
 	case GameConfigScreenID:
 		updatedModel, formCmd := m.gameConfigMenu.Update(msg)
 		m.gameConfigMenu = updatedModel.(*huh.Form)
@@ -292,6 +299,8 @@ func (m *mainModel) View() string {
 	var content string
 
 	switch m.screenID {
+	case StartMenuScreenID:
+		content = m.startMenuScreen.View()
 	case GameConfigScreenID:
 		content = m.gameConfigMenu.View()
 	case ServerDownScreenID:
