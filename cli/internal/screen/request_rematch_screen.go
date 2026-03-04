@@ -54,7 +54,7 @@ func (m *requestRematchModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	if m.form.State == huh.StateCompleted {
 		if m.opponentDeniedRematch {
-			return m, emit(game.StartGameIntent{})
+			return m, emit(game.StartMenuIntent{})
 		} else {
 			return m, emit(game.DenyRematchIntent{})
 		}

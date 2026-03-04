@@ -131,7 +131,10 @@ func (m *mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 		return m, tea.Batch(cmds...)
 
-	case game.StartGameIntent: // TODO: Rename to PlayGameIntent
+	case game.StartMenuIntent:
+		m.screenID = StartMenuScreenID
+
+	case game.PlayGameIntent:
 		m.screenID = GameConfigScreenID
 		m.matchInfo = game.NewMatchInfo()
 		m.gameConfigMenu, m.confirm = NewGameConfigMenu(m.matchInfo)
@@ -172,7 +175,7 @@ func (m *mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.matchInfo.RoomID = ""
 		m.client.DenyRematch()
-		cmds = append(cmds, emit(game.StartGameIntent{}))
+		cmds = append(cmds, emit(game.StartMenuIntent{}))
 
 	case game.MakeGuessIntent:
 		m.client.MakeGuess(msg.Guess)
@@ -194,7 +197,7 @@ func (m *mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case game.LeaveMatchIntent:
 		m.client.LeaveMatch()
-		cmds = append(cmds, emit(game.StartGameIntent{}))
+		cmds = append(cmds, emit(game.StartMenuIntent{}))
 
 	case game.TypingIntent:
 		if m.matchInfo.Mode == protocol.MULTI_REMOTE {

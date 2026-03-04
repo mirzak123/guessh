@@ -51,7 +51,7 @@ func (m *startMenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter":
 			switch m.selected {
 			case 0:
-				return m, emit(game.StartGameIntent{})
+				return m, emit(game.PlayGameIntent{})
 			case 1:
 				return m, tea.Quit
 			}
