@@ -125,7 +125,7 @@ func (m matchResultsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, emit(game.RequestRematchIntent{})
 			} else {
 				return m, tea.Batch(
-					emit(game.StartGameIntent{}),
+					emit(game.StartMenuIntent{}),
 				)
 			}
 		} else {

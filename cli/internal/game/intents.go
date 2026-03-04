@@ -15,7 +15,9 @@ type MakeGuessIntent struct {
 	Guess string
 }
 
-type StartGameIntent struct{}
+type StartMenuIntent struct{}
+
+type PlayGameIntent struct{}
 
 type TypingIntent struct {
 	Value string

@@ -130,15 +130,29 @@ func (m *gameModel) View() string {
 	var (
 		playerOutcome   = protocol.OUTCOME_PLAYER_WON
 		opponentOutcome = protocol.OUTCOME_OPPONENT_WON
+		p1Symbol        = ui.OutcomeBlock(&playerOutcome)
+		p2Symbol        string
+		p1Name          string
+		p2Name          string
 	)
 
+	if m.matchInfo.Mode == protocol.SINGLE {
+		p2Symbol = "∅"
+		p1Name = "You"
+		p2Name = "No Opponent"
+	} else {
+		p2Symbol = ui.OutcomeBlock(&opponentOutcome)
+		p1Name = m.matchInfo.PlayerName
+		p2Name = m.matchInfo.OpponentName
+	}
+
 	player1 := fmt.Sprintf("%s%s",
-		lipgloss.NewStyle().MarginRight(1).Render(ui.OutcomeBlock(&playerOutcome)),
-		m.matchInfo.PlayerName,
+		lipgloss.NewStyle().MarginRight(1).Render(p1Symbol),
+		p1Name,
 	)
 	player2 := fmt.Sprintf("%s%s",
-		lipgloss.NewStyle().MarginRight(1).Render(ui.OutcomeBlock(&opponentOutcome)),
-		m.matchInfo.OpponentName,
+		lipgloss.NewStyle().MarginRight(1).Render(p2Symbol),
+		p2Name,
 	)
 
 	p1w := lipgloss.Width(player1)
@@ -184,6 +198,7 @@ func (m *gameModel) View() string {
 		lipgloss.Center,
 		headerRow,
 		emptyLine,
+		emptyLine,
 		guessGrid,
 		emptyLine,
 		m.statusBar(),
@@ -228,20 +243,7 @@ func (m *gameModel) statusBar() string {
 		)
 
 	} else {
-		gue := lipgloss.NewStyle().
-			Bold(true).
-			Foreground(ui.White).
-			Render("Gue")
-
-		ssh := lipgloss.NewStyle().
-			Bold(true).
-			Foreground(ui.Purple).
-			Render("SSH")
-
-		content = lipgloss.JoinHorizontal(
-			lipgloss.Center,
-			gue, ssh,
-		)
+		content = ui.SmallLogo()
 	}
 
 	return lipgloss.NewStyle().

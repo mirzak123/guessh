@@ -24,7 +24,7 @@ var GameModeLabels = map[protocol.GameMode]string{
 	protocol.MULTI_REMOTE: "Two player remote",
 }
 
-func NewStartMenu(matchInfo *game.MatchInfo) (*huh.Form, *bool) {
+func NewGameConfigMenu(matchInfo *game.MatchInfo) (*huh.Form, *bool) {
 	confirm := true
 
 	var (
@@ -143,7 +143,8 @@ func NewStartMenu(matchInfo *game.MatchInfo) (*huh.Form, *bool) {
 	)
 
 	form := huh.NewForm(
-		huh.NewGroup(modeInput),
+		huh.NewGroup(modeInput).
+			WithShowHelp(false),
 
 		huh.NewGroup(joinExistingInput).
 			WithHideFunc(func() bool {

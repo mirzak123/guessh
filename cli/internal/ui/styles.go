@@ -3,6 +3,7 @@ package ui
 import (
 	"guessh/internal/protocol"
 
+	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -16,6 +17,8 @@ var (
 )
 
 var (
+	Theme = huh.ThemeCharm()
+
 	MainContentStyle = lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder()).
 				BorderForeground(Purple).
