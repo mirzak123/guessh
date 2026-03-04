@@ -92,7 +92,7 @@ func (m *startMenuModel) View() string {
 		"\n",
 		welcomeMessage,
 		lipgloss.NewStyle().Foreground(ui.Gray).Italic(true).Render(shamelessPlug),
-		"\n",
+		"\n\n",
 		lipgloss.JoinHorizontal(lipgloss.Center, strings.Join(buttons, " ")),
 	)
 
