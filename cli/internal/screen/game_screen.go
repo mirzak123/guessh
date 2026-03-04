@@ -229,20 +229,7 @@ func (m *gameModel) statusBar() string {
 		)
 
 	} else {
-		gue := lipgloss.NewStyle().
-			Bold(true).
-			Foreground(ui.White).
-			Render("Gue")
-
-		ssh := lipgloss.NewStyle().
-			Bold(true).
-			Foreground(ui.Purple).
-			Render("SSH")
-
-		content = lipgloss.JoinHorizontal(
-			lipgloss.Center,
-			gue, ssh,
-		)
+		content = ui.SmallLogo()
 	}
 
 	return lipgloss.NewStyle().

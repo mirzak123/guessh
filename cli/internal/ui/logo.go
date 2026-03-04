@@ -27,3 +27,20 @@ func ASCIILogo() string {
 		lipgloss.NewStyle().Foreground(Purple).Render(ssh),
 	)
 }
+
+func SmallLogo() string {
+	gue := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(White).
+		Render("Gue")
+
+	ssh := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(Purple).
+		Render("SSH")
+
+	return lipgloss.JoinHorizontal(
+		lipgloss.Center,
+		gue, ssh,
+	)
+}
