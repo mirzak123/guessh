@@ -3,6 +3,7 @@ package screen
 import (
 	"guessh/internal/game"
 	"guessh/internal/ui"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -37,15 +38,15 @@ func (m *startMenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 
-		case "up", "k":
+		case "left", "h":
 			if m.selected > 0 {
 				m.selected--
+			} else {
+				m.selected = len(m.options) - 1
 			}
 
-		case "down", "j":
-			if m.selected < len(m.options)-1 {
-				m.selected++
-			}
+		case "right", "l":
+			m.selected = (m.selected + 1) % len(m.options)
 
 		case "enter":
 			switch m.selected {
@@ -61,9 +62,26 @@ func (m *startMenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *startMenuModel) View() string {
-	buttons := lipgloss.JoinVertical(lipgloss.Center, m.options...)
+	welcomeMessage := "Welcome to our little game"
 
-	content := ui.ASCIILogo() + "\n\n" + buttons
+	var buttons []string
+
+	for i, option := range m.options {
+		if m.selected == i {
+			buttons = append(buttons, ui.Theme.Focused.FocusedButton.Render(option))
+		} else {
+			buttons = append(buttons, ui.Theme.Blurred.BlurredButton.Render(option))
+		}
+	}
+
+	content := lipgloss.JoinVertical(
+		lipgloss.Center,
+		ui.ASCIILogo(),
+		"\n",
+		welcomeMessage,
+		"\n",
+		lipgloss.JoinHorizontal(lipgloss.Center, strings.Join(buttons, " ")),
+	)
 
 	return lipgloss.Place(
 		m.width,
