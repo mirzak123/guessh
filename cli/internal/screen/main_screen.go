@@ -303,7 +303,7 @@ func (m *mainModel) View() string {
 
 	switch m.screenID {
 	case StartMenuScreenID:
-		content = m.startMenuScreen.View()
+		content = lipgloss.NewStyle().Padding(1, 6).Render(m.startMenuScreen.View())
 	case GameConfigScreenID:
 		content = m.gameConfigMenu.View()
 	case ServerDownScreenID:
