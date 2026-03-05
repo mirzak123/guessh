@@ -341,7 +341,16 @@ void GS_handle_join_room(GameServer *gs, Client *client, cJSON *json_request) {
     return;
   }
 
-  assert(room->player1 != NULL);
+  if (room->player1 == NULL) {
+    cJSON *room_join_failed_json = json_room_join_failed(room_id, E_ROOM_EMPTY_ON_JOIN);
+    send_json(client->fd, room_join_failed_json);
+    cJSON_Delete(room_join_failed_json);
+
+    HT_delete(gs->rooms, KEY(room->id));
+    delete_room(room);
+    return;
+  }
+
   if (room->player2 != NULL) {
     cJSON *room_join_failed_json = json_room_join_failed(room_id, E_ROOM_FULL);
     send_json(client->fd, room_join_failed_json);
