@@ -80,7 +80,7 @@ void GS_handle_request(GameServer *gs, Client *client) {
     GS_handle_deny_rematch(gs, client);
     break;
   case LEAVE_MATCH:
-    GS_handle_leave_match(client);
+    GS_handle_leave_match(gs, client);
     break;
   case TYPING:
     GS_handle_typing(client, json_request);
@@ -601,13 +601,22 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
   GS_end_round(gs, match);
 }
 
-void GS_handle_leave_match(Client *client) {
+void GS_handle_leave_match(GameServer *gs, Client *client) {
   if (client->player == NULL || client->player->match == NULL) {
     send_error(client->fd, E_PLAYER_NOT_IN_MATCH);
     return;
   }
 
-  GS_end_match(client->player->match, NULL);
+  Room *room = client->player->room;
+  Match *match = client->player->match;
+
+  HT_delete(gs->rooms, KEY(room->id));
+  delete_room(room);
+  client->player->room = NULL;
+
+  HT_delete(gs->matches, KEY(match->id));
+  delete_match(match);
+  client->player->match = NULL;
 }
 
 void GS_end_match(Match *match, Player *disconnected_player) {

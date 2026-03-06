@@ -89,7 +89,7 @@ void GS_handle_join_room(GameServer *gs, Client *client, cJSON *json_request);
 void GS_handle_request_rematch(GameServer *gs, Client *client);
 void GS_handle_deny_rematch(GameServer *gs, Client *client);
 void GS_handle_typing(Client *client, cJSON *json_request);
-void GS_handle_leave_match(Client *client);
+void GS_handle_leave_match(GameServer *gs, Client *client);
 
 void GS_create_room(GameServer *gs, Match *match, Client *client);
 void GS_start_match(GameServer *gs, Match *match);

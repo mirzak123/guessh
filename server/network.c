@@ -19,7 +19,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-static void cleanup_game(Client *client);
+static void cleanup_game(GameServer *gs, Client *client);
 
 void sigchld_handler(void) {
   // waitpid() might overwrite errno, so we save and restore it:
@@ -153,11 +153,7 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
       perror("recv");
     }
 
-    cleanup_game(client);
-
-    close(client_fd);
-    delete_client(client);
-    HT_delete(gs->clients, KEY(client_fd));
+    cleanup_game(gs, client);
     del_from_pfds(pfds, *pfd_i, fd_count);
 
     // re-examine slot as it contains a new fd after deletion
@@ -171,10 +167,7 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
   if ((client->buf_len + nbytes) - (client->buf_start - client->buffer) > BUFSIZE) {
     printf("[handle_client_data] error: buffer overflow\n");
 
-    cleanup_game(client);
-
-    close(client_fd);
-    delete_client(client);
+    cleanup_game(gs, client);
     del_from_pfds(pfds, *pfd_i, fd_count);
     (*pfd_i)--;
     return;
@@ -239,7 +232,7 @@ void process_connections(GameServer *gs, int listen_fd, int *fd_size, int *fd_co
   }
 }
 
-static void cleanup_game(Client *client) {
+static void cleanup_game(GameServer *gs, Client *client) {
   if (client == NULL || client->player == NULL)
     return;
 
@@ -254,4 +247,8 @@ static void cleanup_game(Client *client) {
     if (opponent != NULL)
       send_only_type(opponent->client_fd, STR(OPPONENT_LEFT));
   }
+
+  close(client->fd);
+  HT_delete(gs->clients, KEY(client->fd));
+  delete_client(client);
 }
