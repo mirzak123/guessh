@@ -21,6 +21,7 @@ LDFLAGS    :=
 
 CFLAGS  += $(shell pkg-config --cflags libcjson)
 LDFLAGS += $(shell pkg-config --libs libcjson)
+ASAN_FLAGS := -g -O0 -fsanitize=address -fno-omit-frame-pointer
 
 _SRCS := main.c network.c game_logic.c game_server.c game_types.c json_messages.c client.c util.c hash_table.c room.c
 SERVER_SRC := $(addprefix $(SERVER_DIR)/,$(_SRCS))
