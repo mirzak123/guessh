@@ -2,6 +2,8 @@
 #include "game_types.h"
 #include "util.h"
 
+#include <assert.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 Room *new_room(void) {
@@ -13,8 +15,8 @@ Room *new_room(void) {
 }
 
 void delete_room(Room *room) {
-  if (room == NULL)
-    return;
+  assert(room != NULL);
+  printf("Deleting room [id: %s]\n", room->id);
 
   if (room->player1)
     room->player1->room = NULL;

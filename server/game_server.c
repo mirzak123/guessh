@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <unistd.h>
 
 static MessageType parse_message(char *data, size_t size, cJSON **out);
 static Outcome calculate_match_outcome(Match *match);
@@ -80,7 +81,7 @@ void GS_handle_request(GameServer *gs, Client *client) {
     GS_handle_deny_rematch(gs, client);
     break;
   case LEAVE_MATCH:
-    GS_handle_leave_match(client);
+    GS_handle_leave_match(gs, client);
     break;
   case TYPING:
     GS_handle_typing(client, json_request);
@@ -217,6 +218,64 @@ void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request)
   }
 }
 
+void GS_cleanup_after_client_disconnect(GameServer *gs, Client *client) {
+  assert(gs != NULL);
+  assert(client != NULL);
+
+  printf("Cleaning up after client [fd: %d]\n", client->fd);
+
+  if (client->player != NULL) {
+    Player *player = client->player;
+
+    if (player->match != NULL) {
+      GS_end_match(player->match, player);
+      GS_cleanup_match(gs, player->match);
+    }
+
+    if (player->room != NULL) {
+      GS_cleanup_room(gs, player->room, player);
+    }
+  } else {
+    printf("Client [fd: %d] has no player associated. Skipping room and match cleanup\n", client->fd);
+  }
+
+  close(client->fd);
+  HT_delete(gs->clients, KEY(client->fd));
+  delete_client(client);
+}
+
+void GS_cleanup_room(GameServer *gs, Room *room, Player *disconnected_player) {
+  assert(room != NULL);
+  assert(disconnected_player != NULL);
+  printf("Cleaning up room [id: %s]\n", room->id);
+
+  Player *opponent = get_opponent(room->player1, room->player2, disconnected_player);
+  if (opponent != NULL) {
+    send_only_type(opponent->client_fd, STR(OPPONENT_LEFT));
+    opponent->room = NULL;
+  }
+  disconnected_player->room = NULL;
+
+  HT_delete(gs->rooms, KEY(room->id));
+  delete_room(room);
+}
+
+void GS_cleanup_match(GameServer *gs, Match *match) {
+  assert(match != NULL);
+  printf("Cleaning up match [id: %s]\n", match->id);
+
+  if (match->player1 != NULL) {
+    match->player1->match = NULL;
+  }
+
+  if (match->player2 != NULL) {
+    match->player2->match = NULL;
+  }
+
+  HT_delete(gs->matches, KEY(match->id));
+  delete_match(match);
+}
+
 static MessageType parse_message(char *data, size_t size, cJSON **json_out) {
   cJSON *json_type = NULL;
   char *type;
@@ -341,7 +400,16 @@ void GS_handle_join_room(GameServer *gs, Client *client, cJSON *json_request) {
     return;
   }
 
-  assert(room->player1 != NULL);
+  if (room->player1 == NULL) {
+    cJSON *room_join_failed_json = json_room_join_failed(room_id, E_ROOM_EMPTY_ON_JOIN);
+    send_json(client->fd, room_join_failed_json);
+    cJSON_Delete(room_join_failed_json);
+
+    HT_delete(gs->rooms, KEY(room->id));
+    delete_room(room);
+    return;
+  }
+
   if (room->player2 != NULL) {
     cJSON *room_join_failed_json = json_room_join_failed(room_id, E_ROOM_FULL);
     send_json(client->fd, room_join_failed_json);
@@ -383,7 +451,6 @@ void GS_handle_request_rematch(GameServer *gs, Client *client) {
     send_error(client->fd, E_PLAYER_NOT_IN_ROOM);
     return;
   }
-  old_match = room->match;
   opponent = get_opponent(room->player1, room->player2, player);
 
   player->wants_rematch = true;
@@ -391,9 +458,7 @@ void GS_handle_request_rematch(GameServer *gs, Client *client) {
     return;
   }
 
-  player->wants_rematch = false;
-  opponent->wants_rematch = false;
-
+  old_match = room->match;
   match = new_match(old_match->mode, old_match->round_capacity, old_match->word_len);
   if (match == NULL) {
     printf("[GS_handle_request_rematch] error: new_match() returned NULL\n");
@@ -498,6 +563,8 @@ bool GS_add_player_to_match(Match *match, Player *player) {
   }
 
   player->match = match;
+  player->wants_rematch = false;
+
   return can_start;
 }
 
@@ -592,13 +659,22 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
   GS_end_round(gs, match);
 }
 
-void GS_handle_leave_match(Client *client) {
+void GS_handle_leave_match(GameServer *gs, Client *client) {
   if (client->player == NULL || client->player->match == NULL) {
     send_error(client->fd, E_PLAYER_NOT_IN_MATCH);
     return;
   }
 
-  GS_end_match(client->player->match, NULL);
+  Room *room = client->player->room;
+  Match *match = client->player->match;
+
+  HT_delete(gs->rooms, KEY(room->id));
+  delete_room(room);
+  client->player->room = NULL;
+
+  HT_delete(gs->matches, KEY(match->id));
+  delete_match(match);
+  client->player->match = NULL;
 }
 
 void GS_end_match(Match *match, Player *disconnected_player) {

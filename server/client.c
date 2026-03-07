@@ -3,6 +3,7 @@
 #include "json_messages.h"
 
 #include <arpa/inet.h>
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -26,6 +27,9 @@ Client *new_client(int client_fd) {
 }
 
 void delete_client(Client *client) {
+  assert(client != NULL);
+  printf("Deleting client [fd: %d]\n", client->fd);
+
   if (client->player) {
     delete_player(client->player);
   }
