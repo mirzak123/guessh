@@ -1,9 +1,7 @@
 #include "network.h"
 #include "client.h"
 #include "game_server.h"
-#include "game_types.h"
 #include "hash_table.h"
-#include "room.h"
 
 #include <arpa/inet.h>
 #include <errno.h>
@@ -17,9 +15,6 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
-#include <unistd.h>
-
-static void cleanup_game(GameServer *gs, Client *client);
 
 void sigchld_handler(void) {
   // waitpid() might overwrite errno, so we save and restore it:
@@ -153,7 +148,7 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
       perror("recv");
     }
 
-    cleanup_game(gs, client);
+    GS_cleanup_after_client_disconnect(gs, client);
     del_from_pfds(pfds, *pfd_i, fd_count);
 
     // re-examine slot as it contains a new fd after deletion
@@ -167,7 +162,7 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
   if ((client->buf_len + nbytes) - (client->buf_start - client->buffer) > BUFSIZE) {
     printf("[handle_client_data] error: buffer overflow\n");
 
-    cleanup_game(gs, client);
+    GS_cleanup_after_client_disconnect(gs, client);
     del_from_pfds(pfds, *pfd_i, fd_count);
     (*pfd_i)--;
     return;
@@ -192,7 +187,7 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
       if (client->payload_size > BUFSIZE) {
         printf("[handle_client_data] error: payload size %d larger than allowed buffer limit %d\n", client->payload_size,
                BUFSIZE);
-        close(client_fd);
+        GS_cleanup_after_client_disconnect(gs, client);
         return;
       }
 
@@ -230,25 +225,4 @@ void process_connections(GameServer *gs, int listen_fd, int *fd_size, int *fd_co
       }
     }
   }
-}
-
-static void cleanup_game(GameServer *gs, Client *client) {
-  if (client == NULL || client->player == NULL)
-    return;
-
-  Match *match = client->player->match;
-  if (match != NULL) {
-    GS_end_match(match, client->player);
-  }
-
-  Room *room = client->player->room;
-  if (room != NULL) {
-    Player *opponent = get_opponent(room->player1, room->player2, client->player);
-    if (opponent != NULL)
-      send_only_type(opponent->client_fd, STR(OPPONENT_LEFT));
-  }
-
-  close(client->fd);
-  HT_delete(gs->clients, KEY(client->fd));
-  delete_client(client);
 }

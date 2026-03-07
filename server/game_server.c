@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <unistd.h>
 
 static MessageType parse_message(char *data, size_t size, cJSON **out);
 static Outcome calculate_match_outcome(Match *match);
@@ -215,6 +216,64 @@ void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request)
   if (can_start) {
     GS_start_match(gs, match);
   }
+}
+
+void GS_cleanup_after_client_disconnect(GameServer *gs, Client *client) {
+  assert(gs != NULL);
+  assert(client != NULL);
+
+  printf("Cleaning up after client [fd: %d]\n", client->fd);
+
+  if (client->player != NULL) {
+    Player *player = client->player;
+
+    if (player->match != NULL) {
+      GS_end_match(player->match, player);
+      GS_cleanup_match(gs, player->match);
+    }
+
+    if (player->room != NULL) {
+      GS_cleanup_room(gs, player->room, player);
+    }
+  } else {
+    printf("Client [fd: %d] has no player associated. Skipping room and match cleanup\n", client->fd);
+  }
+
+  close(client->fd);
+  HT_delete(gs->clients, KEY(client->fd));
+  delete_client(client);
+}
+
+void GS_cleanup_room(GameServer *gs, Room *room, Player *disconnected_player) {
+  assert(room != NULL);
+  assert(disconnected_player != NULL);
+  printf("Cleaning up room [id: %s]\n", room->id);
+
+  Player *opponent = get_opponent(room->player1, room->player2, disconnected_player);
+  if (opponent != NULL) {
+    send_only_type(opponent->client_fd, STR(OPPONENT_LEFT));
+    opponent->room = NULL;
+  }
+  disconnected_player->room = NULL;
+
+  HT_delete(gs->rooms, KEY(room->id));
+  delete_room(room);
+}
+
+void GS_cleanup_match(GameServer *gs, Match *match) {
+  assert(match != NULL);
+  printf("Cleaning up match [id: %s]\n", match->id);
+
+  if (match->player1 != NULL) {
+    match->player1->match = NULL;
+  }
+
+  if (match->player2 != NULL) {
+    match->player2->match = NULL;
+  }
+
+  HT_delete(gs->matches, KEY(match->id));
+  delete_match(match);
 }
 
 static MessageType parse_message(char *data, size_t size, cJSON **json_out) {

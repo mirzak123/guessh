@@ -5,6 +5,7 @@
 #include "game_logic.h"
 #include "game_types.h"
 #include "hash_table.h"
+#include "room.h"
 #include <cjson/cJSON.h>
 #include <stddef.h>
 
@@ -97,6 +98,10 @@ void GS_start_round(GameServer *gs, Match *match);
 void GS_end_match(Match *match, Player *disconnected_player);
 void GS_end_round(GameServer *gs, Match *match);
 bool GS_add_player_to_match(Match *match, Player *player);
+
+void GS_cleanup_after_client_disconnect(GameServer *gs, Client *client);
+void GS_cleanup_room(GameServer *gs, Room *room, Player *disconnected_player);
+void GS_cleanup_match(GameServer *gs, Match *match);
 
 Player *get_opponent(Player *player1, Player *player2, Player *current);
 
