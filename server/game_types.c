@@ -3,6 +3,7 @@
 #include "room.h"
 #include "util.h"
 
+#include <assert.h>
 #include <cjson/cJSON.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -36,6 +37,9 @@ Match *new_match(GameMode mode, size_t round_capacity, size_t word_len) {
 }
 
 void delete_match(Match *match) {
+  assert(match != NULL);
+  printf("Deleting match [id: %s]\n", match->id);
+
   free(match->id);
   free(match->room_id);
 
