@@ -451,7 +451,6 @@ void GS_handle_request_rematch(GameServer *gs, Client *client) {
     send_error(client->fd, E_PLAYER_NOT_IN_ROOM);
     return;
   }
-  old_match = room->match;
   opponent = get_opponent(room->player1, room->player2, player);
 
   player->wants_rematch = true;
@@ -459,9 +458,7 @@ void GS_handle_request_rematch(GameServer *gs, Client *client) {
     return;
   }
 
-  player->wants_rematch = false;
-  opponent->wants_rematch = false;
-
+  old_match = room->match;
   match = new_match(old_match->mode, old_match->round_capacity, old_match->word_len);
   if (match == NULL) {
     printf("[GS_handle_request_rematch] error: new_match() returned NULL\n");
@@ -566,6 +563,8 @@ bool GS_add_player_to_match(Match *match, Player *player) {
   }
 
   player->match = match;
+  player->wants_rematch = false;
+
   return can_start;
 }
 
