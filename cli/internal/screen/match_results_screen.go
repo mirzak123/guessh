@@ -62,12 +62,6 @@ func NewMatchResults(
 				summary = "🤝 Draw"
 			}
 		}
-
-		summary = lipgloss.JoinVertical(
-			lipgloss.Left,
-			summary,
-			results,
-		)
 	case protocol.MULTI_LOCAL:
 		switch m.matchOutcome {
 		case protocol.OUTCOME_PLAYER_WON:
