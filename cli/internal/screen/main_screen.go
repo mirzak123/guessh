@@ -170,9 +170,11 @@ func (m *mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, m.requestRematchScreen.Init())
 
 	case game.DenyRematchIntent:
-		if m.matchInfo.RoomID == "" {
+		if m.matchInfo.DeniedRematch {
 			break
 		}
+
+		m.matchInfo.DeniedRematch = true
 		m.matchInfo.RoomID = ""
 		m.client.DenyRematch()
 		cmds = append(cmds, emit(game.StartMenuIntent{}))

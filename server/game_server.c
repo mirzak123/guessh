@@ -449,18 +449,31 @@ void GS_handle_request_rematch(GameServer *gs, Client *client) {
   Room *room = player->room;
   Match *old_match, *match;
 
-  if (room == NULL) {
-    send_error(client->fd, E_PLAYER_NOT_IN_ROOM);
-    return;
-  }
-  opponent = get_opponent(room->player1, room->player2, player);
-
-  player->wants_rematch = true;
-  if (!opponent->wants_rematch) {
+  if (player == NULL) {
+    send_error(client->fd, E_PLAYER_NOT_IN_MATCH);
     return;
   }
 
-  old_match = room->match;
+  old_match = player->match;
+
+  if (old_match == NULL) {
+    // silently ignore, rematch likely denied by other player
+    return;
+  }
+
+  if (old_match->mode == MULTI_REMOTE) {
+    if (room == NULL) {
+      send_error(client->fd, E_PLAYER_NOT_IN_ROOM);
+      return;
+    }
+    opponent = get_opponent(room->player1, room->player2, player);
+
+    player->wants_rematch = true;
+    if (!opponent->wants_rematch) {
+      return;
+    }
+  }
+
   match = new_match(old_match->mode, old_match->round_capacity, old_match->word_len);
   if (match == NULL) {
     printf("[GS_handle_request_rematch] error: new_match() returned NULL\n");
@@ -469,29 +482,52 @@ void GS_handle_request_rematch(GameServer *gs, Client *client) {
   HT_set(gs->matches, KEY(match->id), match);
 
   GS_add_player_to_match(match, player);
-  GS_add_player_to_match(match, opponent);
+  if (match->mode == MULTI_REMOTE) {
+    GS_add_player_to_match(match, opponent);
+  }
   GS_start_match(gs, match);
+
+  HT_delete(gs->matches, KEY(old_match->id));
+  delete_match(old_match);
 }
 
 void GS_handle_deny_rematch(GameServer *gs, Client *client) {
   assert(client->player != NULL);
   Player *player = client->player;
   Player *opponent;
+  Match *match = client->player->match;
   Room *room = client->player->room;
 
-  if (room == NULL) {
+  if (match == NULL) {
     // silently ignore, rematch likely denied by other player
     return;
   }
-  player->wants_rematch = false;
 
-  opponent = get_opponent(room->player1, room->player2, player);
-  if (opponent) {
-    send_only_type(opponent->client_fd, STR(OPPONENT_DENIED_REMATCH));
+  switch (match->mode) {
+  case MULTI_REMOTE:
+    player->wants_rematch = false;
+
+    opponent = get_opponent(match->player1, match->player2, player);
+    if (opponent) {
+      opponent->match = NULL;
+      opponent->room = NULL;
+      send_only_type(opponent->client_fd, STR(OPPONENT_DENIED_REMATCH));
+    }
+
+    if (room != NULL) {
+      HT_delete(gs->rooms, KEY(room->id));
+      delete_room(room);
+    }
+
+    /* fallthrough */
+  case MULTI_LOCAL:
+  case SINGLE:
+    player->match = NULL;
+    break;
   }
 
-  HT_delete(gs->rooms, KEY(room->id));
-  delete_room(room);
+  HT_delete(gs->matches, KEY(match->id));
+  delete_match(match);
 }
 
 void GS_handle_typing(Client *client, cJSON *json_request) {
@@ -715,7 +751,6 @@ void GS_end_match(Match *match, Player *disconnected_player) {
 
   if (match->mode == MULTI_REMOTE) {
     if (match->player2 != NULL && match->player2 != disconnected_player) {
-      match->player2->match = NULL;
       Outcome outcome; // map outcome to perspective of player 2
       switch (match->outcome) {
       case OUTCOME_PLAYER1:
@@ -736,7 +771,6 @@ void GS_end_match(Match *match, Player *disconnected_player) {
   }
 
   if (match->player1 != disconnected_player) {
-    match->player1->match = NULL;
     match_finished_json = json_match_finished(match->outcome, disconnected_player != NULL);
     send_json(match->player1->client_fd, match_finished_json);
     cJSON_Delete(match_finished_json);

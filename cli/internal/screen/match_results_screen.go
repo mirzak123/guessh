@@ -33,7 +33,7 @@ func NewMatchResults(
 		roundsPlayed:  roundsPlayed,
 		roundOutcomes: roundOutcomes,
 		matchOutcome:  matchOutcome,
-		canRematch:    mode == protocol.MULTI_REMOTE && !opponentLeft,
+		canRematch:    !opponentLeft,
 		confirm:       true,
 	}
 
@@ -129,7 +129,6 @@ func (m matchResultsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				)
 			}
 		} else {
-			// only MULTI_REMOTE can get here
 			return m, emit(game.DenyRematchIntent{})
 		}
 	}
