@@ -13,6 +13,7 @@ typedef enum { OUTCOME_NONE, OUTCOME_PLAYER1, OUTCOME_PLAYER2 } Outcome;
 
 typedef enum {
   SINGLE,
+  MULTI_LOCAL,
   MULTI_REMOTE,
 } GameMode;
 
@@ -61,8 +62,16 @@ typedef struct Match {
   Outcome outcome;
   Player *player1;
   Player *player2;
-  Player *on_turn;
-  Player *round_starter;
+  union {
+    struct {
+      bool player1_on_turn;
+      bool player1_started_round;
+    } local;
+    struct {
+      Player *on_turn;
+      Player *round_starter;
+    } remote;
+  };
 } Match;
 
 Match *new_match(GameMode mode, size_t round_capacity, size_t word_len);

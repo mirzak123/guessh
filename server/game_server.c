@@ -148,6 +148,8 @@ void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request)
     game_mode = SINGLE;
   } else if (!strcmp("MULTI_REMOTE", mode_str)) {
     game_mode = MULTI_REMOTE;
+  } else if (!strcmp("MULTI_LOCAL", mode_str)) {
+    game_mode = MULTI_LOCAL;
   } else {
     send_error(client->fd, E_UNSUPPORTED_MODE);
     return;
@@ -542,16 +544,20 @@ bool GS_add_player_to_match(Match *match, Player *player) {
       match->player2 = player;
 
       if (rand() % 2) {
-        match->round_starter = match->player1;
+        match->remote.round_starter = match->player1;
       } else {
-        match->round_starter = match->player2;
+        match->remote.round_starter = match->player2;
       }
 
       can_start = true;
     } else {
       printf("[add_player_to_match] error: trying to add a player to a match that has 2 players\n");
     }
+
     break;
+  case MULTI_LOCAL:
+    match->local.player1_started_round = rand() % 2;
+    /* fallthrough */
   case SINGLE:
     if (match->player1 != NULL) {
       printf("[add_player_to_match] error: trying to add second player to a match in SINGLE mode\n");
@@ -593,7 +599,7 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
 
   assert(round->wc->attempt_count < round->wc->max_attempts);
 
-  if (match->mode == MULTI_REMOTE && player != match->on_turn) {
+  if (match->mode == MULTI_REMOTE && player != match->remote.on_turn) {
     send_error(client->fd, E_NOT_ON_TURN);
     return;
   }
@@ -636,7 +642,19 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
       send_only_type(opponent->client_fd, STR(WAIT_GUESS));
       send_only_type(player->client_fd, STR(WAIT_OPPONENT_GUESS));
     }
-    match->on_turn = opponent;
+    match->remote.on_turn = opponent;
+    break;
+  case MULTI_LOCAL:
+    send_json(player->client_fd, guess_result_json);
+
+    if (!is_round_finished) {
+      if (match->local.player1_on_turn) {
+        send_only_type(player->client_fd, STR(WAIT_GUESS));
+      } else {
+        send_only_type(player->client_fd, STR(WAIT_OPPONENT_GUESS));
+      }
+    }
+    match->local.player1_on_turn = !match->local.player1_on_turn;
     break;
   case SINGLE:
     send_json(player->client_fd, guess_result_json);
@@ -684,16 +702,18 @@ void GS_end_match(Match *match, Player *disconnected_player) {
   case MULTI_REMOTE:
     match->outcome = calculate_match_outcome(match);
     break;
+  case MULTI_LOCAL:
+    match->outcome = calculate_match_outcome(match);
+    break;
   case SINGLE:
     match->outcome = OUTCOME_NONE; // not relevant in SINGLE mode
     break;
   }
 
   printf("[GS_end_match] Ending match: (%s)...\n", match->id);
-
   assert(match->player1 != NULL);
-  switch (match->mode) {
-  case MULTI_REMOTE:
+
+  if (match->mode == MULTI_REMOTE) {
     if (match->player2 != NULL && match->player2 != disconnected_player) {
       match->player2->match = NULL;
       Outcome outcome; // map outcome to perspective of player 2
@@ -713,15 +733,13 @@ void GS_end_match(Match *match, Player *disconnected_player) {
       send_json(match->player2->client_fd, match_finished_json);
       cJSON_Delete(match_finished_json);
     }
+  }
 
-    /* fallthrough */
-  case SINGLE:
-    if (match->player1 != disconnected_player) {
-      match->player1->match = NULL;
-      match_finished_json = json_match_finished(match->outcome, disconnected_player != NULL);
-      send_json(match->player1->client_fd, match_finished_json);
-      cJSON_Delete(match_finished_json);
-    }
+  if (match->player1 != disconnected_player) {
+    match->player1->match = NULL;
+    match_finished_json = json_match_finished(match->outcome, disconnected_player != NULL);
+    send_json(match->player1->client_fd, match_finished_json);
+    cJSON_Delete(match_finished_json);
   }
 }
 
@@ -744,11 +762,17 @@ void GS_end_round(GameServer *gs, Match *match) {
       outcome = OUTCOME_NONE;
       break;
     }
+
     round_finished_json = json_round_finished(outcome, round->wc->word);
     send_json(match->player2->client_fd, round_finished_json);
+    send_json(match->player1->client_fd, round_finished_json);
     cJSON_Delete(round_finished_json);
-    match->round_starter = get_opponent(match->player1, match->player2, match->round_starter);
-    /* fallthrough */
+
+    match->remote.round_starter = get_opponent(match->player1, match->player2, match->remote.round_starter);
+
+    break;
+  case MULTI_LOCAL:
+
   case SINGLE:
     round_finished_json = json_round_finished(round->outcome, round->wc->word);
     send_json(match->player1->client_fd, round_finished_json);
@@ -778,8 +802,9 @@ void GS_start_match(GameServer *gs, Match *match) {
     match_started_json = json_match_started(match->id, match->round_capacity, match->word_len, match->player2->name);
     send_json(match->player1->client_fd, match_started_json);
     cJSON_Delete(match_started_json);
-    break;
 
+    break;
+  case MULTI_LOCAL:
   case SINGLE:
     assert(match->player1 != NULL);
     match_started_json = json_match_started(match->id, match->round_capacity, match->word_len, NULL);
@@ -818,14 +843,26 @@ void GS_start_round(GameServer *gs, Match *match) {
     send_json(match->player2->client_fd, round_started_json);
     send_json(match->player1->client_fd, round_started_json);
 
-    match->on_turn = match->round_starter;
+    match->remote.on_turn = match->remote.round_starter;
 
-    Player *not_on_turn = get_opponent(match->player1, match->player2, match->on_turn);
-    send_only_type(match->on_turn->client_fd, STR(WAIT_GUESS));
+    Player *not_on_turn = get_opponent(match->player1, match->player2, match->remote.on_turn);
+    send_only_type(match->remote.on_turn->client_fd, STR(WAIT_GUESS));
     send_only_type(not_on_turn->client_fd, STR(WAIT_OPPONENT_GUESS));
 
     break;
+  case MULTI_LOCAL:
+    assert(match->player1 != NULL);
+    send_json(match->player1->client_fd, round_started_json);
 
+    match->local.player1_on_turn = match->local.player1_started_round;
+
+    if (match->local.player1_on_turn) {
+      send_only_type(match->player1->client_fd, STR(WAIT_GUESS));
+    } else {
+      send_only_type(match->player1->client_fd, STR(WAIT_OPPONENT_GUESS));
+    }
+
+    break;
   case SINGLE:
     assert(match->player1 != NULL);
     send_json(match->player1->client_fd, round_started_json);
