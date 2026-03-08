@@ -765,6 +765,9 @@ void GS_end_round(GameServer *gs, Match *match) {
 
     round_finished_json = json_round_finished(outcome, round->wc->word);
     send_json(match->player2->client_fd, round_finished_json);
+    cJSON_Delete(round_finished_json);
+
+    round_finished_json = json_round_finished(round->outcome, round->wc->word);
     send_json(match->player1->client_fd, round_finished_json);
     cJSON_Delete(round_finished_json);
 
