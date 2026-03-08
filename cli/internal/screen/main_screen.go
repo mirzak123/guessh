@@ -43,16 +43,17 @@ type RoomCreatedMsg struct {
 }
 
 type mainModel struct {
-	width, height int
-	sshContext    context.Context
-	client        *client.Client
-	connected     bool
-	event         chan transport.EventMsg
-	eventBuffer   []transport.EventMsg
-	eventsPaused  bool
-	flushing      bool
-	matchInfo     *game.MatchInfo
-	confirm       *bool
+	width, height   int
+	sshContext      context.Context
+	client          *client.Client
+	connected       bool
+	event           chan transport.EventMsg
+	eventBuffer     []transport.EventMsg
+	eventsPaused    bool
+	flushing        bool
+	matchInfo       *game.MatchInfo
+	confirm         *bool
+	modeSelectIndex int // helper for displaying match mode descriptions dinamically
 
 	screenID              ScreenID
 	startMenuScreen       *startMenuModel
@@ -74,6 +75,7 @@ func InitialModel() *mainModel {
 		startMenuScreen:      NewStartMenu(),
 		serverDownScreen:     NewServerDownForm(),
 		requestRematchScreen: NewRequestRematchModel(),
+		modeSelectIndex:      0,
 	}
 
 	serverAddr := config.GetEnv("GAME_SERVER_ADDR", "localhost:2480")
@@ -87,7 +89,7 @@ func InitialModel() *mainModel {
 	}
 
 	m.client = client.NewClient(conn)
-	m.gameConfigMenu, m.confirm = NewGameConfigMenu(m.matchInfo)
+	m.gameConfigMenu, m.confirm = NewGameConfigMenu(m.matchInfo, &m.modeSelectIndex)
 	return m
 }
 
@@ -125,6 +127,21 @@ func (m *mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 
+		if msg.String() == "j" || msg.String() == "down" {
+			if m.modeSelectIndex+1 > 2 {
+				m.modeSelectIndex = 0
+			} else {
+				m.modeSelectIndex++
+			}
+		}
+		if msg.String() == "k" || msg.String() == "up" {
+			if m.modeSelectIndex-1 < 0 {
+				m.modeSelectIndex = 2
+			} else {
+				m.modeSelectIndex--
+			}
+		}
+
 	case tea.WindowSizeMsg:
 		logger.Debug("[Update] Window resizing...")
 		m.width = msg.Width
@@ -137,7 +154,7 @@ func (m *mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case game.PlayGameIntent:
 		m.screenID = GameConfigScreenID
 		m.matchInfo = game.NewMatchInfo()
-		m.gameConfigMenu, m.confirm = NewGameConfigMenu(m.matchInfo)
+		m.gameConfigMenu, m.confirm = NewGameConfigMenu(m.matchInfo, &m.modeSelectIndex)
 
 		m.eventsPaused = false
 
@@ -241,7 +258,7 @@ func (m *mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.gameConfigMenu.State == huh.StateCompleted {
 			if !*m.confirm {
 				m.screenID = GameConfigScreenID
-				m.gameConfigMenu, m.confirm = NewGameConfigMenu(m.matchInfo)
+				m.gameConfigMenu, m.confirm = NewGameConfigMenu(m.matchInfo, &m.modeSelectIndex)
 
 				return m, tea.Batch(tea.ClearScreen, formCmd)
 			}
@@ -466,7 +483,7 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 		}
 
 		m.screenID = GameConfigScreenID
-		m.gameConfigMenu, m.confirm = NewGameConfigMenu(m.matchInfo)
+		m.gameConfigMenu, m.confirm = NewGameConfigMenu(m.matchInfo, &m.modeSelectIndex)
 		m.game.matchInfo.RoomValidationError = errors.New(roomJoinFailedEvent.Reason)
 
 		// navigate to the RoomID input field

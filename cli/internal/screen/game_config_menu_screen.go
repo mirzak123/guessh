@@ -20,13 +20,20 @@ const (
 )
 
 var GameModeLabels = map[protocol.GameMode]string{
-	protocol.SINGLE:       "Single player",
-	protocol.MULTI_LOCAL:  "Two player local",
-	protocol.MULTI_REMOTE: "Two player remote",
+	protocol.SINGLE:       "Single Player",
+	protocol.MULTI_LOCAL:  "Local Multiplayer",
+	protocol.MULTI_REMOTE: "Remote Multiplayer",
 }
 
-func NewGameConfigMenu(matchInfo *game.MatchInfo) (*huh.Form, *bool) {
+var GameModeDescriptions = []string{
+	"Yes!",
+	"No, we're sharing a chair.",
+	"No, they're in the cloud.",
+}
+
+func NewGameConfigMenu(matchInfo *game.MatchInfo, modeSelectIndex *int) (*huh.Form, *bool) {
 	confirm := true
+	*modeSelectIndex = 0
 
 	var (
 		playerNameInput = huh.NewInput().
@@ -56,12 +63,16 @@ func NewGameConfigMenu(matchInfo *game.MatchInfo) (*huh.Form, *bool) {
 			})
 
 		modeInput = huh.NewSelect[protocol.GameMode]().
+				Key("game mode").
 				Title("Are you lonely?").
 				Options(
 				huh.NewOption(GameModeLabels[protocol.SINGLE], protocol.SINGLE),
 				huh.NewOption(GameModeLabels[protocol.MULTI_LOCAL], protocol.MULTI_LOCAL),
 				huh.NewOption(GameModeLabels[protocol.MULTI_REMOTE], protocol.MULTI_REMOTE),
 			).
+			DescriptionFunc(func() string {
+				return GameModeDescriptions[*modeSelectIndex]
+			}, modeSelectIndex).
 			Value(&matchInfo.Mode)
 
 		joinExistingInput = huh.NewSelect[bool]().
