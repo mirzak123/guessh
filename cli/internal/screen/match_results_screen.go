@@ -1,6 +1,7 @@
 package screen
 
 import (
+	"fmt"
 	"guessh/internal/game"
 	"guessh/internal/protocol"
 	"guessh/internal/ui"
@@ -26,6 +27,8 @@ func NewMatchResults(
 	roundsPlayed int,
 	roundOutcomes []*protocol.Outcome,
 	matchOutcome protocol.Outcome,
+	playerName string,
+	opponentName string,
 	opponentLeft bool) *matchResultsModel {
 
 	m := &matchResultsModel{
@@ -38,38 +41,49 @@ func NewMatchResults(
 	}
 
 	var confirmInput *huh.Confirm
-	var results string
+	var summary string
+
+	results := lipgloss.JoinHorizontal(
+		lipgloss.Left,
+		"Round outcomes • ",
+		ui.ViewRoundOutcomes(m.roundOutcomes))
 
 	switch m.mode {
 	case protocol.MULTI_REMOTE:
 		if opponentLeft {
-			results = "🔌 Opponent left the match"
+			summary = "🔌 Opponent left the match"
 		} else {
 			switch m.matchOutcome {
 			case protocol.OUTCOME_PLAYER_WON:
-				results = "🎉 You won!"
+				summary = "🎉 You won!"
 			case protocol.OUTCOME_OPPONENT_WON:
-				results = "😢 You lost"
+				summary = "😢 You lost"
 			default:
-				results = "🤝 Draw"
+				summary = "🤝 Draw"
 			}
 		}
 
-		results = lipgloss.JoinVertical(
+		summary = lipgloss.JoinVertical(
 			lipgloss.Left,
+			summary,
 			results,
-			lipgloss.JoinHorizontal(
-				lipgloss.Left,
-				"Round outcomes • ",
-				ui.ViewRoundOutcomes(m.roundOutcomes)),
 		)
-
-	case protocol.SINGLE:
-		results = lipgloss.JoinHorizontal(
-			lipgloss.Left,
-			"Round outcomes • ",
-			ui.ViewRoundOutcomes(m.roundOutcomes))
+	case protocol.MULTI_LOCAL:
+		switch m.matchOutcome {
+		case protocol.OUTCOME_PLAYER_WON:
+			summary = fmt.Sprintf("🏅 %s won!", lipgloss.NewStyle().Foreground(ui.Purple).Render(playerName))
+		case protocol.OUTCOME_OPPONENT_WON:
+			summary = fmt.Sprintf("🏅 %s won!", lipgloss.NewStyle().Foreground(ui.Rose).Render(opponentName))
+		case protocol.OUTCOME_NONE:
+			summary = "🤝 Draw"
+		}
 	}
+
+	summary = lipgloss.JoinVertical(
+		lipgloss.Left,
+		summary,
+		results,
+	)
 
 	if m.canRematch {
 		confirmInput = huh.NewConfirm().
@@ -91,7 +105,7 @@ func NewMatchResults(
 		huh.NewGroup(
 			huh.NewNote().
 				Title("Match Results").
-				Description(results),
+				Description(summary),
 			confirmInput,
 		),
 	).WithShowHelp(false)

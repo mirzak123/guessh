@@ -32,7 +32,7 @@ func NewGameConfigMenu(matchInfo *game.MatchInfo) (*huh.Form, *bool) {
 		playerNameInput = huh.NewInput().
 				TitleFunc(func() string {
 				if matchInfo.Mode == protocol.MULTI_LOCAL {
-					return "Player 1 name"
+					return "Player 1"
 				} else {
 					return "Player name"
 				}
@@ -46,11 +46,11 @@ func NewGameConfigMenu(matchInfo *game.MatchInfo) (*huh.Form, *bool) {
 			})
 
 		opponentNameInput = huh.NewInput().
-					Title("Player 2 name ").
+					Title("Player 2").
 					Value(&matchInfo.OpponentName).
 					Validate(func(str string) error {
 				if matchInfo.OpponentName == "" {
-					return errors.New("name must not be empty")
+					return errors.New("player name must not be empty")
 				}
 				return nil
 			})
@@ -149,8 +149,8 @@ func NewGameConfigMenu(matchInfo *game.MatchInfo) (*huh.Form, *bool) {
 					lines = append(lines, line("Rounds: ", matchInfo.RawTotalRounds))
 
 				case protocol.MULTI_LOCAL:
-					lines = append(lines, line("Player 1 name: ", matchInfo.PlayerName))
-					lines = append(lines, line("Player 2 name: ", matchInfo.OpponentName))
+					lines = append(lines, line("Player 1: ", matchInfo.PlayerName))
+					lines = append(lines, line("Player 2: ", matchInfo.OpponentName))
 					lines = append(lines, line("Word length: ", fmt.Sprintf("%d", matchInfo.WordLen)))
 					lines = append(lines, line("Rounds: ", matchInfo.RawTotalRounds))
 

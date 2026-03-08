@@ -150,6 +150,8 @@ func (m *mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			msg.roundsPlayed,
 			msg.roundOutcomes,
 			msg.matchOutcome,
+			m.matchInfo.PlayerName,
+			m.matchInfo.OpponentName,
 			msg.opponentLeft,
 		)
 
