@@ -222,11 +222,7 @@ func (m *gameModel) statusBar() string {
 		case protocol.OUTCOME_PLAYER_WON:
 			line1 = fmt.Sprintf("%s Round Won", ui.OutcomeBlock(outcome))
 		case protocol.OUTCOME_OPPONENT_WON:
-			line1 = fmt.Sprintf(
-				"%s Round Lost - Correct word: %s",
-				ui.OutcomeBlock(outcome),
-				m.roundInfo.Word,
-			)
+			line1 = fmt.Sprintf("%s Round Lost", ui.OutcomeBlock(outcome))
 		case protocol.OUTCOME_NONE:
 			line1 = fmt.Sprintf(
 				"%s Not Guessed - Correct word: %s",
