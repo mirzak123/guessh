@@ -151,8 +151,8 @@ func (m *gameModel) View() string {
 		p1Name,
 	)
 	player2 := fmt.Sprintf("%s%s",
-		lipgloss.NewStyle().MarginRight(1).Render(p2Symbol),
-		p2Name,
+		lipgloss.NewStyle().MarginRight(1).Render(p2Name),
+		p2Symbol,
 	)
 
 	p1w := lipgloss.Width(player1)
