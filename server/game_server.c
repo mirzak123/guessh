@@ -674,8 +674,8 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
     match->remote.on_turn = opponent;
 
     if (!is_round_finished) {
-      send_only_type(player->client_fd, STR(WAIT_GUESS));
-      send_only_type(opponent->client_fd, STR(WAIT_OPPONENT_GUESS));
+      send_only_type(opponent->client_fd, STR(WAIT_GUESS));
+      send_only_type(player->client_fd, STR(WAIT_OPPONENT_GUESS));
     }
     break;
   case MULTI_LOCAL:
