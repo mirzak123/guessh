@@ -578,29 +578,27 @@ bool GS_add_player_to_match(Match *match, Player *player) {
     } else if (match->player2 == NULL) {
       assert(match->player1 != NULL);
       match->player2 = player;
-
-      if (rand() % 2) {
-        match->remote.round_starter = match->player1;
-      } else {
-        match->remote.round_starter = match->player2;
-      }
-
       can_start = true;
     } else {
       printf("[add_player_to_match] error: trying to add a player to a match that has 2 players\n");
+      return false;
     }
 
     break;
   case MULTI_LOCAL:
-    match->local.player1_started_round = rand() % 2;
+    if (match->player1 != NULL) {
+      printf("[add_player_to_match] error: trying to add second player to a match in MULTI_LOCAL mode\n");
+      return false;
+    }
     /* fallthrough */
   case SINGLE:
     if (match->player1 != NULL) {
       printf("[add_player_to_match] error: trying to add second player to a match in SINGLE mode\n");
-    } else {
-      match->player1 = player;
-      can_start = true;
+      return false;
     }
+
+    match->player1 = player;
+    can_start = true;
     break;
   }
 
@@ -673,15 +671,18 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
   case MULTI_REMOTE:
     send_json(player->client_fd, guess_result_json);
     send_json(opponent->client_fd, guess_result_json);
+    match->remote.on_turn = opponent;
 
     if (!is_round_finished) {
-      send_only_type(opponent->client_fd, STR(WAIT_GUESS));
-      send_only_type(player->client_fd, STR(WAIT_OPPONENT_GUESS));
+      send_only_type(player->client_fd, STR(WAIT_GUESS));
+      send_only_type(opponent->client_fd, STR(WAIT_OPPONENT_GUESS));
     }
-    match->remote.on_turn = opponent;
     break;
   case MULTI_LOCAL:
     send_json(player->client_fd, guess_result_json);
+    match->local.player1_on_turn = !match->local.player1_on_turn;
+
+    printf("player1_on_turn: %d\n", match->local.player1_on_turn);
 
     if (!is_round_finished) {
       if (match->local.player1_on_turn) {
@@ -690,7 +691,6 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
         send_only_type(player->client_fd, STR(WAIT_OPPONENT_GUESS));
       }
     }
-    match->local.player1_on_turn = !match->local.player1_on_turn;
     break;
   case SINGLE:
     send_json(player->client_fd, guess_result_json);
@@ -706,7 +706,17 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
     return;
 
   if (success) {
-    round->outcome = player == match->player1 ? OUTCOME_PLAYER1 : OUTCOME_PLAYER2;
+    switch (match->mode) {
+    case SINGLE:
+      round->outcome = OUTCOME_PLAYER1;
+      break;
+    case MULTI_LOCAL:
+      round->outcome = match->local.player1_on_turn ? OUTCOME_PLAYER2 : OUTCOME_PLAYER1;
+      break;
+    case MULTI_REMOTE:
+      round->outcome = player == match->player1 ? OUTCOME_PLAYER1 : OUTCOME_PLAYER2;
+      break;
+    }
   } else if (round->wc->attempt_count >= round->wc->max_attempts) {
     round->outcome = OUTCOME_NONE;
   }
@@ -809,6 +819,7 @@ void GS_end_round(GameServer *gs, Match *match) {
 
     break;
   case MULTI_LOCAL:
+    match->local.player1_started_round = !match->local.player1_started_round;
 
   case SINGLE:
     round_finished_json = json_round_finished(round->outcome, round->wc->word);
@@ -840,8 +851,16 @@ void GS_start_match(GameServer *gs, Match *match) {
     send_json(match->player1->client_fd, match_started_json);
     cJSON_Delete(match_started_json);
 
+    if (rand() % 2) {
+      match->remote.round_starter = match->player1;
+    } else {
+      match->remote.round_starter = match->player2;
+    }
+
     break;
   case MULTI_LOCAL:
+    match->local.player1_started_round = rand() % 2;
+    printf("player1_started_round: %d\n", match->local.player1_started_round);
   case SINGLE:
     assert(match->player1 != NULL);
     match_started_json = json_match_started(match->id, match->round_capacity, match->word_len, NULL);
@@ -856,7 +875,7 @@ void GS_start_round(GameServer *gs, Match *match) {
   cJSON *round_started_json = NULL;
   printf("[start_round] Starting new round...\n");
 
-  size_t max_attempts = match->word_len + 1; // TODO: allow for flexible max_attempts
+  size_t max_attempts = match->word_len + 1;
   WordStore *store = get_word_store(gs, match->word_len);
   WordChallenge *wc = new_word_challenge(store, max_attempts);
   if (wc == NULL) {
@@ -892,6 +911,8 @@ void GS_start_round(GameServer *gs, Match *match) {
     send_json(match->player1->client_fd, round_started_json);
 
     match->local.player1_on_turn = match->local.player1_started_round;
+
+    printf("player1_on_turn: %d\n", match->local.player1_on_turn);
 
     if (match->local.player1_on_turn) {
       send_only_type(match->player1->client_fd, STR(WAIT_GUESS));
