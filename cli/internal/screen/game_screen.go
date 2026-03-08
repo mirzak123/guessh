@@ -88,10 +88,13 @@ func (m *gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		case tea.KeyEnter:
 			logger.Debug("Game state: [%s]", m.state)
-			switch m.state {
-			case game.StateRoundFinished:
+			if m.state == game.StateRoundFinished {
 				return m, emit(game.ContinueIntent{})
-			case game.StateWaitGuess:
+			}
+			if m.state == game.StateWaitOpponentGuess && m.matchInfo.Mode != protocol.MULTI_LOCAL {
+				break
+			}
+			if m.state == game.StateWaitGuess || m.state == game.StateWaitOpponentGuess {
 				v := m.input.Value()
 
 				if len(v) == m.matchInfo.WordLen { // do nothing if not enough letters

@@ -244,10 +244,6 @@ func (m *mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, tea.Batch(tea.ClearScreen, formCmd)
 			}
 
-			if m.matchInfo.RoomID != "" {
-				m.matchInfo.JoinExisting = true
-			}
-
 			m.game = NewGame(m.matchInfo)
 
 			switch m.matchInfo.Mode {
@@ -260,6 +256,9 @@ func (m *mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.waitingOpponentScreen = NewWaitingOpponentModel()
 					cmds = append(cmds, m.game.Init(), m.waitingOpponentScreen.Init())
 				}
+			case protocol.MULTI_LOCAL:
+				m.screenID = GameScreenID
+				cmds = append(cmds, m.game.Init())
 			case protocol.SINGLE:
 				m.screenID = GameScreenID
 				cmds = append(cmds, m.game.Init())
@@ -354,7 +353,10 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 
 		m.matchInfo.WordLen = matchStartedEvent.WordLength
 		m.matchInfo.TotalRounds = matchStartedEvent.Rounds
-		m.matchInfo.OpponentName = matchStartedEvent.OpponentName
+
+		if m.matchInfo.Mode == protocol.MULTI_REMOTE {
+			m.matchInfo.OpponentName = matchStartedEvent.OpponentName
+		}
 
 		m.matchInfo.RawTotalRounds = fmt.Sprintf("%d", matchStartedEvent.Rounds)
 		m.matchInfo.RoundOutcomes = make([]*protocol.Outcome, matchStartedEvent.Rounds)
@@ -387,7 +389,12 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 
 	case protocol.WAIT_OPPONENT_GUESS:
 		m.game.state = game.StateWaitOpponentGuess
-		m.game.input.Blur()
+		if m.matchInfo.Mode == protocol.MULTI_LOCAL {
+			m.game.input.Focus()
+			m.game.input.SetValue("")
+		} else {
+			m.game.input.Blur()
+		}
 
 	case protocol.WAIT_OPPONENT_JOIN:
 		m.game.state = game.StateWaitOpponentJoin
