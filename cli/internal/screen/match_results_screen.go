@@ -71,9 +71,9 @@ func NewMatchResults(
 	case protocol.MULTI_LOCAL:
 		switch m.matchOutcome {
 		case protocol.OUTCOME_PLAYER_WON:
-			summary = fmt.Sprintf("🏅 %s won!", lipgloss.NewStyle().Foreground(ui.Purple).Render(playerName))
+			summary = fmt.Sprintf("🏅 %s won!", ui.PurpleText.Render(playerName))
 		case protocol.OUTCOME_OPPONENT_WON:
-			summary = fmt.Sprintf("🏅 %s won!", lipgloss.NewStyle().Foreground(ui.Rose).Render(opponentName))
+			summary = fmt.Sprintf("🏅 %s won!", ui.RoseText.Render(opponentName))
 		case protocol.OUTCOME_NONE:
 			summary = "🤝 Draw"
 		}

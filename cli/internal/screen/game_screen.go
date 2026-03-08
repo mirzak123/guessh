@@ -223,9 +223,21 @@ func (m *gameModel) statusBar() string {
 		outcome := m.matchInfo.RoundOutcomes[m.matchInfo.CurrentRound-1]
 		switch *outcome {
 		case protocol.OUTCOME_PLAYER_WON:
-			line1 = fmt.Sprintf("%s Round Won", ui.OutcomeBlock(outcome))
+			if m.matchInfo.Mode == protocol.MULTI_LOCAL {
+				line1 = fmt.Sprintf("%s Round Won by %s",
+					ui.OutcomeBlock(outcome),
+					ui.PurpleText.Render(m.matchInfo.PlayerName))
+			} else {
+				line1 = fmt.Sprintf("%s Round Won", ui.OutcomeBlock(outcome))
+			}
 		case protocol.OUTCOME_OPPONENT_WON:
-			line1 = fmt.Sprintf("%s Round Lost", ui.OutcomeBlock(outcome))
+			if m.matchInfo.Mode == protocol.MULTI_LOCAL {
+				line1 = fmt.Sprintf("%s Round Won by %s",
+					ui.OutcomeBlock(outcome),
+					ui.RoseText.Render(m.matchInfo.OpponentName))
+			} else {
+				line1 = fmt.Sprintf("%s Round Lost", ui.OutcomeBlock(outcome))
+			}
 		case protocol.OUTCOME_NONE:
 			line1 = fmt.Sprintf(
 				"%s Not Guessed - Correct word: %s",
@@ -233,7 +245,7 @@ func (m *gameModel) statusBar() string {
 				m.roundInfo.Word)
 		}
 
-		line2 := "Press Enter to continue"
+		line2 := ui.GrayText.Render("Press Enter to continue")
 
 		content = lipgloss.JoinVertical(
 			lipgloss.Center,
