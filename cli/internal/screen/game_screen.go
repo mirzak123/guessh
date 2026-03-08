@@ -88,10 +88,13 @@ func (m *gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		case tea.KeyEnter:
 			logger.Debug("Game state: [%s]", m.state)
-			switch m.state {
-			case game.StateRoundFinished:
+			if m.state == game.StateRoundFinished {
 				return m, emit(game.ContinueIntent{})
-			case game.StateWaitGuess:
+			}
+			if m.state == game.StateWaitOpponentGuess && m.matchInfo.Mode != protocol.MULTI_LOCAL {
+				break
+			}
+			if m.state == game.StateWaitGuess || m.state == game.StateWaitOpponentGuess {
 				v := m.input.Value()
 
 				if len(v) == m.matchInfo.WordLen { // do nothing if not enough letters
@@ -151,8 +154,8 @@ func (m *gameModel) View() string {
 		p1Name,
 	)
 	player2 := fmt.Sprintf("%s%s",
-		lipgloss.NewStyle().MarginRight(1).Render(p2Symbol),
-		p2Name,
+		lipgloss.NewStyle().MarginRight(1).Render(p2Name),
+		p2Symbol,
 	)
 
 	p1w := lipgloss.Width(player1)
@@ -220,13 +223,21 @@ func (m *gameModel) statusBar() string {
 		outcome := m.matchInfo.RoundOutcomes[m.matchInfo.CurrentRound-1]
 		switch *outcome {
 		case protocol.OUTCOME_PLAYER_WON:
-			line1 = fmt.Sprintf("%s Round Won", ui.OutcomeBlock(outcome))
+			if m.matchInfo.Mode == protocol.MULTI_LOCAL {
+				line1 = fmt.Sprintf("%s Round Won by %s",
+					ui.OutcomeBlock(outcome),
+					ui.PurpleText.Render(m.matchInfo.PlayerName))
+			} else {
+				line1 = fmt.Sprintf("%s Round Won", ui.OutcomeBlock(outcome))
+			}
 		case protocol.OUTCOME_OPPONENT_WON:
-			line1 = fmt.Sprintf(
-				"%s Round Lost - Correct word: %s",
-				ui.OutcomeBlock(outcome),
-				m.roundInfo.Word,
-			)
+			if m.matchInfo.Mode == protocol.MULTI_LOCAL {
+				line1 = fmt.Sprintf("%s Round Won by %s",
+					ui.OutcomeBlock(outcome),
+					ui.RoseText.Render(m.matchInfo.OpponentName))
+			} else {
+				line1 = fmt.Sprintf("%s Round Lost", ui.OutcomeBlock(outcome))
+			}
 		case protocol.OUTCOME_NONE:
 			line1 = fmt.Sprintf(
 				"%s Not Guessed - Correct word: %s",
@@ -234,7 +245,7 @@ func (m *gameModel) statusBar() string {
 				m.roundInfo.Word)
 		}
 
-		line2 := "Press Enter to continue"
+		line2 := ui.GrayText.Render("Press Enter to continue")
 
 		content = lipgloss.JoinVertical(
 			lipgloss.Center,

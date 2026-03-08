@@ -48,6 +48,18 @@ var (
 	opponentActiveInputStyle = baseLetterStyle.
 					BorderForeground(Rose).
 					Foreground(White)
+
+	PurpleText = lipgloss.NewStyle().
+			Foreground(Purple)
+
+	RoseText = lipgloss.NewStyle().
+			Foreground(Rose)
+
+	GrayText = lipgloss.NewStyle().
+			Foreground(Gray)
+
+	WhiteText = lipgloss.NewStyle().
+			Foreground(White)
 )
 
 func OutcomeBlock(outcome *protocol.Outcome) string {

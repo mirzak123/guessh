@@ -24,20 +24,13 @@ func ASCIILogo() string {
 	return lipgloss.JoinHorizontal(
 		lipgloss.Center,
 		gue,
-		lipgloss.NewStyle().Foreground(Purple).Render(ssh),
+		PurpleText.Render(ssh),
 	)
 }
 
 func SmallLogo() string {
-	gue := lipgloss.NewStyle().
-		Bold(true).
-		Foreground(White).
-		Render("Gue")
-
-	ssh := lipgloss.NewStyle().
-		Bold(true).
-		Foreground(Purple).
-		Render("SSH")
+	gue := WhiteText.Bold(true).Render("Gue")
+	ssh := PurpleText.Bold(true).Render("SSH")
 
 	return lipgloss.JoinHorizontal(
 		lipgloss.Center,

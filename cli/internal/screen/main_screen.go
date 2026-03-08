@@ -53,6 +53,7 @@ type mainModel struct {
 	flushing      bool
 	matchInfo     *game.MatchInfo
 	confirm       *bool
+	hoveredMode   protocol.GameMode
 
 	screenID              ScreenID
 	startMenuScreen       *startMenuModel
@@ -87,7 +88,7 @@ func InitialModel() *mainModel {
 	}
 
 	m.client = client.NewClient(conn)
-	m.gameConfigMenu, m.confirm = NewGameConfigMenu(m.matchInfo)
+	m.gameConfigMenu, m.confirm = NewGameConfigMenu(m.matchInfo, &m.hoveredMode)
 	return m
 }
 
@@ -137,7 +138,7 @@ func (m *mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case game.PlayGameIntent:
 		m.screenID = GameConfigScreenID
 		m.matchInfo = game.NewMatchInfo()
-		m.gameConfigMenu, m.confirm = NewGameConfigMenu(m.matchInfo)
+		m.gameConfigMenu, m.confirm = NewGameConfigMenu(m.matchInfo, &m.hoveredMode)
 
 		m.eventsPaused = false
 
@@ -150,6 +151,8 @@ func (m *mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			msg.roundsPlayed,
 			msg.roundOutcomes,
 			msg.matchOutcome,
+			m.matchInfo.PlayerName,
+			m.matchInfo.OpponentName,
 			msg.opponentLeft,
 		)
 
@@ -170,9 +173,11 @@ func (m *mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, m.requestRematchScreen.Init())
 
 	case game.DenyRematchIntent:
-		if m.matchInfo.RoomID == "" {
+		if m.matchInfo.DeniedRematch {
 			break
 		}
+
+		m.matchInfo.DeniedRematch = true
 		m.matchInfo.RoomID = ""
 		m.client.DenyRematch()
 		cmds = append(cmds, emit(game.StartMenuIntent{}))
@@ -234,16 +239,19 @@ func (m *mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		cmds = append(cmds, formCmd)
 
+		if focusedField := m.gameConfigMenu.GetFocusedField(); focusedField != nil {
+			if selectField, ok := focusedField.(*huh.Select[protocol.GameMode]); ok {
+				m.hoveredMode, _ = selectField.Hovered()
+				selectField.Description(GameModeDescriptions[m.hoveredMode])
+			}
+		}
+
 		if m.gameConfigMenu.State == huh.StateCompleted {
 			if !*m.confirm {
 				m.screenID = GameConfigScreenID
-				m.gameConfigMenu, m.confirm = NewGameConfigMenu(m.matchInfo)
+				m.gameConfigMenu, m.confirm = NewGameConfigMenu(m.matchInfo, &m.hoveredMode)
 
 				return m, tea.Batch(tea.ClearScreen, formCmd)
-			}
-
-			if m.matchInfo.RoomID != "" {
-				m.matchInfo.JoinExisting = true
 			}
 
 			m.game = NewGame(m.matchInfo)
@@ -258,6 +266,9 @@ func (m *mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.waitingOpponentScreen = NewWaitingOpponentModel()
 					cmds = append(cmds, m.game.Init(), m.waitingOpponentScreen.Init())
 				}
+			case protocol.MULTI_LOCAL:
+				m.screenID = GameScreenID
+				cmds = append(cmds, m.game.Init())
 			case protocol.SINGLE:
 				m.screenID = GameScreenID
 				cmds = append(cmds, m.game.Init())
@@ -352,7 +363,10 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 
 		m.matchInfo.WordLen = matchStartedEvent.WordLength
 		m.matchInfo.TotalRounds = matchStartedEvent.Rounds
-		m.matchInfo.OpponentName = matchStartedEvent.OpponentName
+
+		if m.matchInfo.Mode == protocol.MULTI_REMOTE {
+			m.matchInfo.OpponentName = matchStartedEvent.OpponentName
+		}
 
 		m.matchInfo.RawTotalRounds = fmt.Sprintf("%d", matchStartedEvent.Rounds)
 		m.matchInfo.RoundOutcomes = make([]*protocol.Outcome, matchStartedEvent.Rounds)
@@ -385,7 +399,12 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 
 	case protocol.WAIT_OPPONENT_GUESS:
 		m.game.state = game.StateWaitOpponentGuess
-		m.game.input.Blur()
+		if m.matchInfo.Mode == protocol.MULTI_LOCAL {
+			m.game.input.Focus()
+			m.game.input.SetValue("")
+		} else {
+			m.game.input.Blur()
+		}
 
 	case protocol.WAIT_OPPONENT_JOIN:
 		m.game.state = game.StateWaitOpponentJoin
@@ -455,7 +474,7 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 		}
 
 		m.screenID = GameConfigScreenID
-		m.gameConfigMenu, m.confirm = NewGameConfigMenu(m.matchInfo)
+		m.gameConfigMenu, m.confirm = NewGameConfigMenu(m.matchInfo, &m.hoveredMode)
 		m.game.matchInfo.RoomValidationError = errors.New(roomJoinFailedEvent.Reason)
 
 		// navigate to the RoomID input field

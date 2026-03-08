@@ -15,35 +15,64 @@ import (
 )
 
 const (
-	minRounds = 1
-	maxRounds = 5
+	minRounds    = 1
+	maxRounds    = 5
+	modeInputKey = "match_mode"
 )
 
 var GameModeLabels = map[protocol.GameMode]string{
-	protocol.SINGLE:       "Single player",
-	protocol.MULTI_REMOTE: "Two player remote",
+	protocol.SINGLE:       "Single Player",
+	protocol.MULTI_LOCAL:  "Local Multiplayer",
+	protocol.MULTI_REMOTE: "Remote Multiplayer",
 }
 
-func NewGameConfigMenu(matchInfo *game.MatchInfo) (*huh.Form, *bool) {
+var GameModeDescriptions = map[protocol.GameMode]string{
+	protocol.SINGLE:       "Yes...",
+	protocol.MULTI_LOCAL:  "No, we're sharing a chair.",
+	protocol.MULTI_REMOTE: "No, they're in the cloud.",
+}
+
+func NewGameConfigMenu(matchInfo *game.MatchInfo, hoveredPtr *protocol.GameMode) (*huh.Form, *bool) {
 	confirm := true
 
 	var (
 		playerNameInput = huh.NewInput().
-				Title("Player name ").
-				Value(&matchInfo.PlayerName).
-				Validate(func(str string) error {
+				TitleFunc(func() string {
+				if matchInfo.Mode == protocol.MULTI_LOCAL {
+					return "Player 1"
+				} else {
+					return "Player name"
+				}
+			}, matchInfo.Mode).
+			Value(&matchInfo.PlayerName).
+			Validate(func(str string) error {
 				if matchInfo.PlayerName == "" {
 					return errors.New("name must not be empty")
 				}
 				return nil
 			})
 
+		opponentNameInput = huh.NewInput().
+					Title("Player 2").
+					Value(&matchInfo.OpponentName).
+					Validate(func(str string) error {
+				if matchInfo.OpponentName == "" {
+					return errors.New("player name must not be empty")
+				}
+				return nil
+			})
+
 		modeInput = huh.NewSelect[protocol.GameMode]().
+				Key(modeInputKey).
 				Title("Are you lonely?").
 				Options(
 				huh.NewOption(GameModeLabels[protocol.SINGLE], protocol.SINGLE),
+				huh.NewOption(GameModeLabels[protocol.MULTI_LOCAL], protocol.MULTI_LOCAL),
 				huh.NewOption(GameModeLabels[protocol.MULTI_REMOTE], protocol.MULTI_REMOTE),
 			).
+			DescriptionFunc(func() string {
+				return GameModeDescriptions[*hoveredPtr]
+			}, hoveredPtr).
 			Value(&matchInfo.Mode)
 
 		joinExistingInput = huh.NewSelect[bool]().
@@ -125,15 +154,24 @@ func NewGameConfigMenu(matchInfo *game.MatchInfo) (*huh.Form, *bool) {
 				var lines []string
 				lines = append(lines, line("Mode: ", GameModeLabels[matchInfo.Mode]))
 
-				if !matchInfo.JoinExisting {
+				switch matchInfo.Mode {
+				case protocol.SINGLE:
 					lines = append(lines, line("Word length: ", fmt.Sprintf("%d", matchInfo.WordLen)))
 					lines = append(lines, line("Rounds: ", matchInfo.RawTotalRounds))
-				}
 
-				if matchInfo.Mode == protocol.MULTI_REMOTE {
+				case protocol.MULTI_LOCAL:
+					lines = append(lines, line("Player 1: ", matchInfo.PlayerName))
+					lines = append(lines, line("Player 2: ", matchInfo.OpponentName))
+					lines = append(lines, line("Word length: ", fmt.Sprintf("%d", matchInfo.WordLen)))
+					lines = append(lines, line("Rounds: ", matchInfo.RawTotalRounds))
+
+				case protocol.MULTI_REMOTE:
 					lines = append(lines, line("Player name: ", matchInfo.PlayerName))
-					if matchInfo.RoomID != "" {
+					if matchInfo.JoinExisting {
 						lines = append(lines, line("Room ID: ", matchInfo.RoomID))
+					} else {
+						lines = append(lines, line("Word length: ", fmt.Sprintf("%d", matchInfo.WordLen)))
+						lines = append(lines, line("Rounds: ", matchInfo.RawTotalRounds))
 					}
 				}
 
@@ -169,6 +207,13 @@ func NewGameConfigMenu(matchInfo *game.MatchInfo) (*huh.Form, *bool) {
 			playerNameInput,
 		).WithHideFunc(func() bool {
 			return matchInfo.Mode != protocol.MULTI_REMOTE || matchInfo.JoinExisting
+		}),
+
+		huh.NewGroup(
+			playerNameInput,
+			opponentNameInput,
+		).WithHideFunc(func() bool {
+			return matchInfo.Mode != protocol.MULTI_LOCAL
 		}),
 
 		huh.NewGroup(
