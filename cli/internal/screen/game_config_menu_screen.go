@@ -15,8 +15,9 @@ import (
 )
 
 const (
-	minRounds = 1
-	maxRounds = 5
+	minRounds    = 1
+	maxRounds    = 5
+	modeInputKey = "match_mode"
 )
 
 var GameModeLabels = map[protocol.GameMode]string{
@@ -25,15 +26,14 @@ var GameModeLabels = map[protocol.GameMode]string{
 	protocol.MULTI_REMOTE: "Remote Multiplayer",
 }
 
-var GameModeDescriptions = []string{
-	"Yes!",
-	"No, we're sharing a chair.",
-	"No, they're in the cloud.",
+var GameModeDescriptions = map[protocol.GameMode]string{
+	protocol.SINGLE:       "Yes...",
+	protocol.MULTI_LOCAL:  "No, we're sharing a chair.",
+	protocol.MULTI_REMOTE: "No, they're in the cloud.",
 }
 
-func NewGameConfigMenu(matchInfo *game.MatchInfo, modeSelectIndex *int) (*huh.Form, *bool) {
+func NewGameConfigMenu(matchInfo *game.MatchInfo, hoveredPtr *protocol.GameMode) (*huh.Form, *bool) {
 	confirm := true
-	*modeSelectIndex = 0
 
 	var (
 		playerNameInput = huh.NewInput().
@@ -63,7 +63,7 @@ func NewGameConfigMenu(matchInfo *game.MatchInfo, modeSelectIndex *int) (*huh.Fo
 			})
 
 		modeInput = huh.NewSelect[protocol.GameMode]().
-				Key("game mode").
+				Key(modeInputKey).
 				Title("Are you lonely?").
 				Options(
 				huh.NewOption(GameModeLabels[protocol.SINGLE], protocol.SINGLE),
@@ -71,8 +71,8 @@ func NewGameConfigMenu(matchInfo *game.MatchInfo, modeSelectIndex *int) (*huh.Fo
 				huh.NewOption(GameModeLabels[protocol.MULTI_REMOTE], protocol.MULTI_REMOTE),
 			).
 			DescriptionFunc(func() string {
-				return GameModeDescriptions[*modeSelectIndex]
-			}, modeSelectIndex).
+				return GameModeDescriptions[*hoveredPtr]
+			}, hoveredPtr).
 			Value(&matchInfo.Mode)
 
 		joinExistingInput = huh.NewSelect[bool]().
