@@ -42,6 +42,8 @@ type RoomCreatedMsg struct {
 	roomID string
 }
 
+type forceRenderMsg struct{}
+
 type mainModel struct {
 	width, height int
 	sshContext    context.Context
@@ -241,8 +243,13 @@ func (m *mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		if focusedField := m.gameConfigMenu.GetFocusedField(); focusedField != nil {
 			if selectField, ok := focusedField.(*huh.Select[protocol.GameMode]); ok {
-				m.hoveredMode, _ = selectField.Hovered()
-				selectField.Description(GameModeDescriptions[m.hoveredMode])
+				newHovered, _ := selectField.Hovered()
+
+				if newHovered != m.hoveredMode {
+					m.hoveredMode = newHovered
+					selectField.Description(GameModeDescriptions[m.hoveredMode])
+					cmds = append(cmds, emit(forceRenderMsg{})) // trigger render of form with new description
+				}
 			}
 		}
 
