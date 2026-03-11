@@ -38,7 +38,7 @@ bool evaluate_word_challenge_guess(const char *guess, WordChallenge *wc) {
 
   /* all letters in correct position */
   if (correct_count == wc->len)
-    return 1;
+    return true;
 
   /* 2nd pass: LETTER_PRESENT */
   for (size_t i = 0; i < wc->len; i++) {
@@ -48,7 +48,7 @@ bool evaluate_word_challenge_guess(const char *guess, WordChallenge *wc) {
     }
   }
 
-  return 0;
+  return false;
 }
 
 char *get_random_word(WordStore *store) {

@@ -16,7 +16,7 @@
 static MessageType parse_message(char *data, size_t size, cJSON **out);
 static Outcome calculate_match_outcome(Match *match);
 static WordStore *get_word_store(GameServer *gs, size_t word_len);
-static char **get_round_words(Round *round);
+static const char **get_round_words(Round *round);
 static bool already_guessed(char *word, char **guesses, size_t len);
 
 GameServer *GS_create(void) {
@@ -692,7 +692,7 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
 
   round->guess_attempts[round->attempt_count++] = strdup(guess);
   success = evaluate_guess(guess, round->wc_list, round->wc_num);
-  guess_result_json = json_guess_result(success, guess, feedback, match->word_len);
+  guess_result_json = json_guess_result(guess, feedback, match->word_len);
 
   bool is_round_finished = success || (round->attempt_count >= round->max_attempts);
 
@@ -820,14 +820,20 @@ void GS_end_round(GameServer *gs, Match *match) {
   Round *round = match->rounds[match->round_idx];
   cJSON *round_finished_json = NULL;
 
+  const char **words = get_round_words(round);
+  if (words == NULL) {
+    printf("get_round_words returned NULL\n");
+    return;
+  }
+
   printf("[end_round] Ending round...\n");
   switch (match->mode) {
   case MULTI_REMOTE:
-    round_finished_json = json_round_finished(round->points * -1, round->wc->word);
+    round_finished_json = json_round_finished(round->points * -1, words, round->wc_num);
     send_json(match->player2->client_fd, round_finished_json);
     cJSON_Delete(round_finished_json);
 
-    round_finished_json = json_round_finished(round->points, round->wc->word);
+    round_finished_json = json_round_finished(round->points, words, round->wc_num);
     send_json(match->player1->client_fd, round_finished_json);
     cJSON_Delete(round_finished_json);
 
@@ -838,10 +844,12 @@ void GS_end_round(GameServer *gs, Match *match) {
     match->local.player1_started_round = !match->local.player1_started_round;
     /* fallthrough */
   case SINGLE:
-    round_finished_json = json_round_finished(round->points, round->wc->word);
+    round_finished_json = json_round_finished(round->points, words, round->wc_num);
     send_json(match->player1->client_fd, round_finished_json);
     cJSON_Delete(round_finished_json);
   }
+
+  free(words);
 
   if (match->round_idx + 1 < (int)match->round_capacity) {
     GS_start_round(gs, match);
@@ -994,8 +1002,8 @@ static WordStore *get_word_store(GameServer *gs, size_t word_len) {
   exit(EXIT_FAILURE);
 }
 
-static char **get_round_words(Round *round) {
-  char **words = malloc(sizeof(char *) * round->wc_num);
+static const char **get_round_words(Round *round) {
+  const char **words = malloc(sizeof(char *) * round->wc_num);
   if (words == NULL) {
     perror("malloc");
     return (NULL);
