@@ -1,5 +1,4 @@
 #include "game_types.h"
-#include "game_logic.h"
 #include "room.h"
 #include "util.h"
 
@@ -52,53 +51,33 @@ void delete_match(Match *match) {
   free(match);
 }
 
-Round *new_round(WordChallenge *word_challenge) {
+Round *new_round(WordChallenge **word_challenges, size_t wc_num, size_t max_attempts) {
   Round *round = calloc(1, sizeof(Round));
   if (round == NULL) {
     perror("calloc");
     return NULL;
   }
 
-  round->wc = word_challenge;
+  round->wc_list = word_challenges;
+  round->wc_num = wc_num;
+
+  round->attempt_count = 0;
+  round->guess_attempts = calloc(max_attempts, sizeof(char *));
+  if (round->guess_attempts == NULL) {
+    perror("calloc guess_attempts");
+    return NULL;
+  }
 
   return round;
 }
 
 void delete_round(Round *round) {
-  delete_word_challenge(round->wc);
+  for (int i = 0; i < (int)round->attempt_count; i++) {
+    free(round->guess_attempts[i]);
+  }
+  free(round->guess_attempts);
+  free(round->wc_list);
   free(round);
-}
-
-WordChallenge *new_word_challenge(WordStore *store, int max_attempts) {
-  WordChallenge *wc = calloc(1, sizeof(WordChallenge));
-  if (wc == NULL) {
-    perror("calloc");
-    return NULL;
-  }
-
-  wc->word_len = store->word_len;
-  wc->attempt_count = 0;
-  wc->max_attempts = max_attempts;
-  wc->guess_attempts = calloc(max_attempts, sizeof(char *));
-  if (wc->guess_attempts == NULL) {
-    perror("calloc guess_attempts");
-    free(wc);
-    return NULL;
-  }
-
-  wc->word = get_random_word(store);
-  printf("[new_word_challenge] word: %s\n", wc->word);
-
-  return wc;
-}
-
-void delete_word_challenge(WordChallenge *wc) {
-  printf("Deleting word challenge. Attempt count: %d\n", (int)wc->attempt_count);
-  for (int i = 0; i < (int)wc->attempt_count; i++) {
-    free(wc->guess_attempts[i]);
-  }
-  free(wc->guess_attempts);
-  free(wc);
 }
 
 Player *new_player(int client_fd, char *name) {

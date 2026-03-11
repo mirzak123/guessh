@@ -1,7 +1,6 @@
 #ifndef GAME_TYPES_H
 #define GAME_TYPES_H
 
-#include "game_logic.h"
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -33,27 +32,20 @@ typedef struct Player {
 Player *new_player(int client_fd, char *name);
 void delete_player(Player *player);
 
-typedef struct WordChallenge {
-  char *word;
-  size_t word_len;
+typedef char *WordChallenge;
+
+typedef struct Round {
+  WordChallenge *wc_list;
+  size_t wc_num;
+
   size_t attempt_count; /* how many attempts have been made */
   size_t max_attempts;
 
   char **guess_attempts; /* array of all guess attempts made */
-  int is_solved;         /* optional */
-} WordChallenge;
-
-WordChallenge *new_word_challenge(WordStore *store, int max_attempts);
-void delete_word_challenge(WordChallenge *word_challenge);
-
-typedef struct Round {
-  /* When we turn this into a quordle-style game, we would store an array
-   * of WordChallenge structs */
-  WordChallenge *wc;
   int points;
 } Round;
 
-Round *new_round(WordChallenge *word_challenge);
+Round *new_round(WordChallenge **word_challenges, size_t wc_num, size_t max_attempts);
 void delete_round(Round *round);
 
 typedef struct Match {

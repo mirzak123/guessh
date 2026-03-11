@@ -655,7 +655,7 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
   round = match->rounds[match->round_idx];
   opponent = get_opponent(match->player1, match->player2, player);
 
-  assert(round->wc->attempt_count < round->wc->max_attempts);
+  assert(round->attempt_count < round->max_attempts);
 
   if (match->mode == MULTI_REMOTE && player != match->remote.on_turn) {
     send_error(client->fd, E_NOT_ON_TURN);
@@ -679,7 +679,7 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
     return;
   }
 
-  if (already_guessed(guess, round->wc->guess_attempts, round->wc->attempt_count)) {
+  if (already_guessed(guess, round->guess_attempts, round->attempt_count)) {
     send_error(client->fd, E_REPEATED_GUESS);
     if (opponent != NULL) {
       cJSON *opponent_typing_json = json_opponent_typing("");
@@ -695,11 +695,11 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
     return;
   }
 
-  round->wc->guess_attempts[round->wc->attempt_count++] = strdup(guess);
-  success = evaluate_guess(guess, round->wc->word, feedback, match->word_len);
+  round->guess_attempts[round->attempt_count++] = strdup(guess);
+  success = evaluate_guess(guess, round->wc, feedback, match->word_len);
   guess_result_json = json_guess_result(success, guess, feedback, match->word_len);
 
-  bool is_round_finished = success || (round->wc->attempt_count >= round->wc->max_attempts);
+  bool is_round_finished = success || (round->attempt_count >= round->max_attempts);
 
   switch (match->mode) {
   case MULTI_REMOTE:
@@ -751,7 +751,7 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
       round->points = player == match->player1 ? 1 : -1;
       break;
     }
-  } else if (round->wc->attempt_count >= round->wc->max_attempts) {
+  } else if (round->attempt_count >= round->max_attempts) {
     round->points = 0;
   }
   GS_end_round(gs, match);
@@ -899,20 +899,35 @@ void GS_start_round(GameServer *gs, Match *match) {
 
   size_t max_attempts = match->word_len + 1;
   WordStore *store = get_word_store(gs, match->word_len);
-  WordChallenge *wc = new_word_challenge(store, max_attempts);
-  if (wc == NULL) {
-    printf("[start_match] error: new_word_challenge() returned NULL\n");
-    return;
+
+  size_t wc_num;
+  switch (match->format) {
+  case WORDLE:
+    wc_num = 1;
+  case QUORDLE:
+    wc_num = 4;
+    break;
   }
 
-  Round *round = new_round(wc);
+  WordChallenge **wc_list = malloc(sizeof(WordChallenge *) * wc_num);
+
+  for (size_t i = 0; i < wc_num; i++) {
+    WordChallenge wc = get_random_word(store);
+    if (wc == NULL) {
+      printf("[start_match] error: new_word_challenge() returned NULL\n");
+      return;
+    }
+    wc_list[i] = &wc;
+  }
+
+  Round *round = new_round(wc_list, wc_num, max_attempts);
   if (round == NULL) {
     printf("[start_match] error: new_round() returned NULL\n");
     return;
   }
 
   match->rounds[++(match->round_idx)] = round;
-  round_started_json = json_round_started(match->round_idx + 1, round->wc->max_attempts);
+  round_started_json = json_round_started(match->round_idx + 1, round->max_attempts);
 
   switch (match->mode) {
   case MULTI_REMOTE:

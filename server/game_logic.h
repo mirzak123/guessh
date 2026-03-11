@@ -29,7 +29,8 @@ typedef struct {
 WordStore *new_word_store(char *filename, size_t word_len);
 void delete_word_store(WordStore *store);
 
-bool evaluate_guess(const char *guess_word, const char *target_word, LetterFeedback *feedback, size_t len);
+bool evaluate_all_word_challenges(const char *guess_word, const char *target_word, LetterFeedback *feedback, size_t len);
+bool evaluate_single_word_challenge(const char *guess_word, const char *target_word, LetterFeedback *feedback, size_t len);
 char *get_random_word(WordStore *store);
 
 #endif // !GAME_LOGIC_H
