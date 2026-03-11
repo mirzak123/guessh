@@ -75,6 +75,8 @@ func (m *gameModel) Init() tea.Cmd {
 func (m *gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
+	shouldRegisterInput := false
+
 	switch msg := msg.(type) {
 
 	case tea.WindowSizeMsg:
@@ -88,18 +90,16 @@ func (m *gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyCtrlC, tea.KeyEsc:
 			return m, tea.Quit
 		case tea.KeyBackspace:
-			break
-		case tea.KeySpace:
-			return m, nil
+			shouldRegisterInput = true
 		case tea.KeyRunes:
 			r := &msg.Runes[0]
 			if *r >= 'A' && *r <= 'Z' {
 				msg.Runes[0] = *r + ('a' - 'A')
 			}
 			if *r < 'a' || *r > 'z' {
-
 				return m, nil
 			}
+			shouldRegisterInput = true
 		case tea.KeyEnter:
 			logger.Debug("Game state: [%s]", m.state)
 			if m.state == game.StateRoundFinished {
@@ -119,12 +119,15 @@ func (m *gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 		}
-		var inputCmd tea.Cmd
-		m.input, inputCmd = m.input.Update(msg)
-		cmds = append(cmds, inputCmd)
 
-		if m.state == game.StateWaitGuess {
-			cmds = append(cmds, emit(game.TypingIntent{Value: m.input.Value()}))
+		if shouldRegisterInput {
+			var inputCmd tea.Cmd
+			m.input, inputCmd = m.input.Update(msg)
+			cmds = append(cmds, inputCmd)
+
+			if m.state == game.StateWaitGuess {
+				cmds = append(cmds, emit(game.TypingIntent{Value: m.input.Value()}))
+			}
 		}
 		return m, tea.Batch(cmds...)
 	}
