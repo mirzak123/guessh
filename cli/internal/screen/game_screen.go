@@ -86,6 +86,19 @@ func (m *gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.Type {
 		case tea.KeyCtrlC, tea.KeyEsc:
 			return m, tea.Quit
+		case tea.KeyBackspace:
+			break
+		case tea.KeySpace:
+			return m, nil
+		case tea.KeyRunes:
+			r := &msg.Runes[0]
+			if *r >= 'A' && *r <= 'Z' {
+				msg.Runes[0] = *r + ('a' - 'A')
+			}
+			if *r < 'a' || *r > 'z' {
+
+				return m, nil
+			}
 		case tea.KeyEnter:
 			logger.Debug("Game state: [%s]", m.state)
 			if m.state == game.StateRoundFinished {
