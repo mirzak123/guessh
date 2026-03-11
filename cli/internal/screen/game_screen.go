@@ -110,7 +110,7 @@ func (m *gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.state == game.StateWaitGuess || m.state == game.StateWaitOpponentGuess {
 				v := m.input.Value()
 
-				if len(v) == m.matchInfo.WordLen { // do nothing if not enough letters
+				if len(v) == m.matchInfo.WordLen && !m.alreadyGuessed(v) {
 					if m.validateGuess(v) {
 						m.input.SetValue("")
 						return m, emit(game.MakeGuessIntent{Guess: v})
@@ -296,4 +296,13 @@ func emit(msg tea.Msg) tea.Cmd {
 	return func() tea.Msg {
 		return msg
 	}
+}
+
+func (m *gameModel) alreadyGuessed(word string) bool {
+	for _, guess := range m.guesses {
+		if guess.Word == word {
+			return true
+		}
+	}
+	return false
 }
