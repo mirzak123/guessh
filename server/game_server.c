@@ -640,7 +640,6 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
   cJSON *guess_json, *guess_result_json;
   char *guess;
   bool success;
-  LetterFeedback *feedback;
 
   player = client->player;
 
@@ -692,7 +691,7 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
 
   round->guess_attempts[round->attempt_count++] = strdup(guess);
   success = evaluate_guess(guess, round->wc_list, round->wc_num);
-  guess_result_json = json_guess_result(guess, feedback, match->word_len);
+  guess_result_json = json_guess_result(guess, round, match->word_len);
 
   bool is_round_finished = success || (round->attempt_count >= round->max_attempts);
 
@@ -728,7 +727,6 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
     }
     break;
   }
-  free(feedback);
   cJSON_Delete(guess_result_json);
 
   if (!is_round_finished)

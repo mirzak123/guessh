@@ -54,16 +54,24 @@ cJSON *json_round_started(size_t round_num, size_t max_attempts) {
   return json;
 }
 
-cJSON *json_guess_result(const char *guess, const LetterFeedback *feedback, size_t word_len) {
-  cJSON *json = cJSON_CreateObject(), *feedback_json = cJSON_CreateArray(), *feedback_item = NULL;
+cJSON *json_guess_result(const char *guess, Round *round, size_t word_len) {
+  cJSON *json = cJSON_CreateObject();
+  cJSON *outer_feedback_json = cJSON_CreateArray();
 
   cJSON_AddStringToObject(json, "type", STR(GUESS_RESULT));
   cJSON_AddStringToObject(json, "guess", guess);
-  for (int i = 0; i < (int)word_len; i++) {
-    feedback_item = cJSON_CreateNumber(feedback[i]);
-    cJSON_AddItemToArray(feedback_json, feedback_item);
+
+  for (size_t i = 0; i < word_len; i++) {
+    cJSON *inner_array = cJSON_CreateArray();
+
+    for (size_t j = 0; j < round->wc_list[0]->len; j++) {
+      cJSON_AddItemToArray(inner_array, cJSON_CreateNumber(round->wc_list[i]->feedback[j]));
+    }
+
+    cJSON_AddItemToArray(outer_feedback_json, inner_array);
   }
-  cJSON_AddItemToObject(json, "feedback", feedback_json);
+
+  cJSON_AddItemToObject(json, "feedback", outer_feedback_json);
   return json;
 }
 
