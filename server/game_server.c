@@ -5,6 +5,7 @@
 #include "hash_table.h"
 #include "json_messages.h"
 #include "room.h"
+#include <_string.h>
 #include <assert.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -16,6 +17,7 @@
 static MessageType parse_message(char *data, size_t size, cJSON **out);
 static Outcome calculate_match_outcome(Match *match);
 static WordStore *get_word_store(GameServer *gs, size_t word_len);
+static bool already_guessed(char *word, char **guesses, size_t len);
 
 GameServer *GS_create(void) {
   GameServer *gs;
@@ -655,13 +657,23 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
     return;
   }
 
+  if (already_guessed(guess, round->wc->guess_attempts, round->wc->attempt_count)) {
+    send_error(client->fd, E_REPEATED_GUESS);
+    if (opponent != NULL) {
+      cJSON *opponent_typing_json = json_opponent_typing("");
+      send_json(opponent->client_fd, opponent_typing_json);
+      cJSON_Delete(opponent_typing_json);
+    }
+    return;
+  }
+
   feedback = malloc(sizeof(int) * match->word_len);
   if (feedback == NULL) {
     perror("malloc");
     return;
   }
 
-  round->wc->attempt_count++;
+  round->wc->guess_attempts[round->wc->attempt_count++] = strdup(guess);
   success = evaluate_guess(guess, round->wc->word, feedback, match->word_len);
   guess_result_json = json_guess_result(success, guess, feedback, match->word_len);
 
@@ -960,4 +972,14 @@ static WordStore *get_word_store(GameServer *gs, size_t word_len) {
   }
   printf("Tried to get word store for unsupported word length: %lu\n", word_len);
   exit(EXIT_FAILURE);
+}
+
+static bool already_guessed(char *word, char **guesses, size_t len) {
+  for (size_t i = 0; i < len; i++) {
+    printf("Comparing %s and %s\n", guesses[i], word);
+    if (!strcmp(guesses[i], word)) {
+      return true;
+    }
+  }
+  return false;
 }

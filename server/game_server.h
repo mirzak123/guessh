@@ -30,6 +30,7 @@
 #define E_INVALID_ROUNDS "Round number must be between 1 and " STR(MAX_ROUNDS)
 #define E_INVALID_WORD_LEN "wordLength must be between " STR(MIN_WORD_LEN) " and " STR(MAX_WORD_LEN)
 #define E_NOT_ON_TURN "Opponent is currently on turn"
+#define E_REPEATED_GUESS "Repeating guesses is not allowed"
 #define E_UNSUPPORTED_MODE "Unsupported mode"
 #define E_PLAYER_NOT_IN_MATCH "Player is not in an active match"
 #define E_PLAYER_NOT_IN_ROOM "Player is not in a room"
