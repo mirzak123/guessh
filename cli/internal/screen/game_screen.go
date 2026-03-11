@@ -59,6 +59,7 @@ func (m *gameModel) Init() tea.Cmd {
 	} else {
 		cmd = emit(game.CreateMatchIntent{
 			Mode:       m.matchInfo.Mode,
+			Format:     m.matchInfo.Format,
 			WordLen:    m.matchInfo.WordLen,
 			Rounds:     m.matchInfo.TotalRounds,
 			PlayerName: m.matchInfo.PlayerName,

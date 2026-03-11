@@ -34,17 +34,19 @@ type EnvelopeEvent struct {
 /* Client Types */
 
 type CreateMatchEvent struct {
-	Type       EventType `json:"type"`
-	Mode       GameMode  `json:"mode"`
-	WordLen    int       `json:"wordLength"`
-	Rounds     int       `json:"rounds"`
-	PlayerName string    `json:"playerName,omitempty"`
+	Type       EventType  `json:"type"`
+	Mode       GameMode   `json:"mode"`
+	Format     GameFormat `json:"format"`
+	WordLen    int        `json:"wordLength"`
+	Rounds     int        `json:"rounds"`
+	PlayerName string     `json:"playerName,omitempty"`
 }
 
-func NewCreateMatchEvent(mode GameMode, wordLen int, rounds int, playerName string) *CreateMatchEvent {
+func NewCreateMatchEvent(mode GameMode, format GameFormat, wordLen int, rounds int, playerName string) *CreateMatchEvent {
 	return &CreateMatchEvent{
 		Type:       CREATE_MATCH,
 		Mode:       mode,
+		Format:     format,
 		WordLen:    wordLen,
 		Rounds:     rounds,
 		PlayerName: playerName,
