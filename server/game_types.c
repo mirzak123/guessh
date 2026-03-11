@@ -95,10 +95,21 @@ WordChallenge *new_word_challenge(WordStore *store) {
 
   wc->word = get_random_word(store);
   wc->is_solved = false;
+  wc->len = store->word_len;
+
+  wc->feedback = calloc(wc->len, sizeof(LetterFeedback));
+  if (wc->feedback == NULL) {
+    perror("wc->feedback calloc");
+    return NULL;
+  }
+
   return wc;
 }
 
-void delete_word_challenge(WordChallenge *wc) { free(wc); }
+void delete_word_challenge(WordChallenge *wc) {
+  free(wc->feedback);
+  free(wc);
+}
 
 Player *new_player(int client_fd, char *name) {
   Player *player = calloc(1, sizeof(Player));

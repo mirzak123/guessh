@@ -16,6 +16,7 @@
 static MessageType parse_message(char *data, size_t size, cJSON **out);
 static Outcome calculate_match_outcome(Match *match);
 static WordStore *get_word_store(GameServer *gs, size_t word_len);
+static char **get_round_words(Round *round);
 static bool already_guessed(char *word, char **guesses, size_t len);
 
 GameServer *GS_create(void) {
@@ -689,14 +690,8 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
     return;
   }
 
-  feedback = malloc(sizeof(int) * match->word_len);
-  if (feedback == NULL) {
-    perror("malloc");
-    return;
-  }
-
   round->guess_attempts[round->attempt_count++] = strdup(guess);
-  success = evaluate_guess(guess, round->wc, feedback, match->word_len);
+  success = evaluate_guess(guess, round->wc_list, round->wc_num);
   guess_result_json = json_guess_result(success, guess, feedback, match->word_len);
 
   bool is_round_finished = success || (round->attempt_count >= round->max_attempts);
@@ -912,12 +907,12 @@ void GS_start_round(GameServer *gs, Match *match) {
   WordChallenge **wc_list = malloc(sizeof(WordChallenge *) * wc_num);
 
   for (size_t i = 0; i < wc_num; i++) {
-    WordChallenge wc = get_random_word(store);
+    WordChallenge *wc = new_word_challenge(store);
     if (wc == NULL) {
       printf("[start_match] error: new_word_challenge() returned NULL\n");
       return;
     }
-    wc_list[i] = &wc;
+    wc_list[i] = wc;
   }
 
   Round *round = new_round(wc_list, wc_num, max_attempts);
@@ -997,6 +992,20 @@ static WordStore *get_word_store(GameServer *gs, size_t word_len) {
   }
   printf("Tried to get word store for unsupported word length: %lu\n", word_len);
   exit(EXIT_FAILURE);
+}
+
+static char **get_round_words(Round *round) {
+  char **words = malloc(sizeof(char *) * round->wc_num);
+  if (words == NULL) {
+    perror("malloc");
+    return (NULL);
+  }
+
+  for (size_t i = 0; i < round->wc_num; i++) {
+    words[i] = round->wc_list[i]->word;
+  }
+
+  return words;
 }
 
 static bool already_guessed(char *word, char **guesses, size_t len) {

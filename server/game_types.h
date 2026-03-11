@@ -1,13 +1,13 @@
 #ifndef GAME_TYPES_H
 #define GAME_TYPES_H
 
-#include "game_logic.h"
 #include <stdbool.h>
 #include <stddef.h>
 
 #define MAX_CLIENT_DATA 1024
 
 struct Room;
+struct WordStore;
 
 typedef enum { OUTCOME_NONE, OUTCOME_PLAYER1, OUTCOME_PLAYER2 } Outcome;
 
@@ -35,7 +35,9 @@ void delete_player(Player *player);
 
 typedef struct WordChallenge {
   char *word;
+  size_t len;
   bool is_solved;
+  LetterFeedback *feedback;
 } WordChallenge;
 
 WordChallenge *new_word_challenge(WordStore *store);
