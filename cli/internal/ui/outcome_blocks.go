@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"guessh/internal/protocol"
 
 	"github.com/charmbracelet/lipgloss"
@@ -35,7 +36,7 @@ func PointOutcomeBlock(points int) string {
 	} else {
 		bg = Gray
 	}
-	return viewSymbolBlock(string(points), White, bg)
+	return viewSymbolBlock(fmt.Sprintf("%d", points), White, bg)
 }
 
 func RoundOutcomeBlock(points int, format protocol.GameFormat) string {

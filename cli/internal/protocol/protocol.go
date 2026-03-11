@@ -32,10 +32,10 @@ const (
 
 type Guess struct {
 	Word   string
-	Result []LetterFeedback
+	Result [][]LetterFeedback
 }
 
-func NewGuess(word string, result []LetterFeedback) *Guess {
+func NewGuess(word string, result [][]LetterFeedback) *Guess {
 	return &Guess{
 		Word:   word,
 		Result: result,

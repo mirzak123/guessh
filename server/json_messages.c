@@ -61,10 +61,10 @@ cJSON *json_guess_result(const char *guess, Round *round, size_t word_len) {
   cJSON_AddStringToObject(json, "type", STR(GUESS_RESULT));
   cJSON_AddStringToObject(json, "guess", guess);
 
-  for (size_t i = 0; i < word_len; i++) {
+  for (size_t i = 0; i < round->wc_num; i++) {
     cJSON *inner_array = cJSON_CreateArray();
 
-    for (size_t j = 0; j < round->wc_list[0]->len; j++) {
+    for (size_t j = 0; j < word_len; j++) {
       cJSON_AddItemToArray(inner_array, cJSON_CreateNumber(round->wc_list[i]->feedback[j]));
     }
 

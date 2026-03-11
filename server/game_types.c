@@ -63,6 +63,7 @@ Round *new_round(WordChallenge **word_challenges, size_t wc_num, size_t max_atte
   round->wc_num = wc_num;
 
   round->attempt_count = 0;
+  round->max_attempts = max_attempts;
   round->guess_attempts = calloc(max_attempts, sizeof(char *));
   if (round->guess_attempts == NULL) {
     perror("calloc guess_attempts");

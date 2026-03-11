@@ -8,13 +8,13 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-func ViewGuessedRow(g *protocol.Guess) string {
-	blocks := make([]string, len(g.Result))
+func ViewGuessedRow(word string, result []protocol.LetterFeedback) string {
+	blocks := make([]string, len(result))
 
-	for i, r := range g.Word {
+	for i, r := range word {
 		var style lipgloss.Style
 
-		switch g.Result[i] {
+		switch result[i] {
 		case protocol.LETTER_CORRECT:
 			style = correctStyle
 		case protocol.LETTER_PRESENT:
@@ -61,12 +61,12 @@ func ViewInactiveRow(wordLen int) string {
 	return lipgloss.JoinHorizontal(lipgloss.Center, blocks...)
 }
 
-func ViewGuessGrid(guesses []*protocol.Guess, input string, maxAttempts int, wordLen int, state game.GameState) string {
+func ViewGuessGrid(guesses []*protocol.Guess, wordIdx int, input string, maxAttempts int, wordLen int, state game.GameState) string {
 	grid := make([]string, maxAttempts)
 
 	for i := range maxAttempts {
 		if i < len(guesses) {
-			grid[i] = ViewGuessedRow(guesses[i])
+			grid[i] = ViewGuessedRow(guesses[i].Word, guesses[i].Result[wordIdx])
 		} else if i == len(guesses) && (state == game.StateWaitGuess || state == game.StateWaitOpponentGuess) {
 			grid[i] = ViewWordInputRow(input, wordLen, state == game.StateWaitGuess)
 		} else {

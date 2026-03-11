@@ -151,10 +151,9 @@ type WaitOpponentGuessEvent struct {
 }
 
 type GuessResultEvent struct {
-	Type     EventType        `json:"type"`
-	Success  bool             `json:"success"`
-	Guess    string           `json:"guess"`
-	Feedback []LetterFeedback `json:"feedback"`
+	Type     EventType          `json:"type"`
+	Guess    string             `json:"guess"`
+	Feedback [][]LetterFeedback `json:"feedback"`
 }
 
 type RoundFinishedEvent struct {

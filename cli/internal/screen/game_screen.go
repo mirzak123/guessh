@@ -134,15 +134,36 @@ func (m *gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *gameModel) View() string {
-	guessGrid := ui.ViewGuessGrid(
-		m.guesses,
-		m.input.Value(),
-		m.matchInfo.MaxAttempts,
-		m.matchInfo.WordLen,
-		m.state,
-	)
+	var wordNum int
+	switch m.matchInfo.Format {
+	case protocol.WORDLE:
+		wordNum = 1
+	case protocol.QUORDLE:
+		wordNum = 4
+	}
 
-	gridWidth := lipgloss.Width(guessGrid)
+	gridStyle := lipgloss.NewStyle().MarginRight(4)
+
+	var guessGrids []string
+	for i := 0; i < wordNum; i++ {
+		grid := ui.ViewGuessGrid(
+			m.guesses,
+			i,
+			m.input.Value(),
+			m.matchInfo.MaxAttempts,
+			m.matchInfo.WordLen,
+			m.state,
+		)
+
+		// Apply the margin to all but the last element
+		if i < wordNum-1 {
+			grid = gridStyle.Render(grid)
+		}
+
+		guessGrids = append(guessGrids, grid)
+	}
+
+	gridWidth := lipgloss.Width(guessGrids[0])
 
 	var (
 		p1Symbol = ui.PlayerBlock()
@@ -214,7 +235,7 @@ func (m *gameModel) View() string {
 		headerRow,
 		emptyLine,
 		emptyLine,
-		guessGrid,
+		lipgloss.JoinHorizontal(lipgloss.Center, guessGrids...),
 		emptyLine,
 		m.statusBar(),
 	)

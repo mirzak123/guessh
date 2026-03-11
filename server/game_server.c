@@ -655,6 +655,8 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
   round = match->rounds[match->round_idx];
   opponent = get_opponent(match->player1, match->player2, player);
 
+  printf("attempt_count: %lu\n", round->attempt_count);
+  printf("attempt_count: %lu\n", round->max_attempts);
   assert(round->attempt_count < round->max_attempts);
 
   if (match->mode == MULTI_REMOTE && player != match->remote.on_turn) {
