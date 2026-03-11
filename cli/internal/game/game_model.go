@@ -19,6 +19,7 @@ const (
 
 type MatchInfo struct {
 	Mode                protocol.GameMode
+	Format              protocol.GameFormat
 	WordLen             int
 	CurrentRound        int
 	RawTotalRounds      string

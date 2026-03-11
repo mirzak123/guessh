@@ -15,9 +15,8 @@ import (
 )
 
 const (
-	minRounds    = 1
-	maxRounds    = 5
-	modeInputKey = "match_mode"
+	minRounds = 1
+	maxRounds = 5
 )
 
 var GameModeLabels = map[protocol.GameMode]string{
@@ -30,6 +29,11 @@ var GameModeDescriptions = map[protocol.GameMode]string{
 	protocol.SINGLE:       "Yes...",
 	protocol.MULTI_LOCAL:  "No, we're sharing a chair.",
 	protocol.MULTI_REMOTE: "No, they're in the cloud.",
+}
+
+var GameFormatLabels = map[protocol.GameFormat]string{
+	protocol.WORDLE:  "Wordle",
+	protocol.QUORDLE: "Quordle",
 }
 
 func NewGameConfigMenu(matchInfo *game.MatchInfo, hoveredPtr *protocol.GameMode) (*huh.Form, *bool) {
@@ -63,7 +67,6 @@ func NewGameConfigMenu(matchInfo *game.MatchInfo, hoveredPtr *protocol.GameMode)
 			})
 
 		modeInput = huh.NewSelect[protocol.GameMode]().
-				Key(modeInputKey).
 				Title("Are you lonely?").
 				Options(
 				huh.NewOption(GameModeLabels[protocol.SINGLE], protocol.SINGLE),
@@ -74,6 +77,14 @@ func NewGameConfigMenu(matchInfo *game.MatchInfo, hoveredPtr *protocol.GameMode)
 				return GameModeDescriptions[*hoveredPtr]
 			}, hoveredPtr).
 			Value(&matchInfo.Mode)
+
+		formatInput = huh.NewSelect[protocol.GameFormat]().
+				Title("Game format?").
+				Options(
+				huh.NewOption(GameFormatLabels[protocol.WORDLE], protocol.WORDLE),
+				huh.NewOption(GameFormatLabels[protocol.QUORDLE], protocol.QUORDLE),
+			).
+			Value(&matchInfo.Format)
 
 		joinExistingInput = huh.NewSelect[bool]().
 					Title("Create or join?").
@@ -156,12 +167,14 @@ func NewGameConfigMenu(matchInfo *game.MatchInfo, hoveredPtr *protocol.GameMode)
 
 				switch matchInfo.Mode {
 				case protocol.SINGLE:
+					lines = append(lines, line("Game format: ", GameFormatLabels[matchInfo.Format]))
 					lines = append(lines, line("Word length: ", fmt.Sprintf("%d", matchInfo.WordLen)))
 					lines = append(lines, line("Rounds: ", matchInfo.RawTotalRounds))
 
 				case protocol.MULTI_LOCAL:
 					lines = append(lines, line("Player 1: ", matchInfo.PlayerName))
 					lines = append(lines, line("Player 2: ", matchInfo.OpponentName))
+					lines = append(lines, line("Game format: ", GameFormatLabels[matchInfo.Format]))
 					lines = append(lines, line("Word length: ", fmt.Sprintf("%d", matchInfo.WordLen)))
 					lines = append(lines, line("Rounds: ", matchInfo.RawTotalRounds))
 
@@ -170,6 +183,7 @@ func NewGameConfigMenu(matchInfo *game.MatchInfo, hoveredPtr *protocol.GameMode)
 					if matchInfo.JoinExisting {
 						lines = append(lines, line("Room ID: ", matchInfo.RoomID))
 					} else {
+						lines = append(lines, line("Game format: ", GameFormatLabels[matchInfo.Format]))
 						lines = append(lines, line("Word length: ", fmt.Sprintf("%d", matchInfo.WordLen)))
 						lines = append(lines, line("Rounds: ", matchInfo.RawTotalRounds))
 					}
@@ -190,6 +204,7 @@ func NewGameConfigMenu(matchInfo *game.MatchInfo, hoveredPtr *protocol.GameMode)
 			}),
 
 		huh.NewGroup(
+			formatInput,
 			wordLenInput,
 			roundNumInput,
 		).WithHideFunc(func() bool {

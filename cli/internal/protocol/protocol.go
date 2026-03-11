@@ -1,6 +1,7 @@
 package protocol
 
 type GameMode string
+type GameFormat string
 type LetterFeedback int
 type Outcome int
 
@@ -10,6 +11,11 @@ const (
 	SINGLE       GameMode = "SINGLE"
 	MULTI_LOCAL  GameMode = "MULTI_LOCAL"
 	MULTI_REMOTE GameMode = "MULTI_REMOTE"
+)
+
+const (
+	WORDLE  GameFormat = "WORDLE"
+	QUORDLE GameFormat = "QUORDLE"
 )
 
 const (
