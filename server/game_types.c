@@ -73,9 +73,14 @@ Round *new_round(WordChallenge **word_challenges, size_t wc_num, size_t max_atte
 }
 
 void delete_round(Round *round) {
+  for (size_t i = 0; i < round->wc_num; i++) {
+    delete_word_challenge(round->wc_list[i]);
+  }
+
   for (int i = 0; i < (int)round->attempt_count; i++) {
     free(round->guess_attempts[i]);
   }
+
   free(round->guess_attempts);
   free(round->wc_list);
   free(round);

@@ -42,7 +42,7 @@ WordChallenge *new_word_challenge(WordStore *store);
 void delete_word_challenge(WordChallenge *wc);
 
 typedef struct Round {
-  WordChallenge *wc_list;
+  WordChallenge **wc_list;
   size_t wc_num;
 
   size_t attempt_count; /* how many attempts have been made */
