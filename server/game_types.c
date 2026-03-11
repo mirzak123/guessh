@@ -1,4 +1,5 @@
 #include "game_types.h"
+#include "game_logic.h"
 #include "room.h"
 #include "util.h"
 
@@ -79,6 +80,20 @@ void delete_round(Round *round) {
   free(round->wc_list);
   free(round);
 }
+
+WordChallenge *new_word_challenge(WordStore *store) {
+  WordChallenge *wc = calloc(1, sizeof(WordChallenge));
+  if (wc == NULL) {
+    perror("calloc");
+    return NULL;
+  }
+
+  wc->word = get_random_word(store);
+  wc->is_solved = false;
+  return wc;
+}
+
+void delete_word_challenge(WordChallenge *wc) { free(wc); }
 
 Player *new_player(int client_fd, char *name) {
   Player *player = calloc(1, sizeof(Player));
