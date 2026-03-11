@@ -24,8 +24,10 @@ type MatchInfo struct {
 	CurrentRound        int
 	RawTotalRounds      string
 	TotalRounds         int
+	RoundsPlayed        int
 	MaxAttempts         int
-	RoundOutcomes       []*protocol.Outcome
+	CurrentAttempts     int
+	RoundPoints         []int
 	PlayerName          string
 	OpponentName        string
 	RoomID              string
@@ -39,8 +41,8 @@ func NewMatchInfo() *MatchInfo {
 }
 
 type RoundInfo struct {
-	Word    string
-	Success bool
+	Word   string
+	Points int
 }
 
 func NewRoundInfo() *RoundInfo {

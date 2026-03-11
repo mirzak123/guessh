@@ -32,10 +32,10 @@ const (
 )
 
 type MatchFinishedMsg struct {
-	roundsPlayed  int
-	roundOutcomes []*protocol.Outcome
-	matchOutcome  protocol.Outcome
-	opponentLeft  bool
+	roundsPlayed int
+	roundPoints  []int
+	matchOutcome protocol.Outcome
+	opponentLeft bool
 }
 
 type RoomCreatedMsg struct {
@@ -151,7 +151,7 @@ func (m *mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.matchResultsScreen = NewMatchResults(
 			m.matchInfo.Mode,
 			msg.roundsPlayed,
-			msg.roundOutcomes,
+			msg.roundPoints,
 			msg.matchOutcome,
 			m.matchInfo.PlayerName,
 			m.matchInfo.OpponentName,
@@ -370,13 +370,14 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 
 		m.matchInfo.WordLen = matchStartedEvent.WordLength
 		m.matchInfo.TotalRounds = matchStartedEvent.Rounds
+		m.matchInfo.RoundsPlayed = 0
 
 		if m.matchInfo.Mode == protocol.MULTI_REMOTE {
 			m.matchInfo.OpponentName = matchStartedEvent.OpponentName
 		}
 
 		m.matchInfo.RawTotalRounds = fmt.Sprintf("%d", matchStartedEvent.Rounds)
-		m.matchInfo.RoundOutcomes = make([]*protocol.Outcome, matchStartedEvent.Rounds)
+		m.matchInfo.RoundPoints = make([]int, matchStartedEvent.Rounds)
 
 		m.game.input.CharLimit = m.matchInfo.WordLen
 		m.game.input.Width = m.matchInfo.WordLen
@@ -434,11 +435,12 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 
 		m.game.state = game.StateRoundFinished
 		m.game.roundInfo.Word = roundFinishedEvent.Word
-		m.game.roundInfo.Success = roundFinishedEvent.Outcome != protocol.OUTCOME_NONE
+		m.game.roundInfo.Points = roundFinishedEvent.Points
 		m.game.input.Blur()
 
-		logger.Debug("Round outcomes: %v", m.matchInfo.RoundOutcomes)
-		m.matchInfo.RoundOutcomes[m.matchInfo.CurrentRound-1] = &roundFinishedEvent.Outcome
+		logger.Debug("Round points: %v", m.matchInfo.RoundPoints)
+		m.matchInfo.RoundPoints[m.matchInfo.CurrentRound-1] = roundFinishedEvent.Points
+		m.matchInfo.RoundsPlayed++
 
 		logger.Debug("Pausing events...")
 		if !m.flushing {
@@ -456,10 +458,10 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 		m.game.state = game.StateMatchFinished
 
 		return MatchFinishedMsg{
-			roundsPlayed:  m.matchInfo.TotalRounds,
-			roundOutcomes: m.matchInfo.RoundOutcomes,
-			matchOutcome:  matchFinishedEvent.Outcome,
-			opponentLeft:  matchFinishedEvent.OpponentLeft,
+			roundsPlayed: m.matchInfo.RoundsPlayed,
+			roundPoints:  m.matchInfo.RoundPoints,
+			matchOutcome: matchFinishedEvent.Outcome,
+			opponentLeft: matchFinishedEvent.OpponentLeft,
 		}
 
 	case protocol.ROOM_CREATED:

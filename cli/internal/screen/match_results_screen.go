@@ -12,12 +12,12 @@ import (
 )
 
 type matchResultsModel struct {
-	mode          protocol.GameMode
-	roundsPlayed  int
-	roundOutcomes []*protocol.Outcome
-	matchOutcome  protocol.Outcome
-	canRematch    bool
-	confirm       bool
+	mode         protocol.GameMode
+	roundsPlayed int
+	roundPoints  []int
+	matchOutcome protocol.Outcome
+	canRematch   bool
+	confirm      bool
 
 	form *huh.Form
 }
@@ -25,19 +25,19 @@ type matchResultsModel struct {
 func NewMatchResults(
 	mode protocol.GameMode,
 	roundsPlayed int,
-	roundOutcomes []*protocol.Outcome,
+	roundPoints []int,
 	matchOutcome protocol.Outcome,
 	playerName string,
 	opponentName string,
 	opponentLeft bool) *matchResultsModel {
 
 	m := &matchResultsModel{
-		mode:          mode,
-		roundsPlayed:  roundsPlayed,
-		roundOutcomes: roundOutcomes,
-		matchOutcome:  matchOutcome,
-		canRematch:    !opponentLeft,
-		confirm:       true,
+		mode:         mode,
+		roundsPlayed: roundsPlayed,
+		roundPoints:  roundPoints,
+		matchOutcome: matchOutcome,
+		canRematch:   !opponentLeft,
+		confirm:      true,
 	}
 
 	var confirmInput *huh.Confirm
@@ -46,7 +46,7 @@ func NewMatchResults(
 	results := lipgloss.JoinHorizontal(
 		lipgloss.Left,
 		"Round outcomes • ",
-		ui.ViewRoundOutcomes(m.roundOutcomes))
+		ui.ViewRoundOutcomes(m.roundPoints, m.roundsPlayed))
 
 	switch m.mode {
 	case protocol.MULTI_REMOTE:

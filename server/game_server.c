@@ -742,17 +742,17 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
   if (success) {
     switch (match->mode) {
     case SINGLE:
-      round->outcome = OUTCOME_PLAYER1;
+      round->points = 1;
       break;
     case MULTI_LOCAL:
-      round->outcome = match->local.player1_on_turn ? OUTCOME_PLAYER2 : OUTCOME_PLAYER1;
+      round->points = match->local.player1_on_turn ? -1 : 1;
       break;
     case MULTI_REMOTE:
-      round->outcome = player == match->player1 ? OUTCOME_PLAYER1 : OUTCOME_PLAYER2;
+      round->points = player == match->player1 ? 1 : -1;
       break;
     }
   } else if (round->wc->attempt_count >= round->wc->max_attempts) {
-    round->outcome = OUTCOME_NONE;
+    round->points = 0;
   }
   GS_end_round(gs, match);
 }
@@ -827,25 +827,12 @@ void GS_end_round(GameServer *gs, Match *match) {
 
   printf("[end_round] Ending round...\n");
   switch (match->mode) {
-    Outcome outcome; // map outcome to perspective of player 2
   case MULTI_REMOTE:
-    switch (round->outcome) {
-    case OUTCOME_PLAYER1:
-      outcome = OUTCOME_PLAYER2;
-      break;
-    case OUTCOME_PLAYER2:
-      outcome = OUTCOME_PLAYER1;
-      break;
-    case OUTCOME_NONE:
-      outcome = OUTCOME_NONE;
-      break;
-    }
-
-    round_finished_json = json_round_finished(outcome, round->wc->word);
+    round_finished_json = json_round_finished(round->points * -1, round->wc->word);
     send_json(match->player2->client_fd, round_finished_json);
     cJSON_Delete(round_finished_json);
 
-    round_finished_json = json_round_finished(round->outcome, round->wc->word);
+    round_finished_json = json_round_finished(round->points, round->wc->word);
     send_json(match->player1->client_fd, round_finished_json);
     cJSON_Delete(round_finished_json);
 
@@ -856,7 +843,7 @@ void GS_end_round(GameServer *gs, Match *match) {
     match->local.player1_started_round = !match->local.player1_started_round;
     /* fallthrough */
   case SINGLE:
-    round_finished_json = json_round_finished(round->outcome, round->wc->word);
+    round_finished_json = json_round_finished(round->points, round->wc->word);
     send_json(match->player1->client_fd, round_finished_json);
     cJSON_Delete(round_finished_json);
   }
@@ -971,9 +958,9 @@ static Outcome calculate_match_outcome(Match *match) {
   int outcome = 0;
   for (int i = 0; i <= match->round_idx; i++) {
     Round *round = match->rounds[i];
-    if (round->outcome == OUTCOME_PLAYER1)
+    if (round->points > 0)
       outcome++;
-    else if (round->outcome == OUTCOME_PLAYER2)
+    else if (round->points < 0)
       outcome--;
   }
 

@@ -50,7 +50,7 @@ typedef struct Round {
   /* When we turn this into a quordle-style game, we would store an array
    * of WordChallenge structs */
   WordChallenge *wc;
-  Outcome outcome;
+  int points;
 } Round;
 
 Round *new_round(WordChallenge *word_challenge);

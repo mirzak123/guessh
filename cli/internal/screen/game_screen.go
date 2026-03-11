@@ -145,12 +145,10 @@ func (m *gameModel) View() string {
 	gridWidth := lipgloss.Width(guessGrid)
 
 	var (
-		playerOutcome   = protocol.OUTCOME_PLAYER_WON
-		opponentOutcome = protocol.OUTCOME_OPPONENT_WON
-		p1Symbol        = ui.OutcomeBlock(&playerOutcome)
-		p2Symbol        string
-		p1Name          string
-		p2Name          string
+		p1Symbol = ui.OutcomeBlock(1, true)
+		p2Symbol string
+		p1Name   string
+		p2Name   string
 	)
 
 	if m.matchInfo.Mode == protocol.SINGLE {
@@ -158,7 +156,7 @@ func (m *gameModel) View() string {
 		p1Name = "You"
 		p2Name = "No Opponent"
 	} else {
-		p2Symbol = ui.OutcomeBlock(&opponentOutcome)
+		p2Symbol = ui.OutcomeBlock(-1, true)
 		p1Name = m.matchInfo.PlayerName
 		p2Name = m.matchInfo.OpponentName
 	}
@@ -183,7 +181,7 @@ func (m *gameModel) View() string {
 		player2 = strings.Repeat(" ", maxPlayerWidth-p2w) + player2
 	}
 
-	outcomes := ui.ViewRoundOutcomes(m.matchInfo.RoundOutcomes)
+	outcomes := ui.ViewRoundOutcomes(m.matchInfo.RoundPoints, m.matchInfo.RoundsPlayed)
 
 	gameAreaWidth := gridWidth + maxPlayerWidth*2
 
@@ -234,28 +232,27 @@ func (m *gameModel) statusBar() string {
 	if m.state == game.StateRoundFinished {
 		var line1 string
 
-		outcome := m.matchInfo.RoundOutcomes[m.matchInfo.CurrentRound-1]
-		switch *outcome {
-		case protocol.OUTCOME_PLAYER_WON:
+		points := m.matchInfo.RoundPoints[m.matchInfo.CurrentRound-1]
+		if points > 0 {
 			if m.matchInfo.Mode == protocol.MULTI_LOCAL {
 				line1 = fmt.Sprintf("%s Round Won by %s",
-					ui.OutcomeBlock(outcome),
+					ui.OutcomeBlock(points, true),
 					ui.PurpleText.Render(m.matchInfo.PlayerName))
 			} else {
-				line1 = fmt.Sprintf("%s Round Won", ui.OutcomeBlock(outcome))
+				line1 = fmt.Sprintf("%s Round Won", ui.OutcomeBlock(points, true))
 			}
-		case protocol.OUTCOME_OPPONENT_WON:
+		} else if points < 0 {
 			if m.matchInfo.Mode == protocol.MULTI_LOCAL {
 				line1 = fmt.Sprintf("%s Round Won by %s",
-					ui.OutcomeBlock(outcome),
+					ui.OutcomeBlock(points, true),
 					ui.RoseText.Render(m.matchInfo.OpponentName))
 			} else {
-				line1 = fmt.Sprintf("%s Round Lost", ui.OutcomeBlock(outcome))
+				line1 = fmt.Sprintf("%s Round Lost", ui.OutcomeBlock(points, true))
 			}
-		case protocol.OUTCOME_NONE:
+		} else {
 			line1 = fmt.Sprintf(
 				"%s Not Guessed - Correct word: %s",
-				ui.OutcomeBlock(outcome),
+				ui.OutcomeBlock(points, true),
 				m.roundInfo.Word)
 		}
 

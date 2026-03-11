@@ -1,8 +1,6 @@
 package ui
 
 import (
-	"guessh/internal/protocol"
-
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -62,7 +60,7 @@ var (
 			Foreground(White)
 )
 
-func OutcomeBlock(outcome *protocol.Outcome) string {
+func OutcomeBlock(points int, done bool) string {
 	var (
 		fg     = White
 		bg     lipgloss.Color
@@ -70,18 +68,17 @@ func OutcomeBlock(outcome *protocol.Outcome) string {
 		withBg = true
 	)
 
-	if outcome == nil {
+	if !done {
 		withBg = false
 		symbol = "○"
 	} else {
-		switch *outcome {
-		case protocol.OUTCOME_PLAYER_WON:
+		if points > 0 {
 			bg = Purple
 			symbol = "✓"
-		case protocol.OUTCOME_OPPONENT_WON:
+		} else if points < 0 {
 			bg = Rose
 			symbol = "✗"
-		case protocol.OUTCOME_NONE:
+		} else {
 			bg = Gray
 			symbol = "○"
 		}
