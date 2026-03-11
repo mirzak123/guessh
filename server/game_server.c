@@ -5,7 +5,6 @@
 #include "hash_table.h"
 #include "json_messages.h"
 #include "room.h"
-#include <_string.h>
 #include <assert.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -832,7 +831,7 @@ void GS_end_round(GameServer *gs, Match *match) {
     break;
   case MULTI_LOCAL:
     match->local.player1_started_round = !match->local.player1_started_round;
-
+    /* fallthrough */
   case SINGLE:
     round_finished_json = json_round_finished(round->outcome, round->wc->word);
     send_json(match->player1->client_fd, round_finished_json);
@@ -873,6 +872,7 @@ void GS_start_match(GameServer *gs, Match *match) {
   case MULTI_LOCAL:
     match->local.player1_started_round = rand() % 2;
     printf("player1_started_round: %d\n", match->local.player1_started_round);
+    /* fallthrough */
   case SINGLE:
     assert(match->player1 != NULL);
     match_started_json = json_match_started(match->id, match->round_capacity, match->word_len, NULL);
