@@ -13,6 +13,7 @@ import (
 
 type matchResultsModel struct {
 	mode         protocol.GameMode
+	format       protocol.GameFormat
 	roundsPlayed int
 	roundPoints  []int
 	matchOutcome protocol.Outcome
@@ -24,6 +25,7 @@ type matchResultsModel struct {
 
 func NewMatchResults(
 	mode protocol.GameMode,
+	format protocol.GameFormat,
 	roundsPlayed int,
 	roundPoints []int,
 	matchOutcome protocol.Outcome,
@@ -33,6 +35,7 @@ func NewMatchResults(
 
 	m := &matchResultsModel{
 		mode:         mode,
+		format:       format,
 		roundsPlayed: roundsPlayed,
 		roundPoints:  roundPoints,
 		matchOutcome: matchOutcome,
@@ -46,7 +49,7 @@ func NewMatchResults(
 	results := lipgloss.JoinHorizontal(
 		lipgloss.Left,
 		"Round outcomes • ",
-		ui.ViewRoundOutcomes(m.roundPoints, m.roundsPlayed))
+		ui.ViewRoundOutcomes(m.roundPoints, m.format, m.roundsPlayed))
 
 	switch m.mode {
 	case protocol.MULTI_REMOTE:

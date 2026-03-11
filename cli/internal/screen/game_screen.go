@@ -145,18 +145,18 @@ func (m *gameModel) View() string {
 	gridWidth := lipgloss.Width(guessGrid)
 
 	var (
-		p1Symbol = ui.OutcomeBlock(1, true)
+		p1Symbol = ui.PlayerBlock()
 		p2Symbol string
 		p1Name   string
 		p2Name   string
 	)
 
 	if m.matchInfo.Mode == protocol.SINGLE {
-		p2Symbol = "∅"
+		p2Symbol = ui.NoOpponentBlock()
 		p1Name = "You"
 		p2Name = "No Opponent"
 	} else {
-		p2Symbol = ui.OutcomeBlock(-1, true)
+		p2Symbol = ui.OpponentBlock()
 		p1Name = m.matchInfo.PlayerName
 		p2Name = m.matchInfo.OpponentName
 	}
@@ -181,7 +181,7 @@ func (m *gameModel) View() string {
 		player2 = strings.Repeat(" ", maxPlayerWidth-p2w) + player2
 	}
 
-	outcomes := ui.ViewRoundOutcomes(m.matchInfo.RoundPoints, m.matchInfo.RoundsPlayed)
+	outcomes := ui.ViewRoundOutcomes(m.matchInfo.RoundPoints, m.matchInfo.Format, m.matchInfo.RoundsPlayed)
 
 	gameAreaWidth := gridWidth + maxPlayerWidth*2
 
@@ -236,23 +236,23 @@ func (m *gameModel) statusBar() string {
 		if points > 0 {
 			if m.matchInfo.Mode == protocol.MULTI_LOCAL {
 				line1 = fmt.Sprintf("%s Round Won by %s",
-					ui.OutcomeBlock(points, true),
+					ui.PlayerBlock(),
 					ui.PurpleText.Render(m.matchInfo.PlayerName))
 			} else {
-				line1 = fmt.Sprintf("%s Round Won", ui.OutcomeBlock(points, true))
+				line1 = fmt.Sprintf("%s Round Won", ui.OpponentBlock())
 			}
 		} else if points < 0 {
 			if m.matchInfo.Mode == protocol.MULTI_LOCAL {
 				line1 = fmt.Sprintf("%s Round Won by %s",
-					ui.OutcomeBlock(points, true),
+					ui.OpponentBlock(),
 					ui.RoseText.Render(m.matchInfo.OpponentName))
 			} else {
-				line1 = fmt.Sprintf("%s Round Lost", ui.OutcomeBlock(points, true))
+				line1 = fmt.Sprintf("%s Round Lost", ui.OpponentBlock())
 			}
 		} else {
 			line1 = fmt.Sprintf(
 				"%s Not Guessed - Correct word: %s",
-				ui.OutcomeBlock(points, true),
+				ui.DrawBlock(),
 				m.roundInfo.Word)
 		}
 

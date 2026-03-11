@@ -150,6 +150,7 @@ func (m *mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.screenID = MatchResultsScreenID
 		m.matchResultsScreen = NewMatchResults(
 			m.matchInfo.Mode,
+			m.matchInfo.Format,
 			msg.roundsPlayed,
 			msg.roundPoints,
 			msg.matchOutcome,
