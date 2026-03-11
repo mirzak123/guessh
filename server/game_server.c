@@ -1018,7 +1018,6 @@ static const char **get_round_words(Round *round) {
 
 static bool already_guessed(char *word, char **guesses, size_t len) {
   for (size_t i = 0; i < len; i++) {
-    printf("Comparing %s and %s\n", guesses[i], word);
     if (!strcmp(guesses[i], word)) {
       return true;
     }
