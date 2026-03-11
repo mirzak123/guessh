@@ -17,6 +17,11 @@ typedef enum {
   MULTI_REMOTE,
 } GameMode;
 
+typedef enum {
+  WORDLE,
+  QUORDLE,
+} GameFormat;
+
 typedef struct Player {
   int client_fd;
   char *name;
@@ -59,6 +64,7 @@ typedef struct Match {
   char *room_id;
   Round **rounds;
   GameMode mode;
+  GameFormat format;
   Outcome outcome;
   Player *player1;
   Player *player2;
@@ -74,7 +80,7 @@ typedef struct Match {
   };
 } Match;
 
-Match *new_match(GameMode mode, size_t round_capacity, size_t word_len);
+Match *new_match(GameMode mode, GameFormat format, size_t round_capacity, size_t word_len);
 void Match_start_match(Match *match);
 void Match_start_round(Match *match);
 void delete_match(Match *match);

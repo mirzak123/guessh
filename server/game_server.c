@@ -97,10 +97,11 @@ void GS_handle_request(GameServer *gs, Client *client) {
 
 void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request) {
   Match *match = NULL;
-  cJSON *rounds_json = NULL, *mode_json = NULL, *word_len_json = NULL, *player_name_json = NULL;
+  cJSON *rounds_json = NULL, *mode_json = NULL, *format_json = NULL, *word_len_json = NULL, *player_name_json = NULL;
   size_t rounds, word_len;
-  char *mode_str, *player_name_str = NULL;
+  char *mode_str, *format_str, *player_name_str = NULL;
   GameMode game_mode;
+  GameFormat game_format;
 
   char *debug_json = cJSON_PrintUnformatted(json_request);
   if (debug_json) {
@@ -156,6 +157,28 @@ void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request)
     return;
   }
 
+  // parse format
+  format_json = cJSON_GetObjectItem(json_request, "format");
+  if (format_json == NULL) {
+    send_error(client->fd, E_MISSING_FIELD("format"));
+    return;
+  }
+
+  if (!cJSON_IsString(format_json)) {
+    send_error(client->fd, E_INVALID_TYPE("format", STRING));
+    return;
+  }
+
+  format_str = cJSON_GetStringValue(format_json);
+  if (!strcmp("WORDLE", format_str)) {
+    game_format = WORDLE;
+  } else if (!strcmp("QUORDLE", format_str)) {
+    game_format = QUORDLE;
+  } else {
+    send_error(client->fd, E_UNSUPPORTED_FORMAT);
+    return;
+  }
+
   // parse playerName
   if (game_mode == MULTI_REMOTE) {
     player_name_json = cJSON_GetObjectItem(json_request, "playerName");
@@ -191,7 +214,7 @@ void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request)
     return;
   }
 
-  match = new_match(game_mode, rounds, word_len);
+  match = new_match(game_mode, game_format, rounds, word_len);
   if (match == NULL) {
     printf("[GS_handle_create_match] error: new_match() returned NULL\n");
     return;
@@ -475,7 +498,7 @@ void GS_handle_request_rematch(GameServer *gs, Client *client) {
     }
   }
 
-  match = new_match(old_match->mode, old_match->round_capacity, old_match->word_len);
+  match = new_match(old_match->mode, old_match->format, old_match->round_capacity, old_match->word_len);
   if (match == NULL) {
     printf("[GS_handle_request_rematch] error: new_match() returned NULL\n");
     return;

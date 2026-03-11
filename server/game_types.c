@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-Match *new_match(GameMode mode, size_t round_capacity, size_t word_len) {
+Match *new_match(GameMode mode, GameFormat format, size_t round_capacity, size_t word_len) {
   Match *match = calloc(1, sizeof(Match));
   if (match == NULL) {
     perror("calloc");
@@ -22,6 +22,7 @@ Match *new_match(GameMode mode, size_t round_capacity, size_t word_len) {
 
   match->round_capacity = round_capacity;
   match->mode = mode;
+  match->format = format;
   match->word_len = word_len;
   match->round_idx = -1;
 

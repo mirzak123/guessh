@@ -32,6 +32,7 @@
 #define E_NOT_ON_TURN "Opponent is currently on turn"
 #define E_REPEATED_GUESS "Repeating guesses is not allowed"
 #define E_UNSUPPORTED_MODE "Unsupported mode"
+#define E_UNSUPPORTED_FORMAT "Unsupported format"
 #define E_PLAYER_NOT_IN_MATCH "Player is not in an active match"
 #define E_PLAYER_NOT_IN_ROOM "Player is not in a room"
 #define E_ROOM_FULL "Room is full"
