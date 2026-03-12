@@ -66,7 +66,7 @@ func ViewGuessGrid(guesses []*protocol.Guess, wordIdx int, input string, maxAtte
 
 	for i := range maxAttempts {
 		if i < len(guesses) {
-			grid[i] = ViewGuessedRow(guesses[i].Word, guesses[i].Result[wordIdx])
+			grid[i] = ViewGuessedRow(guesses[i].Word, guesses[i].Feedback[wordIdx])
 		} else if i == len(guesses) && (state == game.StateWaitGuess || state == game.StateWaitOpponentGuess) {
 			grid[i] = ViewWordInputRow(input, wordLen, state == game.StateWaitGuess)
 		} else {

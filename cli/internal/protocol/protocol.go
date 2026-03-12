@@ -30,14 +30,20 @@ const (
 	OUTCOME_OPPONENT_WON
 )
 
+type WordChallenge struct {
+	Solved   bool
+	Feedback []LetterFeedback
+}
+
 type Guess struct {
-	Word   string
-	Result [][]LetterFeedback
+	Word      string
+	Challenge WordChallenge
+	Feedback  [][]LetterFeedback
 }
 
 func NewGuess(word string, result [][]LetterFeedback) *Guess {
 	return &Guess{
-		Word:   word,
-		Result: result,
+		Word:     word,
+		Feedback: result,
 	}
 }
