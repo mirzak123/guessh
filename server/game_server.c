@@ -701,7 +701,7 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
     player1_on_turn = match->local.player1_on_turn;
     break;
   case MULTI_REMOTE:
-    player1_on_turn = match->remote.on_turn == player;
+    player1_on_turn = player == match->player1;
     break;
   }
 
