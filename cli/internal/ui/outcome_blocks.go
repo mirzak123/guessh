@@ -32,6 +32,7 @@ func PointOutcomeBlock(points int) string {
 	if points > 0 {
 		bg = Purple
 	} else if points < 0 {
+		points *= -1
 		bg = Rose
 	} else {
 		bg = Gray

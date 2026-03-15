@@ -732,9 +732,10 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
     break;
   case MULTI_LOCAL:
     send_json(player->client_fd, guess_result_json);
-    match->local.player1_on_turn = !match->local.player1_on_turn;
 
-    printf("player1_on_turn: %d\n", match->local.player1_on_turn);
+    if (solved_num == 0) {
+      match->local.player1_on_turn = !match->local.player1_on_turn;
+    }
 
     if (!is_round_finished) {
       if (match->local.player1_on_turn) {
