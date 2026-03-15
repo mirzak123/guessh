@@ -999,18 +999,14 @@ void GS_start_round(GameServer *gs, Match *match) {
 Player *get_opponent(Player *player1, Player *player2, Player *current) { return player1 == current ? player2 : player1; }
 
 static Outcome calculate_match_outcome(Match *match) {
-  int outcome = 0;
+  int total_points = 0;
   for (int i = 0; i <= match->round_idx; i++) {
-    Round *round = match->rounds[i];
-    if (round->points > 0)
-      outcome++;
-    else if (round->points < 0)
-      outcome--;
+    total_points += match->rounds[i]->points;
   }
 
-  if (outcome > 0)
+  if (total_points > 0)
     return OUTCOME_PLAYER1;
-  else if (outcome < 0)
+  else if (total_points < 0)
     return OUTCOME_PLAYER2;
   return OUTCOME_NONE;
 }
