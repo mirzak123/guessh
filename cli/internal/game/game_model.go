@@ -27,6 +27,7 @@ type MatchInfo struct {
 	RoundsPlayed        int
 	MaxAttempts         int
 	CurrentAttempt      int
+	CorrectWords        []string
 	RoundPoints         []int
 	PlayerName          string
 	OpponentName        string
@@ -41,7 +42,7 @@ func NewMatchInfo() *MatchInfo {
 	return &MatchInfo{}
 }
 
-type RoundInfo struct {
+type RoundInfo struct { // TODO: Possibly not needed anymore
 	Word   string
 	Points int
 }

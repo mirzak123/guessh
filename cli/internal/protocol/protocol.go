@@ -31,7 +31,6 @@ const (
 )
 
 type WordChallenge struct {
-	CorrectWord  string
 	SolvedBy     Outcome
 	SolvedOnTurn int
 	Feedbacks    [][]LetterFeedback

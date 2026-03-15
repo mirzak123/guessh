@@ -160,7 +160,7 @@ type GuessResultEvent struct {
 type RoundFinishedEvent struct {
 	Type   EventType `json:"type"`
 	Points int       `json:"points"`
-	Word   string    `json:"word"`
+	Words  []string  `json:"words"`
 }
 
 type MatchFinishedEvent struct {

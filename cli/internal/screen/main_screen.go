@@ -439,7 +439,6 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 			challenge.Feedbacks[m.matchInfo.CurrentAttempt] = feedback
 			if isSolved(feedback) {
 				challenge.SolvedOnTurn = m.matchInfo.CurrentAttempt
-				challenge.CorrectWord = guessResultEvent.Guess
 				if m.matchInfo.PlayerOnTurn {
 					challenge.SolvedBy = protocol.OUTCOME_PLAYER_WON
 				} else {
@@ -458,8 +457,8 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 		}
 
 		m.game.state = game.StateRoundFinished
-		m.game.roundInfo.Word = roundFinishedEvent.Word
 		m.game.roundInfo.Points = roundFinishedEvent.Points
+		m.matchInfo.CorrectWords = roundFinishedEvent.Words
 		m.game.input.Blur()
 
 		logger.Debug("Round points: %v", m.matchInfo.RoundPoints)

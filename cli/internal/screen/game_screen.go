@@ -255,32 +255,68 @@ func (m *gameModel) statusBar() string {
 
 	if m.state == game.StateRoundFinished {
 		var line1 string
+		var outcome string
+
+		line2 := ui.GrayText.Render("Press Enter to continue")
 
 		points := m.matchInfo.RoundPoints[m.matchInfo.CurrentRound-1]
 		if points > 0 {
 			if m.matchInfo.Mode == protocol.MULTI_LOCAL {
-				line1 = fmt.Sprintf("%s Round Won by %s",
+				outcome = fmt.Sprintf("%s Round won by %s",
 					ui.PlayerBlock(),
 					ui.PurpleText.Render(m.matchInfo.PlayerName))
 			} else {
-				line1 = fmt.Sprintf("%s Round Won", ui.OpponentBlock())
+				outcome = fmt.Sprintf("%s Round won", ui.OpponentBlock())
 			}
 		} else if points < 0 {
 			if m.matchInfo.Mode == protocol.MULTI_LOCAL {
-				line1 = fmt.Sprintf("%s Round Won by %s",
+				outcome = fmt.Sprintf("%s Round won by %s",
 					ui.OpponentBlock(),
 					ui.RoseText.Render(m.matchInfo.OpponentName))
 			} else {
-				line1 = fmt.Sprintf("%s Round Lost", ui.OpponentBlock())
+				outcome = fmt.Sprintf("%s Round lost", ui.OpponentBlock())
 			}
-		} else {
-			line1 = fmt.Sprintf(
-				"%s Not Guessed - Correct word: %s",
-				ui.DrawBlock(),
-				m.roundInfo.Word)
+		}
+		words := []string{}
+
+		for i, challenge := range m.challenges {
+			word := m.matchInfo.CorrectWords[i]
+			switch challenge.SolvedBy {
+			case protocol.OUTCOME_NONE:
+				words = append(words, ui.GrayText.Render(word))
+			case protocol.OUTCOME_PLAYER_WON:
+				words = append(words, ui.PurpleText.Render(word))
+			case protocol.OUTCOME_OPPONENT_WON:
+				words = append(words, ui.RoseText.Render(word))
+			}
 		}
 
-		line2 := ui.GrayText.Render("Press Enter to continue")
+		switch m.matchInfo.Format {
+		case protocol.WORDLE:
+			if points == 0 {
+				outcome = fmt.Sprintf(
+					"%s Not guessed",
+					ui.DrawBlock(),
+				)
+			}
+		case protocol.QUORDLE:
+			if points == 0 {
+				outcome = fmt.Sprintf(
+					"%s Round draw",
+					ui.DrawBlock(),
+				)
+			}
+		}
+
+		if points == 0 {
+			line1 = lipgloss.JoinHorizontal(lipgloss.Center,
+				outcome,
+				" - ",
+				strings.Join(words, " • "),
+			)
+		} else {
+			line1 = outcome
+		}
 
 		content = lipgloss.JoinVertical(
 			lipgloss.Center,

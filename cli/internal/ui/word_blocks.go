@@ -72,7 +72,6 @@ func ViewGuessGrid(guesses []string, challenge *protocol.WordChallenge, input st
 	grid := make([]string, maxAttempts)
 	isSolved := challenge.SolvedBy != protocol.OUTCOME_NONE
 
-	logger.Debug("challenge: %s\tsolved on: %d", challenge.CorrectWord, challenge.SolvedOnTurn)
 	for i := range maxAttempts {
 		if isSolved && i > challenge.SolvedOnTurn {
 			logger.Debug("branch 1")
