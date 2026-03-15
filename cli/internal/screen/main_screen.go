@@ -369,6 +369,7 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 		m.game.state = game.StateMatchStarted
 		m.screenID = GameScreenID
 
+		m.matchInfo.Format = matchStartedEvent.Format
 		m.matchInfo.WordLen = matchStartedEvent.WordLength
 		m.matchInfo.TotalRounds = matchStartedEvent.Rounds
 		m.matchInfo.RoundsPlayed = 0

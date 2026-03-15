@@ -879,12 +879,14 @@ void GS_start_match(GameServer *gs, Match *match) {
   switch (match->mode) {
   case MULTI_REMOTE:
     assert(match->player2 != NULL);
-    match_started_json = json_match_started(match->id, match->round_capacity, match->word_len, match->player1->name);
+    match_started_json =
+        json_match_started(match->id, match->format, match->round_capacity, match->word_len, match->player1->name);
     send_json(match->player2->client_fd, match_started_json);
     cJSON_Delete(match_started_json);
 
     assert(match->player1 != NULL);
-    match_started_json = json_match_started(match->id, match->round_capacity, match->word_len, match->player2->name);
+    match_started_json =
+        json_match_started(match->id, match->format, match->round_capacity, match->word_len, match->player2->name);
     send_json(match->player1->client_fd, match_started_json);
     cJSON_Delete(match_started_json);
 
@@ -901,7 +903,7 @@ void GS_start_match(GameServer *gs, Match *match) {
     /* fallthrough */
   case SINGLE:
     assert(match->player1 != NULL);
-    match_started_json = json_match_started(match->id, match->round_capacity, match->word_len, NULL);
+    match_started_json = json_match_started(match->id, match->format, match->round_capacity, match->word_len, NULL);
     send_json(match->player1->client_fd, match_started_json);
     cJSON_Delete(match_started_json);
   }

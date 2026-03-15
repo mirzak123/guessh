@@ -34,10 +34,20 @@ cJSON *json_room_join_failed(const char *room_id, const char *reason) {
   return json;
 }
 
-cJSON *json_match_started(const char *match_id, int rounds, size_t word_len, char *opponent_name) {
+cJSON *json_match_started(const char *match_id, GameFormat format, int rounds, size_t word_len, char *opponent_name) {
   cJSON *json = cJSON_CreateObject();
+  char *format_str;
+  switch (format) {
+  case WORDLE:
+    format_str = STR(WORDLE);
+    break;
+  case QUORDLE:
+    format_str = STR(QUORDLE);
+    break;
+  }
   cJSON_AddStringToObject(json, "type", STR(MATCH_STARTED));
   cJSON_AddStringToObject(json, "matchId", match_id);
+  cJSON_AddStringToObject(json, "format", format_str);
   cJSON_AddNumberToObject(json, "rounds", rounds);
   cJSON_AddNumberToObject(json, "wordLength", word_len);
   if (opponent_name != NULL) {

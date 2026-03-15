@@ -129,11 +129,12 @@ type ErrorEvent struct {
 }
 
 type MatchStartedEvent struct {
-	Type         EventType `json:"type"`
-	MatchID      string    `json:"matchId"`
-	Rounds       int       `json:"rounds"`
-	WordLength   int       `json:"wordLength"`
-	OpponentName string    `json:"opponentName,omitempty"`
+	Type         EventType  `json:"type"`
+	MatchID      string     `json:"matchId"`
+	Format       GameFormat `json:"format"`
+	Rounds       int        `json:"rounds"`
+	WordLength   int        `json:"wordLength"`
+	OpponentName string     `json:"opponentName,omitempty"`
 }
 
 type RoundStartedEvent struct {
