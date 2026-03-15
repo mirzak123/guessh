@@ -266,7 +266,7 @@ func (m *gameModel) statusBar() string {
 					ui.PlayerBlock(),
 					ui.PurpleText.Render(m.matchInfo.PlayerName))
 			} else {
-				outcome = fmt.Sprintf("%s Round won", ui.PlayerBlock())
+				outcome = fmt.Sprintf("%s Round won", ui.OpponentBlock())
 			}
 		} else if points < 0 {
 			if m.matchInfo.Mode == protocol.MULTI_LOCAL {
@@ -291,6 +291,8 @@ func (m *gameModel) statusBar() string {
 			}
 		}
 
+		line1 = outcome
+
 		switch m.matchInfo.Format {
 		case protocol.WORDLE:
 			if points == 0 {
@@ -298,6 +300,14 @@ func (m *gameModel) statusBar() string {
 					"%s Not guessed",
 					ui.DrawBlock(),
 				)
+
+				line1 = lipgloss.JoinHorizontal(lipgloss.Center,
+					outcome,
+					" - ",
+					strings.Join(words, " • "),
+				)
+			} else {
+				line1 = outcome
 			}
 		case protocol.QUORDLE:
 			if points == 0 {
@@ -306,16 +316,12 @@ func (m *gameModel) statusBar() string {
 					ui.DrawBlock(),
 				)
 			}
-		}
 
-		if points == 0 {
 			line1 = lipgloss.JoinHorizontal(lipgloss.Center,
 				outcome,
 				" - ",
 				strings.Join(words, " • "),
 			)
-		} else {
-			line1 = outcome
 		}
 
 		content = lipgloss.JoinVertical(
