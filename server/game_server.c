@@ -913,16 +913,18 @@ void GS_start_round(GameServer *gs, Match *match) {
   cJSON *round_started_json = NULL;
   printf("[start_round] Starting new round...\n");
 
-  size_t max_attempts = match->word_len + 1;
   WordStore *store = get_word_store(gs, match->word_len);
 
+  size_t max_attempts = match->word_len;
   size_t wc_num;
   switch (match->format) {
   case WORDLE:
     wc_num = 1;
+    max_attempts += 1;
     break;
   case QUORDLE:
     wc_num = 4;
+    max_attempts += 4;
     break;
   }
 
