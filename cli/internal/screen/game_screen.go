@@ -266,7 +266,7 @@ func (m *gameModel) statusBar() string {
 					ui.PlayerBlock(),
 					ui.PurpleText.Render(m.matchInfo.PlayerName))
 			} else {
-				outcome = fmt.Sprintf("%s Round won", ui.OpponentBlock())
+				outcome = fmt.Sprintf("%s Round won", ui.PlayerBlock())
 			}
 		} else if points < 0 {
 			if m.matchInfo.Mode == protocol.MULTI_LOCAL {
