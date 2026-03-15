@@ -31,9 +31,10 @@ const (
 )
 
 type WordChallenge struct {
-	CorrectWord string
-	SolvedBy    Outcome
-	Feedbacks   [][]LetterFeedback
+	CorrectWord  string
+	SolvedBy     Outcome
+	SolvedOnTurn int
+	Feedbacks    [][]LetterFeedback
 }
 
 func NewWordChallenge(maxAttempts int) *WordChallenge {

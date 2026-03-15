@@ -430,7 +430,17 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 
 		m.game.addGuess(guessResultEvent.Guess)
 		for i, feedback := range guessResultEvent.Feedback {
-			m.game.challenges[i].Feedbacks[m.matchInfo.CurrentAttempt] = feedback
+			challenge := m.game.challenges[i]
+			challenge.Feedbacks[m.matchInfo.CurrentAttempt] = feedback
+			if isSolved(feedback) {
+				challenge.SolvedOnTurn = m.matchInfo.CurrentAttempt
+				challenge.CorrectWord = guessResultEvent.Guess
+				if m.matchInfo.PlayerOnTurn {
+					challenge.SolvedBy = protocol.OUTCOME_PLAYER_WON
+				} else {
+					challenge.SolvedBy = protocol.OUTCOME_OPPONENT_WON
+				}
+			}
 		}
 
 		m.matchInfo.CurrentAttempt++
@@ -543,4 +553,13 @@ func waitForContextDone(ctx context.Context) tea.Cmd {
 		<-ctx.Done()
 		return tea.Quit()
 	}
+}
+
+func isSolved(feedback []protocol.LetterFeedback) bool {
+	for _, f := range feedback {
+		if f != protocol.LETTER_CORRECT {
+			return false
+		}
+	}
+	return true
 }

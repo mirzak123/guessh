@@ -53,25 +53,34 @@ func ViewWordInputRow(input string, length int, onTurn bool) string {
 	return lipgloss.JoinHorizontal(lipgloss.Center, blocks...)
 }
 
-func ViewInactiveRow(wordLen int) string {
+func ViewInactiveRow(wordLen int, isSolved bool) string {
+	style := baseLetterStyle
+
+	if isSolved {
+		style = style.BorderForeground(Gray)
+	}
+
 	blocks := make([]string, wordLen)
 	for i := range blocks {
-		blocks[i] = baseLetterStyle.Render(" ")
+		blocks[i] = style.Render(" ")
 	}
 	return lipgloss.JoinHorizontal(lipgloss.Center, blocks...)
 }
 
 func ViewGuessGrid(guesses []string, challenge *protocol.WordChallenge, input string, currentAttempt, maxAttempts, wordLen int, state game.GameState) string {
 	grid := make([]string, maxAttempts)
+	isSolved := challenge.SolvedBy != protocol.OUTCOME_NONE
 
 	for i := range maxAttempts {
-		if i < currentAttempt {
+		if isSolved && i > challenge.SolvedOnTurn {
+			grid[i] = ViewInactiveRow(wordLen, isSolved)
+		} else if i < currentAttempt {
 			guess := guesses[i]
 			grid[i] = ViewGuessedRow(guess, challenge.Feedbacks[i])
-		} else if i == currentAttempt && (state == game.StateWaitGuess || state == game.StateWaitOpponentGuess) {
+		} else if i == currentAttempt && (state == game.StateWaitGuess || state == game.StateWaitOpponentGuess) && !isSolved {
 			grid[i] = ViewWordInputRow(input, wordLen, state == game.StateWaitGuess)
 		} else {
-			grid[i] = ViewInactiveRow(wordLen)
+			grid[i] = ViewInactiveRow(wordLen, isSolved)
 		}
 	}
 
