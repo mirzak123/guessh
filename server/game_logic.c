@@ -10,11 +10,15 @@
 static bool evaluate_word_challenge_guess(const char *guess, WordChallenge *wc);
 static char **read_fixed_lines(FILE *file, size_t line_len, size_t *out_count);
 
-bool evaluate_guess(const char *guess, WordChallenge **wc_list, size_t wc_num) {
+bool evaluate_guess(const char *guess, WordChallenge **wc_list, size_t wc_num, bool player1_on_turn) {
   size_t guess_count = 0;
 
   for (size_t i = 0; i < wc_num; i++) {
-    guess_count += evaluate_word_challenge_guess(guess, wc_list[i]);
+    bool solved = evaluate_word_challenge_guess(guess, wc_list[i]);
+    if (solved) {
+      guess_count++;
+      wc_list[i]->solved_by = player1_on_turn ? OUTCOME_PLAYER1 : OUTCOME_PLAYER2;
+    }
   }
 
   return guess_count == wc_num;
@@ -52,7 +56,6 @@ bool evaluate_word_challenge_guess(const char *guess, WordChallenge *wc) {
 }
 
 char *get_random_word(WordStore *store) {
-  printf("[get_random_word] getting word\n");
   int index = rand() % (store->word_count + 1);
   return store->words[index];
 }

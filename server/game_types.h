@@ -37,7 +37,7 @@ void delete_player(Player *player);
 typedef struct WordChallenge {
   char *word;
   size_t len;
-  bool is_solved;
+  Outcome solved_by;
   LetterFeedback *feedback;
 } WordChallenge;
 

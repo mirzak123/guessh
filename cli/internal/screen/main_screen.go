@@ -396,17 +396,20 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 
 		m.game.roundInfo = game.NewRoundInfo()
 
+		m.matchInfo.CurrentAttempt = 0
 		m.matchInfo.MaxAttempts = roundStartedEvent.MaxAttempts
 		m.matchInfo.CurrentRound = roundStartedEvent.RoundNumber
-		m.game.guesses = nil
+		m.game.initChallenges()
 		m.game.input.SetValue("")
 
 	case protocol.WAIT_GUESS:
+		m.matchInfo.PlayerOnTurn = true
 		m.game.state = game.StateWaitGuess
 		m.game.input.Focus()
 		m.game.input.SetValue("")
 
 	case protocol.WAIT_OPPONENT_GUESS:
+		m.matchInfo.PlayerOnTurn = false
 		m.game.state = game.StateWaitOpponentGuess
 		if m.matchInfo.Mode == protocol.MULTI_LOCAL {
 			m.game.input.Focus()
@@ -425,7 +428,12 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 			return nil
 		}
 
-		m.game.guesses = append(m.game.guesses, protocol.NewGuess(guessResultEvent.Guess, guessResultEvent.Feedback))
+		m.game.addGuess(guessResultEvent.Guess)
+		for i, feedback := range guessResultEvent.Feedback {
+			m.game.challenges[i].Feedbacks[m.matchInfo.CurrentAttempt] = feedback
+		}
+
+		m.matchInfo.CurrentAttempt++
 
 	case protocol.ROUND_FINISHED:
 		roundFinishedEvent := &protocol.RoundFinishedEvent{}

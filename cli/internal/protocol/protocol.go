@@ -31,19 +31,16 @@ const (
 )
 
 type WordChallenge struct {
-	Solved   bool
-	Feedback []LetterFeedback
+	CorrectWord string
+	SolvedBy    Outcome
+	Feedbacks   [][]LetterFeedback
 }
 
-type Guess struct {
-	Word      string
-	Challenge WordChallenge
-	Feedback  [][]LetterFeedback
-}
+func NewWordChallenge(maxAttempts int) *WordChallenge {
+	feedbacks := make([][]LetterFeedback, maxAttempts)
 
-func NewGuess(word string, result [][]LetterFeedback) *Guess {
-	return &Guess{
-		Word:     word,
-		Feedback: result,
+	return &WordChallenge{
+		SolvedBy:  OUTCOME_NONE,
+		Feedbacks: feedbacks,
 	}
 }

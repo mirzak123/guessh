@@ -20,9 +20,11 @@ type gameModel struct {
 	width, height int
 	matchInfo     *game.MatchInfo
 	input         textinput.Model
-	guesses       []*protocol.Guess
 	state         game.GameState
 	roundInfo     *game.RoundInfo
+	guesses       []string
+	challenges    []*protocol.WordChallenge
+	challengesLen int
 }
 
 func NewGame(matchInfo *game.MatchInfo) *gameModel {
@@ -137,36 +139,34 @@ func (m *gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *gameModel) View() string {
-	var wordNum int
-	switch m.matchInfo.Format {
-	case protocol.WORDLE:
-		wordNum = 1
-	case protocol.QUORDLE:
-		wordNum = 4
+	if m.challengesLen == 0 {
+		return ""
 	}
 
-	gridStyle := lipgloss.NewStyle().MarginRight(4)
+	gridStyle := lipgloss.NewStyle().MarginRight(6)
 
 	var guessGrids []string
-	for i := 0; i < wordNum; i++ {
+	for i := range m.challengesLen {
 		grid := ui.ViewGuessGrid(
 			m.guesses,
-			i,
+			m.challenges[i],
 			m.input.Value(),
+			m.matchInfo.CurrentAttempt,
 			m.matchInfo.MaxAttempts,
 			m.matchInfo.WordLen,
 			m.state,
 		)
 
 		// Apply the margin to all but the last element
-		if i < wordNum-1 {
+		if i < m.challengesLen-1 {
 			grid = gridStyle.Render(grid)
 		}
 
 		guessGrids = append(guessGrids, grid)
 	}
 
-	gridWidth := lipgloss.Width(guessGrids[0])
+	gridView := lipgloss.JoinHorizontal(lipgloss.Center, guessGrids...)
+	gridWidth := lipgloss.Width(gridView)
 
 	var (
 		p1Symbol = ui.PlayerBlock()
@@ -207,7 +207,7 @@ func (m *gameModel) View() string {
 
 	outcomes := ui.ViewRoundOutcomes(m.matchInfo.RoundPoints, m.matchInfo.Format, m.matchInfo.RoundsPlayed)
 
-	gameAreaWidth := gridWidth + maxPlayerWidth*2
+	gameAreaWidth := gridWidth + maxPlayerWidth*2 // TODO: verify this is correct
 
 	totalComponentsWidth :=
 		maxPlayerWidth +
@@ -238,7 +238,7 @@ func (m *gameModel) View() string {
 		headerRow,
 		emptyLine,
 		emptyLine,
-		lipgloss.JoinHorizontal(lipgloss.Center, guessGrids...),
+		gridView,
 		emptyLine,
 		m.statusBar(),
 	)
@@ -321,10 +321,28 @@ func emit(msg tea.Msg) tea.Cmd {
 }
 
 func (m *gameModel) alreadyGuessed(word string) bool {
-	for _, guess := range m.guesses {
-		if guess.Word == word {
-			return true
-		}
+	return slices.Contains(m.guesses, word)
+}
+
+func (m *gameModel) addGuess(word string) {
+	m.guesses[m.matchInfo.CurrentAttempt] = word
+}
+
+func (m *gameModel) initChallenges() {
+	logger.Debug("initChallenges()")
+	var challengesLen int
+	switch m.matchInfo.Format {
+	case protocol.WORDLE:
+		challengesLen = 1
+	case protocol.QUORDLE:
+		challengesLen = 4
 	}
-	return false
+
+	m.challengesLen = challengesLen
+	m.guesses = make([]string, m.matchInfo.MaxAttempts)
+	m.challenges = make([]*protocol.WordChallenge, challengesLen)
+
+	for i := range challengesLen {
+		m.challenges[i] = protocol.NewWordChallenge(m.matchInfo.MaxAttempts)
+	}
 }

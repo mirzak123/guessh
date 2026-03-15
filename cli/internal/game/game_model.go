@@ -26,10 +26,11 @@ type MatchInfo struct {
 	TotalRounds         int
 	RoundsPlayed        int
 	MaxAttempts         int
-	CurrentAttempts     int
+	CurrentAttempt      int
 	RoundPoints         []int
 	PlayerName          string
 	OpponentName        string
+	PlayerOnTurn        bool
 	RoomID              string
 	JoinExisting        bool
 	RoomValidationError error

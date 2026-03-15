@@ -95,7 +95,8 @@ WordChallenge *new_word_challenge(WordStore *store) {
   }
 
   wc->word = get_random_word(store);
-  wc->is_solved = false;
+  printf("[new_word_challenge] word: %s\n", wc->word);
+  wc->solved_by = OUTCOME_NONE;
   wc->len = store->word_len;
 
   wc->feedback = calloc(wc->len, sizeof(LetterFeedback));

@@ -640,6 +640,7 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
   cJSON *guess_json, *guess_result_json;
   char *guess;
   bool success;
+  bool player1_on_turn;
 
   player = client->player;
 
@@ -691,8 +692,20 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
     return;
   }
 
+  switch (match->mode) {
+  case SINGLE:
+    player1_on_turn = true;
+    break;
+  case MULTI_LOCAL:
+    player1_on_turn = match->local.player1_on_turn;
+    break;
+  case MULTI_REMOTE:
+    player1_on_turn = match->remote.on_turn == player;
+    break;
+  }
+
   round->guess_attempts[round->attempt_count++] = strdup(guess);
-  success = evaluate_guess(guess, round->wc_list, round->wc_num);
+  success = evaluate_guess(guess, round->wc_list, round->wc_num, player1_on_turn);
   guess_result_json = json_guess_result(guess, round, match->word_len);
 
   bool is_round_finished = success || (round->attempt_count >= round->max_attempts);
@@ -907,6 +920,7 @@ void GS_start_round(GameServer *gs, Match *match) {
   switch (match->format) {
   case WORDLE:
     wc_num = 1;
+    break;
   case QUORDLE:
     wc_num = 4;
     break;

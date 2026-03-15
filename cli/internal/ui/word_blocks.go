@@ -61,13 +61,14 @@ func ViewInactiveRow(wordLen int) string {
 	return lipgloss.JoinHorizontal(lipgloss.Center, blocks...)
 }
 
-func ViewGuessGrid(guesses []*protocol.Guess, wordIdx int, input string, maxAttempts int, wordLen int, state game.GameState) string {
+func ViewGuessGrid(guesses []string, challenge *protocol.WordChallenge, input string, currentAttempt, maxAttempts, wordLen int, state game.GameState) string {
 	grid := make([]string, maxAttempts)
 
 	for i := range maxAttempts {
-		if i < len(guesses) {
-			grid[i] = ViewGuessedRow(guesses[i].Word, guesses[i].Feedback[wordIdx])
-		} else if i == len(guesses) && (state == game.StateWaitGuess || state == game.StateWaitOpponentGuess) {
+		if i < currentAttempt {
+			guess := guesses[i]
+			grid[i] = ViewGuessedRow(guess, challenge.Feedbacks[i])
+		} else if i == currentAttempt && (state == game.StateWaitGuess || state == game.StateWaitOpponentGuess) {
 			grid[i] = ViewWordInputRow(input, wordLen, state == game.StateWaitGuess)
 		} else {
 			grid[i] = ViewInactiveRow(wordLen)
