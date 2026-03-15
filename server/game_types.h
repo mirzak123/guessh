@@ -8,6 +8,7 @@
 #define MAX_CLIENT_DATA 1024
 
 struct Room;
+struct WordChallenge;
 
 typedef enum { OUTCOME_NONE, OUTCOME_PLAYER1, OUTCOME_PLAYER2 } Outcome;
 
@@ -16,6 +17,11 @@ typedef enum {
   MULTI_LOCAL,
   MULTI_REMOTE,
 } GameMode;
+
+typedef enum {
+  WORDLE,
+  QUORDLE,
+} GameFormat;
 
 typedef struct Player {
   int client_fd;
@@ -30,25 +36,27 @@ void delete_player(Player *player);
 
 typedef struct WordChallenge {
   char *word;
-  size_t word_len;
+  size_t len;
+  Outcome solved_by;
+  LetterFeedback *feedback;
+} WordChallenge;
+
+WordChallenge *new_word_challenge(WordStore *store);
+void delete_word_challenge(WordChallenge *wc);
+
+typedef struct Round {
+  WordChallenge **wc_list;
+  size_t wc_num;
+  size_t solved_num;
+
   size_t attempt_count; /* how many attempts have been made */
   size_t max_attempts;
 
   char **guess_attempts; /* array of all guess attempts made */
-  int is_solved;         /* optional */
-} WordChallenge;
-
-WordChallenge *new_word_challenge(WordStore *store, int max_attempts);
-void delete_word_challenge(WordChallenge *word_challenge);
-
-typedef struct Round {
-  /* When we turn this into a quordle-style game, we would store an array
-   * of WordChallenge structs */
-  WordChallenge *wc;
-  Outcome outcome;
+  int points;
 } Round;
 
-Round *new_round(WordChallenge *word_challenge);
+Round *new_round(WordChallenge **word_challenges, size_t wc_num, size_t max_attempts);
 void delete_round(Round *round);
 
 typedef struct Match {
@@ -59,6 +67,7 @@ typedef struct Match {
   char *room_id;
   Round **rounds;
   GameMode mode;
+  GameFormat format;
   Outcome outcome;
   Player *player1;
   Player *player2;
@@ -74,7 +83,7 @@ typedef struct Match {
   };
 } Match;
 
-Match *new_match(GameMode mode, size_t round_capacity, size_t word_len);
+Match *new_match(GameMode mode, GameFormat format, size_t round_capacity, size_t word_len);
 void Match_start_match(Match *match);
 void Match_start_round(Match *match);
 void delete_match(Match *match);

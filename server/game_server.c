@@ -15,7 +15,9 @@
 
 static MessageType parse_message(char *data, size_t size, cJSON **out);
 static Outcome calculate_match_outcome(Match *match);
+static void calculate_round_points(Round *round);
 static WordStore *get_word_store(GameServer *gs, size_t word_len);
+static const char **get_round_words(Round *round);
 static bool already_guessed(char *word, char **guesses, size_t len);
 
 GameServer *GS_create(void) {
@@ -97,10 +99,11 @@ void GS_handle_request(GameServer *gs, Client *client) {
 
 void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request) {
   Match *match = NULL;
-  cJSON *rounds_json = NULL, *mode_json = NULL, *word_len_json = NULL, *player_name_json = NULL;
+  cJSON *rounds_json = NULL, *mode_json = NULL, *format_json = NULL, *word_len_json = NULL, *player_name_json = NULL;
   size_t rounds, word_len;
-  char *mode_str, *player_name_str = NULL;
+  char *mode_str, *format_str, *player_name_str = NULL;
   GameMode game_mode;
+  GameFormat game_format;
 
   char *debug_json = cJSON_PrintUnformatted(json_request);
   if (debug_json) {
@@ -156,6 +159,28 @@ void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request)
     return;
   }
 
+  // parse format
+  format_json = cJSON_GetObjectItem(json_request, "format");
+  if (format_json == NULL) {
+    send_error(client->fd, E_MISSING_FIELD("format"));
+    return;
+  }
+
+  if (!cJSON_IsString(format_json)) {
+    send_error(client->fd, E_INVALID_TYPE("format", STRING));
+    return;
+  }
+
+  format_str = cJSON_GetStringValue(format_json);
+  if (!strcmp("WORDLE", format_str)) {
+    game_format = WORDLE;
+  } else if (!strcmp("QUORDLE", format_str)) {
+    game_format = QUORDLE;
+  } else {
+    send_error(client->fd, E_UNSUPPORTED_FORMAT);
+    return;
+  }
+
   // parse playerName
   if (game_mode == MULTI_REMOTE) {
     player_name_json = cJSON_GetObjectItem(json_request, "playerName");
@@ -191,7 +216,7 @@ void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request)
     return;
   }
 
-  match = new_match(game_mode, rounds, word_len);
+  match = new_match(game_mode, game_format, rounds, word_len);
   if (match == NULL) {
     printf("[GS_handle_create_match] error: new_match() returned NULL\n");
     return;
@@ -475,7 +500,7 @@ void GS_handle_request_rematch(GameServer *gs, Client *client) {
     }
   }
 
-  match = new_match(old_match->mode, old_match->round_capacity, old_match->word_len);
+  match = new_match(old_match->mode, old_match->format, old_match->round_capacity, old_match->word_len);
   if (match == NULL) {
     printf("[GS_handle_request_rematch] error: new_match() returned NULL\n");
     return;
@@ -616,7 +641,7 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
   cJSON *guess_json, *guess_result_json;
   char *guess;
   bool success;
-  LetterFeedback *feedback;
+  bool player1_on_turn;
 
   player = client->player;
 
@@ -632,7 +657,9 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
   round = match->rounds[match->round_idx];
   opponent = get_opponent(match->player1, match->player2, player);
 
-  assert(round->wc->attempt_count < round->wc->max_attempts);
+  printf("attempt_count: %lu\n", round->attempt_count);
+  printf("attempt_count: %lu\n", round->max_attempts);
+  assert(round->attempt_count < round->max_attempts);
 
   if (match->mode == MULTI_REMOTE && player != match->remote.on_turn) {
     send_error(client->fd, E_NOT_ON_TURN);
@@ -656,7 +683,7 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
     return;
   }
 
-  if (already_guessed(guess, round->wc->guess_attempts, round->wc->attempt_count)) {
+  if (already_guessed(guess, round->guess_attempts, round->attempt_count)) {
     send_error(client->fd, E_REPEATED_GUESS);
     if (opponent != NULL) {
       cJSON *opponent_typing_json = json_opponent_typing("");
@@ -666,34 +693,49 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
     return;
   }
 
-  feedback = malloc(sizeof(int) * match->word_len);
-  if (feedback == NULL) {
-    perror("malloc");
-    return;
+  switch (match->mode) {
+  case SINGLE:
+    player1_on_turn = true;
+    break;
+  case MULTI_LOCAL:
+    player1_on_turn = match->local.player1_on_turn;
+    break;
+  case MULTI_REMOTE:
+    player1_on_turn = player == match->player1;
+    break;
   }
 
-  round->wc->guess_attempts[round->wc->attempt_count++] = strdup(guess);
-  success = evaluate_guess(guess, round->wc->word, feedback, match->word_len);
-  guess_result_json = json_guess_result(success, guess, feedback, match->word_len);
+  round->guess_attempts[round->attempt_count++] = strdup(guess);
+  size_t solved_num = evaluate_guess(guess, round->wc_list, round->wc_num, player1_on_turn);
+  round->solved_num += solved_num;
+  guess_result_json = json_guess_result(guess, round, match->word_len);
 
-  bool is_round_finished = success || (round->wc->attempt_count >= round->wc->max_attempts);
+  success = round->solved_num == round->wc_num;
+
+  bool is_round_finished = success || (round->attempt_count >= round->max_attempts);
 
   switch (match->mode) {
   case MULTI_REMOTE:
     send_json(player->client_fd, guess_result_json);
     send_json(opponent->client_fd, guess_result_json);
-    match->remote.on_turn = opponent;
+
+    if (solved_num == 0) { // in quordle, player that guessed, stays on turn
+      match->remote.on_turn = opponent;
+      opponent = player;
+      player = match->remote.on_turn;
+    }
 
     if (!is_round_finished) {
-      send_only_type(opponent->client_fd, STR(WAIT_GUESS));
-      send_only_type(player->client_fd, STR(WAIT_OPPONENT_GUESS));
+      send_only_type(player->client_fd, STR(WAIT_GUESS));
+      send_only_type(opponent->client_fd, STR(WAIT_OPPONENT_GUESS));
     }
     break;
   case MULTI_LOCAL:
     send_json(player->client_fd, guess_result_json);
-    match->local.player1_on_turn = !match->local.player1_on_turn;
 
-    printf("player1_on_turn: %d\n", match->local.player1_on_turn);
+    if (solved_num == 0) {
+      match->local.player1_on_turn = !match->local.player1_on_turn;
+    }
 
     if (!is_round_finished) {
       if (match->local.player1_on_turn) {
@@ -710,27 +752,12 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
     }
     break;
   }
-  free(feedback);
   cJSON_Delete(guess_result_json);
 
   if (!is_round_finished)
     return;
 
-  if (success) {
-    switch (match->mode) {
-    case SINGLE:
-      round->outcome = OUTCOME_PLAYER1;
-      break;
-    case MULTI_LOCAL:
-      round->outcome = match->local.player1_on_turn ? OUTCOME_PLAYER2 : OUTCOME_PLAYER1;
-      break;
-    case MULTI_REMOTE:
-      round->outcome = player == match->player1 ? OUTCOME_PLAYER1 : OUTCOME_PLAYER2;
-      break;
-    }
-  } else if (round->wc->attempt_count >= round->wc->max_attempts) {
-    round->outcome = OUTCOME_NONE;
-  }
+  calculate_round_points(round);
   GS_end_round(gs, match);
 }
 
@@ -802,27 +829,20 @@ void GS_end_round(GameServer *gs, Match *match) {
   Round *round = match->rounds[match->round_idx];
   cJSON *round_finished_json = NULL;
 
+  const char **words = get_round_words(round);
+  if (words == NULL) {
+    printf("get_round_words returned NULL\n");
+    return;
+  }
+
   printf("[end_round] Ending round...\n");
   switch (match->mode) {
-    Outcome outcome; // map outcome to perspective of player 2
   case MULTI_REMOTE:
-    switch (round->outcome) {
-    case OUTCOME_PLAYER1:
-      outcome = OUTCOME_PLAYER2;
-      break;
-    case OUTCOME_PLAYER2:
-      outcome = OUTCOME_PLAYER1;
-      break;
-    case OUTCOME_NONE:
-      outcome = OUTCOME_NONE;
-      break;
-    }
-
-    round_finished_json = json_round_finished(outcome, round->wc->word);
+    round_finished_json = json_round_finished(round->points * -1, words, round->wc_num);
     send_json(match->player2->client_fd, round_finished_json);
     cJSON_Delete(round_finished_json);
 
-    round_finished_json = json_round_finished(round->outcome, round->wc->word);
+    round_finished_json = json_round_finished(round->points, words, round->wc_num);
     send_json(match->player1->client_fd, round_finished_json);
     cJSON_Delete(round_finished_json);
 
@@ -833,10 +853,12 @@ void GS_end_round(GameServer *gs, Match *match) {
     match->local.player1_started_round = !match->local.player1_started_round;
     /* fallthrough */
   case SINGLE:
-    round_finished_json = json_round_finished(round->outcome, round->wc->word);
+    round_finished_json = json_round_finished(round->points, words, round->wc_num);
     send_json(match->player1->client_fd, round_finished_json);
     cJSON_Delete(round_finished_json);
   }
+
+  free(words);
 
   if (match->round_idx + 1 < (int)match->round_capacity) {
     GS_start_round(gs, match);
@@ -853,12 +875,14 @@ void GS_start_match(GameServer *gs, Match *match) {
   switch (match->mode) {
   case MULTI_REMOTE:
     assert(match->player2 != NULL);
-    match_started_json = json_match_started(match->id, match->round_capacity, match->word_len, match->player1->name);
+    match_started_json =
+        json_match_started(match->id, match->format, match->round_capacity, match->word_len, match->player1->name);
     send_json(match->player2->client_fd, match_started_json);
     cJSON_Delete(match_started_json);
 
     assert(match->player1 != NULL);
-    match_started_json = json_match_started(match->id, match->round_capacity, match->word_len, match->player2->name);
+    match_started_json =
+        json_match_started(match->id, match->format, match->round_capacity, match->word_len, match->player2->name);
     send_json(match->player1->client_fd, match_started_json);
     cJSON_Delete(match_started_json);
 
@@ -875,7 +899,7 @@ void GS_start_match(GameServer *gs, Match *match) {
     /* fallthrough */
   case SINGLE:
     assert(match->player1 != NULL);
-    match_started_json = json_match_started(match->id, match->round_capacity, match->word_len, NULL);
+    match_started_json = json_match_started(match->id, match->format, match->round_capacity, match->word_len, NULL);
     send_json(match->player1->client_fd, match_started_json);
     cJSON_Delete(match_started_json);
   }
@@ -887,22 +911,40 @@ void GS_start_round(GameServer *gs, Match *match) {
   cJSON *round_started_json = NULL;
   printf("[start_round] Starting new round...\n");
 
-  size_t max_attempts = match->word_len + 1;
   WordStore *store = get_word_store(gs, match->word_len);
-  WordChallenge *wc = new_word_challenge(store, max_attempts);
-  if (wc == NULL) {
-    printf("[start_match] error: new_word_challenge() returned NULL\n");
-    return;
+
+  size_t max_attempts = match->word_len;
+  size_t wc_num;
+  switch (match->format) {
+  case WORDLE:
+    wc_num = 1;
+    max_attempts += 1;
+    break;
+  case QUORDLE:
+    wc_num = 4;
+    max_attempts += 4;
+    break;
   }
 
-  Round *round = new_round(wc);
+  WordChallenge **wc_list = malloc(sizeof(WordChallenge *) * wc_num);
+
+  for (size_t i = 0; i < wc_num; i++) {
+    WordChallenge *wc = new_word_challenge(store);
+    if (wc == NULL) {
+      printf("[start_match] error: new_word_challenge() returned NULL\n");
+      return;
+    }
+    wc_list[i] = wc;
+  }
+
+  Round *round = new_round(wc_list, wc_num, max_attempts);
   if (round == NULL) {
     printf("[start_match] error: new_round() returned NULL\n");
     return;
   }
 
   match->rounds[++(match->round_idx)] = round;
-  round_started_json = json_round_started(match->round_idx + 1, round->wc->max_attempts);
+  round_started_json = json_round_started(match->round_idx + 1, round->max_attempts);
 
   switch (match->mode) {
   case MULTI_REMOTE:
@@ -945,20 +987,32 @@ void GS_start_round(GameServer *gs, Match *match) {
 Player *get_opponent(Player *player1, Player *player2, Player *current) { return player1 == current ? player2 : player1; }
 
 static Outcome calculate_match_outcome(Match *match) {
-  int outcome = 0;
+  int total_points = 0;
   for (int i = 0; i <= match->round_idx; i++) {
-    Round *round = match->rounds[i];
-    if (round->outcome == OUTCOME_PLAYER1)
-      outcome++;
-    else if (round->outcome == OUTCOME_PLAYER2)
-      outcome--;
+    total_points += match->rounds[i]->points;
   }
 
-  if (outcome > 0)
+  if (total_points > 0)
     return OUTCOME_PLAYER1;
-  else if (outcome < 0)
+  else if (total_points < 0)
     return OUTCOME_PLAYER2;
   return OUTCOME_NONE;
+}
+
+static void calculate_round_points(Round *round) {
+  for (size_t i = 0; i < round->wc_num; i++) {
+    WordChallenge *wc = round->wc_list[i];
+    switch (wc->solved_by) {
+    case OUTCOME_NONE:
+      break;
+    case OUTCOME_PLAYER1:
+      round->points++;
+      break;
+    case OUTCOME_PLAYER2:
+      round->points--;
+      break;
+    }
+  }
 }
 
 static WordStore *get_word_store(GameServer *gs, size_t word_len) {
@@ -974,9 +1028,22 @@ static WordStore *get_word_store(GameServer *gs, size_t word_len) {
   exit(EXIT_FAILURE);
 }
 
+static const char **get_round_words(Round *round) {
+  const char **words = malloc(sizeof(char *) * round->wc_num);
+  if (words == NULL) {
+    perror("malloc");
+    return (NULL);
+  }
+
+  for (size_t i = 0; i < round->wc_num; i++) {
+    words[i] = round->wc_list[i]->word;
+  }
+
+  return words;
+}
+
 static bool already_guessed(char *word, char **guesses, size_t len) {
   for (size_t i = 0; i < len; i++) {
-    printf("Comparing %s and %s\n", guesses[i], word);
     if (!strcmp(guesses[i], word)) {
       return true;
     }

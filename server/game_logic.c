@@ -1,5 +1,5 @@
 #include "game_logic.h"
-
+#include "game_types.h"
 #include <fcntl.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -7,41 +7,57 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+static bool evaluate_word_challenge_guess(const char *guess, WordChallenge *wc);
 static char **read_fixed_lines(FILE *file, size_t line_len, size_t *out_count);
 
+size_t evaluate_guess(const char *guess, WordChallenge **wc_list, size_t wc_num, bool player1_on_turn) {
+  size_t solve_count = 0;
+
+  for (size_t i = 0; i < wc_num; i++) {
+    WordChallenge *wc = wc_list[i];
+
+    bool solved = evaluate_word_challenge_guess(guess, wc);
+    if (solved) {
+      solve_count++;
+      wc->solved_by = player1_on_turn ? OUTCOME_PLAYER1 : OUTCOME_PLAYER2;
+    }
+  }
+
+  return solve_count;
+}
+
 /* Returns 1 if correctly guessed, 0 otherwise. */
-bool evaluate_guess(const char *guess_word, const char *target_word, LetterFeedback *feedback, size_t len) {
+bool evaluate_word_challenge_guess(const char *guess, WordChallenge *wc) {
   size_t alphabet[26] = {0};
   size_t correct_count = 0;
 
   /* 1st pass: LETTER_CORRECT */
-  for (size_t i = 0; i < len; i++) {
-    if (guess_word[i] == target_word[i]) {
-      feedback[i] = LETTER_CORRECT;
+  for (size_t i = 0; i < wc->len; i++) {
+    if (guess[i] == wc->word[i]) {
+      wc->feedback[i] = LETTER_CORRECT;
       correct_count++;
     } else {
-      alphabet[target_word[i] - 'a']++; /* count letter */
-      feedback[i] = LETTER_ABSENT;      /* clear feedback array */
+      alphabet[wc->word[i] - 'a']++;   /* count letter */
+      wc->feedback[i] = LETTER_ABSENT; /* clear feedback array */
     }
   }
 
   /* all letters in correct position */
-  if (correct_count == len)
-    return 1;
+  if (correct_count == wc->len)
+    return true;
 
   /* 2nd pass: LETTER_PRESENT */
-  for (size_t i = 0; i < len; i++) {
-    if (feedback[i] != LETTER_CORRECT && alphabet[guess_word[i] - 'a'] > 0) {
-      feedback[i] = LETTER_PRESENT;
-      alphabet[guess_word[i] - 'a']--;
+  for (size_t i = 0; i < wc->len; i++) {
+    if (wc->feedback[i] != LETTER_CORRECT && alphabet[guess[i] - 'a'] > 0) {
+      wc->feedback[i] = LETTER_PRESENT;
+      alphabet[guess[i] - 'a']--;
     }
   }
 
-  return 0;
+  return false;
 }
 
 char *get_random_word(WordStore *store) {
-  printf("[get_random_word] getting word\n");
   int index = rand() % (store->word_count + 1);
   return store->words[index];
 }

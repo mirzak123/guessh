@@ -34,17 +34,19 @@ type EnvelopeEvent struct {
 /* Client Types */
 
 type CreateMatchEvent struct {
-	Type       EventType `json:"type"`
-	Mode       GameMode  `json:"mode"`
-	WordLen    int       `json:"wordLength"`
-	Rounds     int       `json:"rounds"`
-	PlayerName string    `json:"playerName,omitempty"`
+	Type       EventType  `json:"type"`
+	Mode       GameMode   `json:"mode"`
+	Format     GameFormat `json:"format"`
+	WordLen    int        `json:"wordLength"`
+	Rounds     int        `json:"rounds"`
+	PlayerName string     `json:"playerName,omitempty"`
 }
 
-func NewCreateMatchEvent(mode GameMode, wordLen int, rounds int, playerName string) *CreateMatchEvent {
+func NewCreateMatchEvent(mode GameMode, format GameFormat, wordLen int, rounds int, playerName string) *CreateMatchEvent {
 	return &CreateMatchEvent{
 		Type:       CREATE_MATCH,
 		Mode:       mode,
+		Format:     format,
 		WordLen:    wordLen,
 		Rounds:     rounds,
 		PlayerName: playerName,
@@ -127,11 +129,12 @@ type ErrorEvent struct {
 }
 
 type MatchStartedEvent struct {
-	Type         EventType `json:"type"`
-	MatchID      string    `json:"matchId"`
-	Rounds       int       `json:"rounds"`
-	WordLength   int       `json:"wordLength"`
-	OpponentName string    `json:"opponentName,omitempty"`
+	Type         EventType  `json:"type"`
+	MatchID      string     `json:"matchId"`
+	Format       GameFormat `json:"format"`
+	Rounds       int        `json:"rounds"`
+	WordLength   int        `json:"wordLength"`
+	OpponentName string     `json:"opponentName,omitempty"`
 }
 
 type RoundStartedEvent struct {
@@ -149,16 +152,15 @@ type WaitOpponentGuessEvent struct {
 }
 
 type GuessResultEvent struct {
-	Type     EventType        `json:"type"`
-	Success  bool             `json:"success"`
-	Guess    string           `json:"guess"`
-	Feedback []LetterFeedback `json:"feedback"`
+	Type     EventType          `json:"type"`
+	Guess    string             `json:"guess"`
+	Feedback [][]LetterFeedback `json:"feedback"`
 }
 
 type RoundFinishedEvent struct {
-	Type    EventType `json:"type"`
-	Outcome Outcome   `json:"outcome"`
-	Word    string    `json:"word"`
+	Type   EventType `json:"type"`
+	Points int       `json:"points"`
+	Words  []string  `json:"words"`
 }
 
 type MatchFinishedEvent struct {

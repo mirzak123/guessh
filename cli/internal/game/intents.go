@@ -1,11 +1,14 @@
 package game
 
-import "guessh/internal/protocol"
+import (
+	"guessh/internal/protocol"
+)
 
 type ContinueIntent struct{}
 
 type CreateMatchIntent struct {
 	Mode       protocol.GameMode
+	Format     protocol.GameFormat
 	WordLen    int
 	Rounds     int
 	PlayerName string

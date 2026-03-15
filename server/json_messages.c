@@ -34,10 +34,20 @@ cJSON *json_room_join_failed(const char *room_id, const char *reason) {
   return json;
 }
 
-cJSON *json_match_started(const char *match_id, int rounds, size_t word_len, char *opponent_name) {
+cJSON *json_match_started(const char *match_id, GameFormat format, int rounds, size_t word_len, char *opponent_name) {
   cJSON *json = cJSON_CreateObject();
+  char *format_str;
+  switch (format) {
+  case WORDLE:
+    format_str = STR(WORDLE);
+    break;
+  case QUORDLE:
+    format_str = STR(QUORDLE);
+    break;
+  }
   cJSON_AddStringToObject(json, "type", STR(MATCH_STARTED));
   cJSON_AddStringToObject(json, "matchId", match_id);
+  cJSON_AddStringToObject(json, "format", format_str);
   cJSON_AddNumberToObject(json, "rounds", rounds);
   cJSON_AddNumberToObject(json, "wordLength", word_len);
   if (opponent_name != NULL) {
@@ -54,26 +64,35 @@ cJSON *json_round_started(size_t round_num, size_t max_attempts) {
   return json;
 }
 
-cJSON *json_guess_result(bool success, const char *guess, const LetterFeedback *feedback, size_t word_len) {
-  cJSON *json = cJSON_CreateObject(), *feedback_json = cJSON_CreateArray(), *feedback_item = NULL;
+cJSON *json_guess_result(const char *guess, Round *round, size_t word_len) {
+  cJSON *json = cJSON_CreateObject();
+  cJSON *outer_feedback_json = cJSON_CreateArray();
 
   cJSON_AddStringToObject(json, "type", STR(GUESS_RESULT));
-  cJSON_AddBoolToObject(json, "success", success);
   cJSON_AddStringToObject(json, "guess", guess);
-  for (int i = 0; i < (int)word_len; i++) {
-    feedback_item = cJSON_CreateNumber(feedback[i]);
-    cJSON_AddItemToArray(feedback_json, feedback_item);
-  }
-  cJSON_AddItemToObject(json, "feedback", feedback_json);
 
+  for (size_t i = 0; i < round->wc_num; i++) {
+    cJSON *inner_array = cJSON_CreateArray();
+
+    for (size_t j = 0; j < word_len; j++) {
+      cJSON_AddItemToArray(inner_array, cJSON_CreateNumber(round->wc_list[i]->feedback[j]));
+    }
+
+    cJSON_AddItemToArray(outer_feedback_json, inner_array);
+  }
+
+  cJSON_AddItemToObject(json, "feedback", outer_feedback_json);
   return json;
 }
 
-cJSON *json_round_finished(Outcome outcome, const char *word) {
+cJSON *json_round_finished(int points, const char **words, int len) {
   cJSON *json = cJSON_CreateObject();
   cJSON_AddStringToObject(json, "type", STR(ROUND_FINISHED));
-  cJSON_AddNumberToObject(json, "outcome", outcome);
-  cJSON_AddStringToObject(json, "word", word);
+  cJSON_AddNumberToObject(json, "points", points);
+  cJSON *words_json = cJSON_CreateStringArray(words, len);
+  if (words_json) {
+    cJSON_AddItemToObject(json, "words", words_json);
+  }
   return json;
 }
 

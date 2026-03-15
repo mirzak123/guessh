@@ -14,6 +14,8 @@
 #define SIX_LETTER_WORD_FILE "six-letter.txt"
 #define SEVEN_LETTER_WORD_FILE "seven-letter.txt"
 
+struct WordChallenge;
+
 typedef enum {
   LETTER_ABSENT,
   LETTER_PRESENT,
@@ -29,7 +31,7 @@ typedef struct {
 WordStore *new_word_store(char *filename, size_t word_len);
 void delete_word_store(WordStore *store);
 
-bool evaluate_guess(const char *guess_word, const char *target_word, LetterFeedback *feedback, size_t len);
+size_t evaluate_guess(const char *guess, struct WordChallenge **wc_list, size_t wc_num, bool player1_on_turn);
 char *get_random_word(WordStore *store);
 
 #endif // !GAME_LOGIC_H

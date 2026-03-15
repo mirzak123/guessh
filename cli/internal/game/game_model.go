@@ -19,14 +19,19 @@ const (
 
 type MatchInfo struct {
 	Mode                protocol.GameMode
+	Format              protocol.GameFormat
 	WordLen             int
 	CurrentRound        int
 	RawTotalRounds      string
 	TotalRounds         int
+	RoundsPlayed        int
 	MaxAttempts         int
-	RoundOutcomes       []*protocol.Outcome
+	CurrentAttempt      int
+	CorrectWords        []string
+	RoundPoints         []int
 	PlayerName          string
 	OpponentName        string
+	PlayerOnTurn        bool
 	RoomID              string
 	JoinExisting        bool
 	RoomValidationError error
@@ -37,9 +42,9 @@ func NewMatchInfo() *MatchInfo {
 	return &MatchInfo{}
 }
 
-type RoundInfo struct {
-	Word    string
-	Success bool
+type RoundInfo struct { // TODO: Possibly not needed anymore
+	Word   string
+	Points int
 }
 
 func NewRoundInfo() *RoundInfo {

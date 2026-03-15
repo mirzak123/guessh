@@ -20,9 +20,11 @@ type gameModel struct {
 	width, height int
 	matchInfo     *game.MatchInfo
 	input         textinput.Model
-	guesses       []*protocol.Guess
 	state         game.GameState
 	roundInfo     *game.RoundInfo
+	guesses       []string
+	challenges    []*protocol.WordChallenge
+	challengesLen int
 }
 
 func NewGame(matchInfo *game.MatchInfo) *gameModel {
@@ -59,6 +61,7 @@ func (m *gameModel) Init() tea.Cmd {
 	} else {
 		cmd = emit(game.CreateMatchIntent{
 			Mode:       m.matchInfo.Mode,
+			Format:     m.matchInfo.Format,
 			WordLen:    m.matchInfo.WordLen,
 			Rounds:     m.matchInfo.TotalRounds,
 			PlayerName: m.matchInfo.PlayerName,
@@ -74,6 +77,8 @@ func (m *gameModel) Init() tea.Cmd {
 func (m *gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
+	shouldRegisterInput := false
+
 	switch msg := msg.(type) {
 
 	case tea.WindowSizeMsg:
@@ -87,18 +92,16 @@ func (m *gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyCtrlC, tea.KeyEsc:
 			return m, tea.Quit
 		case tea.KeyBackspace:
-			break
-		case tea.KeySpace:
-			return m, nil
+			shouldRegisterInput = true
 		case tea.KeyRunes:
 			r := &msg.Runes[0]
 			if *r >= 'A' && *r <= 'Z' {
 				msg.Runes[0] = *r + ('a' - 'A')
 			}
 			if *r < 'a' || *r > 'z' {
-
 				return m, nil
 			}
+			shouldRegisterInput = true
 		case tea.KeyEnter:
 			logger.Debug("Game state: [%s]", m.state)
 			if m.state == game.StateRoundFinished {
@@ -118,12 +121,15 @@ func (m *gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 		}
-		var inputCmd tea.Cmd
-		m.input, inputCmd = m.input.Update(msg)
-		cmds = append(cmds, inputCmd)
 
-		if m.state == game.StateWaitGuess {
-			cmds = append(cmds, emit(game.TypingIntent{Value: m.input.Value()}))
+		if shouldRegisterInput {
+			var inputCmd tea.Cmd
+			m.input, inputCmd = m.input.Update(msg)
+			cmds = append(cmds, inputCmd)
+
+			if m.state == game.StateWaitGuess {
+				cmds = append(cmds, emit(game.TypingIntent{Value: m.input.Value()}))
+			}
 		}
 		return m, tea.Batch(cmds...)
 	}
@@ -133,31 +139,48 @@ func (m *gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *gameModel) View() string {
-	guessGrid := ui.ViewGuessGrid(
-		m.guesses,
-		m.input.Value(),
-		m.matchInfo.MaxAttempts,
-		m.matchInfo.WordLen,
-		m.state,
-	)
+	if m.challengesLen == 0 {
+		return ""
+	}
 
-	gridWidth := lipgloss.Width(guessGrid)
+	gridStyle := lipgloss.NewStyle().MarginRight(6)
+
+	var guessGrids []string
+	for i := range m.challengesLen {
+		grid := ui.ViewGuessGrid(
+			m.guesses,
+			m.challenges[i],
+			m.input.Value(),
+			m.matchInfo.CurrentAttempt,
+			m.matchInfo.MaxAttempts,
+			m.matchInfo.WordLen,
+			m.state,
+		)
+
+		// Apply the margin to all but the last element
+		if i < m.challengesLen-1 {
+			grid = gridStyle.Render(grid)
+		}
+
+		guessGrids = append(guessGrids, grid)
+	}
+
+	gridView := lipgloss.JoinHorizontal(lipgloss.Center, guessGrids...)
+	gridWidth := lipgloss.Width(gridView)
 
 	var (
-		playerOutcome   = protocol.OUTCOME_PLAYER_WON
-		opponentOutcome = protocol.OUTCOME_OPPONENT_WON
-		p1Symbol        = ui.OutcomeBlock(&playerOutcome)
-		p2Symbol        string
-		p1Name          string
-		p2Name          string
+		p1Symbol = ui.PlayerBlock()
+		p2Symbol string
+		p1Name   string
+		p2Name   string
 	)
 
 	if m.matchInfo.Mode == protocol.SINGLE {
-		p2Symbol = "∅"
+		p2Symbol = ui.NoOpponentBlock()
 		p1Name = "You"
 		p2Name = "No Opponent"
 	} else {
-		p2Symbol = ui.OutcomeBlock(&opponentOutcome)
+		p2Symbol = ui.OpponentBlock()
 		p1Name = m.matchInfo.PlayerName
 		p2Name = m.matchInfo.OpponentName
 	}
@@ -182,9 +205,9 @@ func (m *gameModel) View() string {
 		player2 = strings.Repeat(" ", maxPlayerWidth-p2w) + player2
 	}
 
-	outcomes := ui.ViewRoundOutcomes(m.matchInfo.RoundOutcomes)
+	outcomes := ui.ViewRoundOutcomes(m.matchInfo.RoundPoints, m.matchInfo.Format, m.matchInfo.RoundsPlayed)
 
-	gameAreaWidth := gridWidth + maxPlayerWidth*2
+	gameAreaWidth := gridWidth + maxPlayerWidth*2 // TODO: verify this is correct
 
 	totalComponentsWidth :=
 		maxPlayerWidth +
@@ -215,7 +238,7 @@ func (m *gameModel) View() string {
 		headerRow,
 		emptyLine,
 		emptyLine,
-		guessGrid,
+		gridView,
 		emptyLine,
 		m.statusBar(),
 	)
@@ -232,33 +255,74 @@ func (m *gameModel) statusBar() string {
 
 	if m.state == game.StateRoundFinished {
 		var line1 string
-
-		outcome := m.matchInfo.RoundOutcomes[m.matchInfo.CurrentRound-1]
-		switch *outcome {
-		case protocol.OUTCOME_PLAYER_WON:
-			if m.matchInfo.Mode == protocol.MULTI_LOCAL {
-				line1 = fmt.Sprintf("%s Round Won by %s",
-					ui.OutcomeBlock(outcome),
-					ui.PurpleText.Render(m.matchInfo.PlayerName))
-			} else {
-				line1 = fmt.Sprintf("%s Round Won", ui.OutcomeBlock(outcome))
-			}
-		case protocol.OUTCOME_OPPONENT_WON:
-			if m.matchInfo.Mode == protocol.MULTI_LOCAL {
-				line1 = fmt.Sprintf("%s Round Won by %s",
-					ui.OutcomeBlock(outcome),
-					ui.RoseText.Render(m.matchInfo.OpponentName))
-			} else {
-				line1 = fmt.Sprintf("%s Round Lost", ui.OutcomeBlock(outcome))
-			}
-		case protocol.OUTCOME_NONE:
-			line1 = fmt.Sprintf(
-				"%s Not Guessed - Correct word: %s",
-				ui.OutcomeBlock(outcome),
-				m.roundInfo.Word)
-		}
+		var outcome string
 
 		line2 := ui.GrayText.Render("Press Enter to continue")
+
+		points := m.matchInfo.RoundPoints[m.matchInfo.CurrentRound-1]
+		if points > 0 {
+			if m.matchInfo.Mode == protocol.MULTI_LOCAL {
+				outcome = fmt.Sprintf("%s Round won by %s",
+					ui.PlayerBlock(),
+					ui.PurpleText.Render(m.matchInfo.PlayerName))
+			} else {
+				outcome = fmt.Sprintf("%s Round won", ui.PlayerBlock())
+			}
+		} else if points < 0 {
+			if m.matchInfo.Mode == protocol.MULTI_LOCAL {
+				outcome = fmt.Sprintf("%s Round won by %s",
+					ui.OpponentBlock(),
+					ui.RoseText.Render(m.matchInfo.OpponentName))
+			} else {
+				outcome = fmt.Sprintf("%s Round lost", ui.OpponentBlock())
+			}
+		}
+		words := []string{}
+
+		for i, challenge := range m.challenges {
+			word := m.matchInfo.CorrectWords[i]
+			switch challenge.SolvedBy {
+			case protocol.OUTCOME_NONE:
+				words = append(words, ui.GrayText.Render(word))
+			case protocol.OUTCOME_PLAYER_WON:
+				words = append(words, ui.PurpleText.Render(word))
+			case protocol.OUTCOME_OPPONENT_WON:
+				words = append(words, ui.RoseText.Render(word))
+			}
+		}
+
+		line1 = outcome
+
+		switch m.matchInfo.Format {
+		case protocol.WORDLE:
+			if points == 0 {
+				outcome = fmt.Sprintf(
+					"%s Not guessed",
+					ui.DrawBlock(),
+				)
+
+				line1 = lipgloss.JoinHorizontal(lipgloss.Center,
+					outcome,
+					" - ",
+					strings.Join(words, " • "),
+				)
+			} else {
+				line1 = outcome
+			}
+		case protocol.QUORDLE:
+			if points == 0 {
+				outcome = fmt.Sprintf(
+					"%s Round draw",
+					ui.DrawBlock(),
+				)
+			}
+
+			line1 = lipgloss.JoinHorizontal(lipgloss.Center,
+				outcome,
+				" - ",
+				strings.Join(words, " • "),
+			)
+		}
 
 		content = lipgloss.JoinVertical(
 			lipgloss.Center,
@@ -299,10 +363,28 @@ func emit(msg tea.Msg) tea.Cmd {
 }
 
 func (m *gameModel) alreadyGuessed(word string) bool {
-	for _, guess := range m.guesses {
-		if guess.Word == word {
-			return true
-		}
+	return slices.Contains(m.guesses, word)
+}
+
+func (m *gameModel) addGuess(word string) {
+	m.guesses[m.matchInfo.CurrentAttempt] = word
+}
+
+func (m *gameModel) initChallenges() {
+	logger.Debug("initChallenges()")
+	var challengesLen int
+	switch m.matchInfo.Format {
+	case protocol.WORDLE:
+		challengesLen = 1
+	case protocol.QUORDLE:
+		challengesLen = 4
 	}
-	return false
+
+	m.challengesLen = challengesLen
+	m.guesses = make([]string, m.matchInfo.MaxAttempts)
+	m.challenges = make([]*protocol.WordChallenge, challengesLen)
+
+	for i := range challengesLen {
+		m.challenges[i] = protocol.NewWordChallenge(m.matchInfo.MaxAttempts)
+	}
 }

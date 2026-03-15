@@ -1,8 +1,6 @@
 package ui
 
 import (
-	"guessh/internal/protocol"
-
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -62,42 +60,9 @@ var (
 			Foreground(White)
 )
 
-func OutcomeBlock(outcome *protocol.Outcome) string {
-	var (
-		fg     = White
-		bg     lipgloss.Color
-		symbol string
-		withBg = true
-	)
-
-	if outcome == nil {
-		withBg = false
-		symbol = "○"
-	} else {
-		switch *outcome {
-		case protocol.OUTCOME_PLAYER_WON:
-			bg = Purple
-			symbol = "✓"
-		case protocol.OUTCOME_OPPONENT_WON:
-			bg = Rose
-			symbol = "✗"
-		case protocol.OUTCOME_NONE:
-			bg = Gray
-			symbol = "○"
-		}
-	}
-
-	style := lipgloss.NewStyle().
-		Width(3).
-		Height(1).
-		AlignHorizontal(lipgloss.Center).
-		AlignVertical(lipgloss.Center).
-		Foreground(fg).
-		Bold(true)
-
-	if withBg {
-		style = style.Background(bg)
-	}
-
-	return style.Render(symbol)
-}
+var (
+	symbolCheck = "✓"
+	symbolCross = "✗"
+	symbolDraw  = "○"
+	symbolNone  = "∅"
+)

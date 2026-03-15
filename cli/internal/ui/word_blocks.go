@@ -2,19 +2,20 @@ package ui
 
 import (
 	"guessh/internal/game"
+	"guessh/internal/logger"
 	"guessh/internal/protocol"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
 )
 
-func ViewGuessedRow(g *protocol.Guess) string {
-	blocks := make([]string, len(g.Result))
+func ViewGuessedRow(word string, result []protocol.LetterFeedback) string {
+	blocks := make([]string, len(result))
 
-	for i, r := range g.Word {
+	for i, r := range word {
 		var style lipgloss.Style
 
-		switch g.Result[i] {
+		switch result[i] {
 		case protocol.LETTER_CORRECT:
 			style = correctStyle
 		case protocol.LETTER_PRESENT:
@@ -53,32 +54,50 @@ func ViewWordInputRow(input string, length int, onTurn bool) string {
 	return lipgloss.JoinHorizontal(lipgloss.Center, blocks...)
 }
 
-func ViewInactiveRow(wordLen int) string {
+func ViewInactiveRow(wordLen int, isSolved bool) string {
+	style := baseLetterStyle
+
+	if isSolved {
+		style = style.BorderForeground(Gray)
+	}
+
 	blocks := make([]string, wordLen)
 	for i := range blocks {
-		blocks[i] = baseLetterStyle.Render(" ")
+		blocks[i] = style.Render(" ")
 	}
 	return lipgloss.JoinHorizontal(lipgloss.Center, blocks...)
 }
 
-func ViewGuessGrid(guesses []*protocol.Guess, input string, maxAttempts int, wordLen int, state game.GameState) string {
+func ViewGuessGrid(guesses []string, challenge *protocol.WordChallenge, input string, currentAttempt, maxAttempts, wordLen int, state game.GameState) string {
 	grid := make([]string, maxAttempts)
+	isSolved := challenge.SolvedBy != protocol.OUTCOME_NONE
 
 	for i := range maxAttempts {
-		if i < len(guesses) {
-			grid[i] = ViewGuessedRow(guesses[i])
-		} else if i == len(guesses) && (state == game.StateWaitGuess || state == game.StateWaitOpponentGuess) {
+		if isSolved && i > challenge.SolvedOnTurn {
+			logger.Debug("branch 1")
+			grid[i] = ViewInactiveRow(wordLen, isSolved)
+		} else if i < currentAttempt {
+			logger.Debug("branch 2")
+			guess := guesses[i]
+			grid[i] = ViewGuessedRow(guess, challenge.Feedbacks[i])
+		} else if i == currentAttempt && (state == game.StateWaitGuess || state == game.StateWaitOpponentGuess) && !isSolved {
 			grid[i] = ViewWordInputRow(input, wordLen, state == game.StateWaitGuess)
 		} else {
-			grid[i] = ViewInactiveRow(wordLen)
+			grid[i] = ViewInactiveRow(wordLen, isSolved)
 		}
 	}
 
 	return strings.Join(grid, "\n")
 }
 
-func ViewOutcomeBlock(outcome *protocol.Outcome, isLast bool) string {
-	outcomeBlock := OutcomeBlock(outcome)
+func ViewOutcomeBlock(points int, format protocol.GameFormat, done, isLast bool) string {
+	var outcomeBlock string
+
+	if done {
+		outcomeBlock = RoundOutcomeBlock(points, format)
+	} else {
+		outcomeBlock = RoundNotPlayedBlock()
+	}
 
 	if !isLast {
 		outcomeBlock = lipgloss.NewStyle().MarginRight(1).Render(outcomeBlock)
@@ -87,10 +106,10 @@ func ViewOutcomeBlock(outcome *protocol.Outcome, isLast bool) string {
 	return outcomeBlock
 }
 
-func ViewRoundOutcomes(outcomes []*protocol.Outcome) string {
-	blocks := make([]string, len(outcomes))
-	for i, outcome := range outcomes {
-		blocks[i] = ViewOutcomeBlock(outcome, len(outcomes)-1 == i)
+func ViewRoundOutcomes(pointsPerRound []int, format protocol.GameFormat, roundsPlayed int) string {
+	blocks := make([]string, len(pointsPerRound))
+	for i, points := range pointsPerRound {
+		blocks[i] = ViewOutcomeBlock(points, format, i < roundsPlayed, len(pointsPerRound)-1 == i)
 	}
 	return lipgloss.JoinHorizontal(lipgloss.Center, blocks...)
 }

@@ -32,10 +32,10 @@ const (
 )
 
 type MatchFinishedMsg struct {
-	roundsPlayed  int
-	roundOutcomes []*protocol.Outcome
-	matchOutcome  protocol.Outcome
-	opponentLeft  bool
+	roundsPlayed int
+	roundPoints  []int
+	matchOutcome protocol.Outcome
+	opponentLeft bool
 }
 
 type RoomCreatedMsg struct {
@@ -150,8 +150,9 @@ func (m *mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.screenID = MatchResultsScreenID
 		m.matchResultsScreen = NewMatchResults(
 			m.matchInfo.Mode,
+			m.matchInfo.Format,
 			msg.roundsPlayed,
-			msg.roundOutcomes,
+			msg.roundPoints,
 			msg.matchOutcome,
 			m.matchInfo.PlayerName,
 			m.matchInfo.OpponentName,
@@ -164,7 +165,7 @@ func (m *mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.waitingOpponentScreen.roomID = msg.roomID
 
 	case game.CreateMatchIntent:
-		m.client.CreateMatch(msg.Mode, msg.WordLen, msg.Rounds, msg.PlayerName)
+		m.client.CreateMatch(msg.Mode, msg.Format, msg.WordLen, msg.Rounds, msg.PlayerName)
 
 	case game.JoinRoomIntent:
 		m.client.JoinRoom(msg.RoomId, msg.PlayerName)
@@ -368,15 +369,17 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 		m.game.state = game.StateMatchStarted
 		m.screenID = GameScreenID
 
+		m.matchInfo.Format = matchStartedEvent.Format
 		m.matchInfo.WordLen = matchStartedEvent.WordLength
 		m.matchInfo.TotalRounds = matchStartedEvent.Rounds
+		m.matchInfo.RoundsPlayed = 0
 
 		if m.matchInfo.Mode == protocol.MULTI_REMOTE {
 			m.matchInfo.OpponentName = matchStartedEvent.OpponentName
 		}
 
 		m.matchInfo.RawTotalRounds = fmt.Sprintf("%d", matchStartedEvent.Rounds)
-		m.matchInfo.RoundOutcomes = make([]*protocol.Outcome, matchStartedEvent.Rounds)
+		m.matchInfo.RoundPoints = make([]int, matchStartedEvent.Rounds)
 
 		m.game.input.CharLimit = m.matchInfo.WordLen
 		m.game.input.Width = m.matchInfo.WordLen
@@ -394,21 +397,24 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 
 		m.game.roundInfo = game.NewRoundInfo()
 
+		m.matchInfo.CurrentAttempt = 0
 		m.matchInfo.MaxAttempts = roundStartedEvent.MaxAttempts
 		m.matchInfo.CurrentRound = roundStartedEvent.RoundNumber
-		m.game.guesses = nil
+		m.game.initChallenges()
 		m.game.input.SetValue("")
 
 	case protocol.WAIT_GUESS:
+		m.matchInfo.PlayerOnTurn = true
 		m.game.state = game.StateWaitGuess
 		m.game.input.Focus()
 		m.game.input.SetValue("")
 
 	case protocol.WAIT_OPPONENT_GUESS:
+		m.matchInfo.PlayerOnTurn = false
 		m.game.state = game.StateWaitOpponentGuess
+		m.game.input.SetValue("")
 		if m.matchInfo.Mode == protocol.MULTI_LOCAL {
 			m.game.input.Focus()
-			m.game.input.SetValue("")
 		} else {
 			m.game.input.Blur()
 		}
@@ -423,7 +429,25 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 			return nil
 		}
 
-		m.game.guesses = append(m.game.guesses, protocol.NewGuess(guessResultEvent.Guess, guessResultEvent.Feedback))
+		m.game.addGuess(guessResultEvent.Guess)
+		for i, feedback := range guessResultEvent.Feedback {
+			challenge := m.game.challenges[i]
+			if challenge.SolvedBy != protocol.OUTCOME_NONE {
+				continue
+			}
+
+			challenge.Feedbacks[m.matchInfo.CurrentAttempt] = feedback
+			if isSolved(feedback) {
+				challenge.SolvedOnTurn = m.matchInfo.CurrentAttempt
+				if m.matchInfo.PlayerOnTurn {
+					challenge.SolvedBy = protocol.OUTCOME_PLAYER_WON
+				} else {
+					challenge.SolvedBy = protocol.OUTCOME_OPPONENT_WON
+				}
+			}
+		}
+
+		m.matchInfo.CurrentAttempt++
 
 	case protocol.ROUND_FINISHED:
 		roundFinishedEvent := &protocol.RoundFinishedEvent{}
@@ -433,12 +457,13 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 		}
 
 		m.game.state = game.StateRoundFinished
-		m.game.roundInfo.Word = roundFinishedEvent.Word
-		m.game.roundInfo.Success = roundFinishedEvent.Outcome != protocol.OUTCOME_NONE
+		m.game.roundInfo.Points = roundFinishedEvent.Points
+		m.matchInfo.CorrectWords = roundFinishedEvent.Words
 		m.game.input.Blur()
 
-		logger.Debug("Round outcomes: %v", m.matchInfo.RoundOutcomes)
-		m.matchInfo.RoundOutcomes[m.matchInfo.CurrentRound-1] = &roundFinishedEvent.Outcome
+		logger.Debug("Round points: %v", m.matchInfo.RoundPoints)
+		m.matchInfo.RoundPoints[m.matchInfo.CurrentRound-1] = roundFinishedEvent.Points
+		m.matchInfo.RoundsPlayed++
 
 		logger.Debug("Pausing events...")
 		if !m.flushing {
@@ -456,10 +481,10 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 		m.game.state = game.StateMatchFinished
 
 		return MatchFinishedMsg{
-			roundsPlayed:  m.matchInfo.TotalRounds,
-			roundOutcomes: m.matchInfo.RoundOutcomes,
-			matchOutcome:  matchFinishedEvent.Outcome,
-			opponentLeft:  matchFinishedEvent.OpponentLeft,
+			roundsPlayed: m.matchInfo.RoundsPlayed,
+			roundPoints:  m.matchInfo.RoundPoints,
+			matchOutcome: matchFinishedEvent.Outcome,
+			opponentLeft: matchFinishedEvent.OpponentLeft,
 		}
 
 	case protocol.ROOM_CREATED:
@@ -532,4 +557,13 @@ func waitForContextDone(ctx context.Context) tea.Cmd {
 		<-ctx.Done()
 		return tea.Quit()
 	}
+}
+
+func isSolved(feedback []protocol.LetterFeedback) bool {
+	for _, f := range feedback {
+		if f != protocol.LETTER_CORRECT {
+			return false
+		}
+	}
+	return true
 }
