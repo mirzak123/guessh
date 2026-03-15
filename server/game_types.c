@@ -61,6 +61,7 @@ Round *new_round(WordChallenge **word_challenges, size_t wc_num, size_t max_atte
 
   round->wc_list = word_challenges;
   round->wc_num = wc_num;
+  round->solved_num = 0;
 
   round->attempt_count = 0;
   round->max_attempts = max_attempts;

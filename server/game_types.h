@@ -47,6 +47,7 @@ void delete_word_challenge(WordChallenge *wc);
 typedef struct Round {
   WordChallenge **wc_list;
   size_t wc_num;
+  size_t solved_num;
 
   size_t attempt_count; /* how many attempts have been made */
   size_t max_attempts;

@@ -705,8 +705,11 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
   }
 
   round->guess_attempts[round->attempt_count++] = strdup(guess);
-  success = evaluate_guess(guess, round->wc_list, round->wc_num, player1_on_turn);
+  size_t solved_num = evaluate_guess(guess, round->wc_list, round->wc_num, player1_on_turn);
+  round->solved_num += solved_num;
   guess_result_json = json_guess_result(guess, round, match->word_len);
+
+  success = round->solved_num == round->wc_num;
 
   bool is_round_finished = success || (round->attempt_count >= round->max_attempts);
 
@@ -714,11 +717,16 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
   case MULTI_REMOTE:
     send_json(player->client_fd, guess_result_json);
     send_json(opponent->client_fd, guess_result_json);
-    match->remote.on_turn = opponent;
+
+    if (solved_num == 0) { // in quordle, player that guessed, stays on turn
+      match->remote.on_turn = opponent;
+      opponent = player;
+      player = match->remote.on_turn;
+    }
 
     if (!is_round_finished) {
-      send_only_type(opponent->client_fd, STR(WAIT_GUESS));
-      send_only_type(player->client_fd, STR(WAIT_OPPONENT_GUESS));
+      send_only_type(player->client_fd, STR(WAIT_GUESS));
+      send_only_type(opponent->client_fd, STR(WAIT_OPPONENT_GUESS));
     }
     break;
   case MULTI_LOCAL:
