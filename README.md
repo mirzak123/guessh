@@ -85,5 +85,5 @@ Find a better way to represent flow below 🙏🙏🙏
 | WAIT_OPPONENT_GUESS     | {"type": "WAIT_OPPONENT_GUESS"}                                                                                                 |                                                    |
 | GUESS_RESULT            | {"type": "GUESS_RESULT", "guess": string, "feedback": number[]\[]}                                                              |                                                    |
 | ROUND_FINISHED          | {"type": "ROUND_FINISHED", "points": number, "word": string}                                                                    |                                                    |
-| MATCH_FINISHED          | {"type": "MATCH_FINISHED", "playerPoints": number, "opponentPoints": number, "opponentLeft": boolean}                           | outcome only relevant for multiplayer games.       |
+| MATCH_FINISHED          | {"type": "MATCH_FINISHED", outcome: number , "opponentLeft": boolean}                                                           | outcome only relevant for multiplayer games        |
 | OPPONENT_TYPING         | {"type": "OPPONENT_TYPING", "value": string}                                                                                    |
