@@ -412,9 +412,9 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 	case protocol.WAIT_OPPONENT_GUESS:
 		m.matchInfo.PlayerOnTurn = false
 		m.game.state = game.StateWaitOpponentGuess
+		m.game.input.SetValue("")
 		if m.matchInfo.Mode == protocol.MULTI_LOCAL {
 			m.game.input.Focus()
-			m.game.input.SetValue("")
 		} else {
 			m.game.input.Blur()
 		}
