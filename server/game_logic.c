@@ -15,8 +15,6 @@ size_t evaluate_guess(const char *guess, WordChallenge **wc_list, size_t wc_num,
 
   for (size_t i = 0; i < wc_num; i++) {
     WordChallenge *wc = wc_list[i];
-    if (wc->solved_by != OUTCOME_NONE)
-      continue; // already solved
 
     bool solved = evaluate_word_challenge_guess(guess, wc);
     if (solved) {

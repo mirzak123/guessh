@@ -2,6 +2,7 @@ package ui
 
 import (
 	"guessh/internal/game"
+	"guessh/internal/logger"
 	"guessh/internal/protocol"
 	"strings"
 
@@ -71,10 +72,13 @@ func ViewGuessGrid(guesses []string, challenge *protocol.WordChallenge, input st
 	grid := make([]string, maxAttempts)
 	isSolved := challenge.SolvedBy != protocol.OUTCOME_NONE
 
+	logger.Debug("challenge: %s\tsolved on: %d", challenge.CorrectWord, challenge.SolvedOnTurn)
 	for i := range maxAttempts {
 		if isSolved && i > challenge.SolvedOnTurn {
+			logger.Debug("branch 1")
 			grid[i] = ViewInactiveRow(wordLen, isSolved)
 		} else if i < currentAttempt {
+			logger.Debug("branch 2")
 			guess := guesses[i]
 			grid[i] = ViewGuessedRow(guess, challenge.Feedbacks[i])
 		} else if i == currentAttempt && (state == game.StateWaitGuess || state == game.StateWaitOpponentGuess) && !isSolved {
