@@ -15,6 +15,7 @@
 
 static MessageType parse_message(char *data, size_t size, cJSON **out);
 static Outcome calculate_match_outcome(Match *match);
+static void calculate_round_points(Round *round);
 static WordStore *get_word_store(GameServer *gs, size_t word_len);
 static const char **get_round_words(Round *round);
 static bool already_guessed(char *word, char **guesses, size_t len);
@@ -755,21 +756,7 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
   if (!is_round_finished)
     return;
 
-  if (success) {
-    switch (match->mode) {
-    case SINGLE:
-      round->points = 1;
-      break;
-    case MULTI_LOCAL:
-      round->points = match->local.player1_on_turn ? -1 : 1;
-      break;
-    case MULTI_REMOTE:
-      round->points = player == match->player1 ? 1 : -1;
-      break;
-    }
-  } else if (round->attempt_count >= round->max_attempts) {
-    round->points = 0;
-  }
+  calculate_round_points(round);
   GS_end_round(gs, match);
 }
 
@@ -1009,6 +996,22 @@ static Outcome calculate_match_outcome(Match *match) {
   else if (total_points < 0)
     return OUTCOME_PLAYER2;
   return OUTCOME_NONE;
+}
+
+static void calculate_round_points(Round *round) {
+  for (size_t i = 0; i < round->wc_num; i++) {
+    WordChallenge *wc = round->wc_list[i];
+    switch (wc->solved_by) {
+    case OUTCOME_NONE:
+      break;
+    case OUTCOME_PLAYER1:
+      round->points++;
+      break;
+    case OUTCOME_PLAYER2:
+      round->points--;
+      break;
+    }
+  }
 }
 
 static WordStore *get_word_store(GameServer *gs, size_t word_len) {
