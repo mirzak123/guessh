@@ -51,6 +51,39 @@ func NewMatchResults(
 		"Round outcomes • ",
 		ui.ViewRoundOutcomes(m.roundPoints, m.format, m.roundsPlayed))
 
+	playerPoints := 0
+	opponentPoints := 0
+
+	var pointsPerRound int
+	switch format {
+	case protocol.WORDLE:
+		pointsPerRound = 1
+	case protocol.QUORDLE:
+		pointsPerRound = 4
+	}
+
+	totalPossiblePoints := roundsPlayed * pointsPerRound
+
+	for _, p := range m.roundPoints {
+		if p > 0 {
+			playerPoints += p
+		} else if p < 0 {
+			opponentPoints += p * -1
+		}
+	}
+
+	playerPointsStr := ui.PurpleText.Render(fmt.Sprintf("%d", playerPoints))
+	opponentPointsStr := ui.RoseText.Render(fmt.Sprintf("%d", opponentPoints))
+
+	score := fmt.Sprintf("%s %s : %s %s",
+		playerName,
+		playerPointsStr,
+		opponentPointsStr,
+		opponentName,
+	)
+
+	rematchText := "Request rematch"
+
 	switch m.mode {
 	case protocol.MULTI_REMOTE:
 		if opponentLeft {
@@ -74,18 +107,24 @@ func NewMatchResults(
 		case protocol.OUTCOME_NONE:
 			summary = "🤝 Draw"
 		}
+	case protocol.SINGLE:
+		score = fmt.Sprintf("Score: %s / %d", playerPointsStr, totalPossiblePoints)
+		rematchText = "Repeat match"
 	}
 
 	summary = lipgloss.JoinVertical(
 		lipgloss.Left,
 		summary,
+		"",
 		results,
+		"",
+		score,
 	)
 
 	if m.canRematch {
 		confirmInput = huh.NewConfirm().
 			Title("Rematch?").
-			Affirmative("Request rematch").
+			Affirmative(rematchText).
 			Negative("Continue to main screen").
 			Value(&m.confirm).
 			WithButtonAlignment(lipgloss.Left)
