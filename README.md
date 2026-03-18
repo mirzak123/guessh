@@ -1,6 +1,84 @@
 # GueSSH
 
-Welcome to GueSSH, a wordle-like head-to-head multiplayer game, available over SSH.
+Welcome to GueSSH, a head-to-head multiplayer game inspired by Wordle, available over SSH.
+
+## How to Play?
+
+### Connect with SSH
+
+Open a terminal and run the command below to play the game instantly (assuming you have an SSH client installed):
+
+```bash
+ssh guessh.duckdns.org
+```
+
+> **_NOTE:_** When playing for the first time you will likely be prompted to specify whether you trust this host and
+> want to save its address to your known hosts file. You can safely type "yes" as this connection is harmless.
+
+### Run Locally
+
+You can run the game locally by running Docker containers with [Docker Compose](https://docs.docker.com/compose/), or
+building and running the source using [make](https://www.gnu.org/software/make/). I recommend using Docker Compose, to mitigate any dependency issues.
+
+#### Run with Docker Compose
+
+The game comes with two `Dockerfile`s and a `docker-compose.yml` which can be used to run the game locally by running:
+
+```bash
+docker compose up --build
+
+# or if you have docker-compose as a separate binary
+docker-compose up --build
+```
+
+<!-- TODO: Link this to the game implementation section -->
+
+This will spin up two containers, one for the game server, and another for the SSH server.
+
+> **_NOTE_:** The SSH server will try to bind to port 22 on your machine, which is most likely taken.
+> In that case, update the `ports` section in `docker-compose.yaml` to bind to a different port (e.g. `2222:2222`).
+
+Then you can connect to the SSH server by running:
+
+```bash
+ssh localhost -p <PORT>
+```
+
+To stop the docker containers, run:
+
+```bash
+docker compose down
+
+# or if you have docker-compose as a separate binary
+docker-compose down
+```
+
+#### Run with `make`
+
+You can alternatively build and run the source using `make`.
+
+> **_NOTE_:** You will likely need to resolve dependencies on your own. Currently the only dependency that might
+> require an install is `libcjson`, for the game server, but other dependencies might get used in the future.
+
+With `make` you can run 3 different components (and tests, if you're into that):
+
+```bash
+make run-server     # C server that handles all of the game logic
+
+make run-cli        # Run the TUI that connects to the game server
+
+make run-ssh        # Run the SSH server, which serves the TUI
+
+make run-tests      # Run game server tests
+```
+
+If using this method, you don't need to spin up the SSH server at all, as `make run-cli` will give you the
+TUI and connect to the game server without needing to go through the SSH server. You do, however, need to
+run `make run-server`, before trying to connect to the game server (obviously).
+
+## Game Details
+
+The game can be played in the following
 
 ## Environment Variables
 
