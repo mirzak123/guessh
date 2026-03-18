@@ -698,7 +698,7 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
     player1_on_turn = true;
     break;
   case MULTI_LOCAL:
-    player1_on_turn = match->local.player1_on_turn;
+    player1_on_turn = match->local.p1_on_turn;
     break;
   case MULTI_REMOTE:
     player1_on_turn = player == match->player1;
@@ -734,11 +734,11 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
     send_json(player->client_fd, guess_result_json);
 
     if (solved_num == 0) {
-      match->local.player1_on_turn = !match->local.player1_on_turn;
+      match->local.p1_on_turn = !match->local.p1_on_turn;
     }
 
     if (!is_round_finished) {
-      if (match->local.player1_on_turn) {
+      if (match->local.p1_on_turn) {
         send_only_type(player->client_fd, STR(WAIT_GUESS));
       } else {
         send_only_type(player->client_fd, STR(WAIT_OPPONENT_GUESS));
@@ -850,7 +850,7 @@ void GS_end_round(GameServer *gs, Match *match) {
 
     break;
   case MULTI_LOCAL:
-    match->local.player1_started_round = !match->local.player1_started_round;
+    match->local.p1_start_round = !match->local.p1_start_round;
     /* fallthrough */
   case SINGLE:
     round_finished_json = json_round_finished(round->points, words, round->wc_num);
@@ -894,8 +894,8 @@ void GS_start_match(GameServer *gs, Match *match) {
 
     break;
   case MULTI_LOCAL:
-    match->local.player1_started_round = rand() % 2;
-    printf("player1_started_round: %d\n", match->local.player1_started_round);
+    match->local.p1_start_round = rand() % 2;
+    printf("player1_started_round: %d\n", match->local.p1_start_round);
     /* fallthrough */
   case SINGLE:
     assert(match->player1 != NULL);
@@ -964,11 +964,11 @@ void GS_start_round(GameServer *gs, Match *match) {
     assert(match->player1 != NULL);
     send_json(match->player1->client_fd, round_started_json);
 
-    match->local.player1_on_turn = match->local.player1_started_round;
+    match->local.p1_on_turn = match->local.p1_start_round;
 
-    printf("player1_on_turn: %d\n", match->local.player1_on_turn);
+    printf("player1_on_turn: %d\n", match->local.p1_on_turn);
 
-    if (match->local.player1_on_turn) {
+    if (match->local.p1_on_turn) {
       send_only_type(match->player1->client_fd, STR(WAIT_GUESS));
     } else {
       send_only_type(match->player1->client_fd, STR(WAIT_OPPONENT_GUESS));

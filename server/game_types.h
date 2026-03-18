@@ -73,11 +73,13 @@ typedef struct Match {
   Player *player2;
   union {
     struct {
-      bool player1_on_turn;
-      bool player1_started_round;
+      bool p1_on_turn;
+      bool p1_start_match;
+      bool p1_start_round;
     } local;
     struct {
       Player *on_turn;
+      Player *match_starter;
       Player *round_starter;
     } remote;
   };
