@@ -76,6 +76,11 @@ If using this method, you don't need to spin up the SSH server at all, as `make 
 TUI and connect to the game server without needing to go through the SSH server. You do, however, need to
 run `make run-server`, before trying to connect to the game server (obviously).
 
+<!-- TODO: Link the env vars section -->
+
+In case of any port issues, you can check out the environment variables section to check port defaults, and
+adjust the ports, if the defaults are occupied on your machine.
+
 ## Game Details
 
 ## Environment Variables
