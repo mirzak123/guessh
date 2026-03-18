@@ -49,10 +49,10 @@ typedef struct Round {
   size_t wc_num;
   size_t solved_num;
 
-  size_t attempt_count; /* how many attempts have been made */
+  size_t attempt_count;
   size_t max_attempts;
 
-  char **guess_attempts; /* array of all guess attempts made */
+  char **guess_attempts;
   int points;
 } Round;
 
@@ -63,7 +63,7 @@ typedef struct Match {
   char *id;
   int round_idx;
   size_t word_len;
-  size_t round_capacity; /* total amount of rounds */
+  size_t round_capacity;
   char *room_id;
   Round **rounds;
   GameMode mode;

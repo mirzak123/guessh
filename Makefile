@@ -26,7 +26,7 @@ ASAN_FLAGS := -g -O0 -fsanitize=address -fno-omit-frame-pointer
 _SRCS := main.c network.c game_logic.c game_server.c game_types.c json_messages.c client.c util.c hash_table.c room.c
 SERVER_SRC := $(addprefix $(SERVER_DIR)/,$(_SRCS))
 
-_TEST_SRCS := test.c game_logic.c hash_table.c util.c
+_TEST_SRCS := test.c hash_table.c util.c
 TEST_SRC := $(addprefix $(SERVER_DIR)/,$(_TEST_SRCS))
 
 # ==========================================
