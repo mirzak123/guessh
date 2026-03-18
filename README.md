@@ -78,8 +78,6 @@ run `make run-server`, before trying to connect to the game server (obviously).
 
 ## Game Details
 
-The game can be played in the following
-
 ## Environment Variables
 
 | Variable           | Default         | Description                                          |
