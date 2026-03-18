@@ -1,4 +1,5 @@
-#include "game_logic.h"
+#include "game_logic.c"
+#include "game_types.h"
 #include "hash_table.h"
 #include "util.h"
 #include <assert.h>
@@ -24,6 +25,7 @@ int main(void) {
   test_hash_table();
   test_call_HT_delete_on_empty_hash_table();
 
+  printf("All tests passed!\n");
   return 0;
 }
 
@@ -37,51 +39,70 @@ void test_evaluate_guess(void) {
   LetterFeedback feedback[WORD_LEN];
   int r;
 
-  r = evaluate_guess("ocean", "ocean", feedback, WORD_LEN);
+  WordChallenge *wc = &(WordChallenge){
+      NULL,
+      WORD_LEN,
+      OUTCOME_NONE,
+      feedback,
+  };
+
+  wc->word = "ocean";
+  r = evaluate_word_challenge_guess("ocean", wc);
   assert_feedback(feedback, (LetterFeedback[]){2, 2, 2, 2, 2});
   assert(r == 1);
 
-  r = evaluate_guess("cubic", "cubic", feedback, WORD_LEN);
+  wc->word = "cubic";
+  r = evaluate_word_challenge_guess("cubic", wc);
   assert_feedback(feedback, (LetterFeedback[]){2, 2, 2, 2, 2});
   assert(r == 1);
 
-  r = evaluate_guess("pulls", "piles", feedback, WORD_LEN);
+  wc->word = "piles";
+  r = evaluate_word_challenge_guess("pulls", wc);
   assert_feedback(feedback, (LetterFeedback[]){2, 0, 2, 0, 2});
   assert(r == 0);
 
-  evaluate_guess("pulls", "leaky", feedback, WORD_LEN);
+  wc->word = "leaky";
+  evaluate_word_challenge_guess("pulls", wc);
   assert_feedback(feedback, (LetterFeedback[]){0, 0, 1, 0, 0});
   assert(r == 0);
 
-  r = evaluate_guess("echos", "whose", feedback, WORD_LEN);
+  wc->word = "whose";
+  r = evaluate_word_challenge_guess("echos", wc);
   assert_feedback(feedback, (LetterFeedback[]){1, 0, 1, 1, 1});
   assert(r == 0);
 
-  r = evaluate_guess("shoes", "whose", feedback, WORD_LEN);
+  wc->word = "whose";
+  r = evaluate_word_challenge_guess("shoes", wc);
   assert_feedback(feedback, (LetterFeedback[]){1, 2, 2, 1, 0});
   assert(r == 0);
 
-  r = evaluate_guess("lucid", "cubic", feedback, WORD_LEN);
+  wc->word = "cubic";
+  r = evaluate_word_challenge_guess("lucid", wc);
   assert_feedback(feedback, (LetterFeedback[]){0, 2, 1, 2, 0});
   assert(r == 0);
 
-  r = evaluate_guess("cubic", "lucid", feedback, WORD_LEN);
+  wc->word = "lucid";
+  r = evaluate_word_challenge_guess("cubic", wc);
   assert_feedback(feedback, (LetterFeedback[]){1, 2, 0, 2, 0});
   assert(r == 0);
 
-  r = evaluate_guess("spill", "lilac", feedback, WORD_LEN);
+  wc->word = "lilac";
+  r = evaluate_word_challenge_guess("spill", wc);
   assert_feedback(feedback, (LetterFeedback[]){0, 0, 1, 1, 1});
   assert(r == 0);
 
-  r = evaluate_guess("lilac", "spill", feedback, WORD_LEN);
+  wc->word = "spill";
+  r = evaluate_word_challenge_guess("lilac", wc);
   assert_feedback(feedback, (LetterFeedback[]){1, 1, 1, 0, 0});
   assert(r == 0);
 
-  r = evaluate_guess("totem", "tutti", feedback, WORD_LEN);
+  wc->word = "tutti";
+  r = evaluate_word_challenge_guess("totem", wc);
   assert_feedback(feedback, (LetterFeedback[]){2, 0, 2, 0, 0});
   assert(r == 0);
 
-  r = evaluate_guess("tutti", "totem", feedback, WORD_LEN);
+  wc->word = "totem";
+  r = evaluate_word_challenge_guess("tutti", wc);
   assert_feedback(feedback, (LetterFeedback[]){2, 0, 2, 0, 0});
   assert(r == 0);
 }
@@ -123,7 +144,7 @@ void test_hash_table(void) {
   assert(value == NULL);
   assert(table->capacity == 16);
 
-  HT_destroy(table);
+  HT_destroy(table, NULL);
 }
 
 void test_call_HT_delete_on_empty_hash_table(void) {
