@@ -95,7 +95,7 @@ void GS_handle_typing(Client *client, cJSON *json_request);
 void GS_handle_leave_match(GameServer *gs, Client *client);
 
 void GS_create_room(GameServer *gs, Match *match, Client *client);
-void GS_start_match(GameServer *gs, Match *match);
+void GS_start_match(GameServer *gs, Match *match, bool is_rematch);
 void GS_start_round(GameServer *gs, Match *match);
 void GS_end_match(Match *match, Player *disconnected_player);
 void GS_end_round(GameServer *gs, Match *match);

@@ -242,7 +242,7 @@ void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request)
 
   bool can_start = GS_add_player_to_match(match, player);
   if (can_start) {
-    GS_start_match(gs, match);
+    GS_start_match(gs, match, false);
   }
 }
 
@@ -465,7 +465,7 @@ void GS_handle_join_room(GameServer *gs, Client *client, cJSON *json_request) {
   cJSON_Delete(room_joined_json);
 
   GS_add_player_to_match(room->match, player);
-  GS_start_match(gs, room->match);
+  GS_start_match(gs, room->match, false);
 }
 
 void GS_handle_request_rematch(GameServer *gs, Client *client) {
@@ -508,10 +508,19 @@ void GS_handle_request_rematch(GameServer *gs, Client *client) {
   HT_set(gs->matches, KEY(match->id), match);
 
   GS_add_player_to_match(match, player);
-  if (match->mode == MULTI_REMOTE) {
+  switch (match->mode) {
+  case MULTI_REMOTE:
     GS_add_player_to_match(match, opponent);
+    match->remote.match_starter = get_opponent(player, opponent, old_match->remote.match_starter);
+    break;
+  case MULTI_LOCAL:
+    match->local.p1_start_match = !old_match->local.p1_start_match;
+    break;
+  default:
+    break;
   }
-  GS_start_match(gs, match);
+
+  GS_start_match(gs, match, true);
 
   HT_delete(gs->matches, KEY(old_match->id));
   delete_match(old_match);
@@ -867,7 +876,7 @@ void GS_end_round(GameServer *gs, Match *match) {
   }
 }
 
-void GS_start_match(GameServer *gs, Match *match) {
+void GS_start_match(GameServer *gs, Match *match, bool is_rematch) {
   cJSON *match_started_json = NULL;
 
   printf("[start_match] Starting new match...\n");
@@ -886,16 +895,22 @@ void GS_start_match(GameServer *gs, Match *match) {
     send_json(match->player1->client_fd, match_started_json);
     cJSON_Delete(match_started_json);
 
-    if (rand() % 2) {
-      match->remote.round_starter = match->player1;
-    } else {
-      match->remote.round_starter = match->player2;
+    if (!is_rematch) {
+      if (rand() % 2) {
+        match->remote.match_starter = match->player1;
+      } else {
+        match->remote.match_starter = match->player2;
+      }
     }
+    match->remote.round_starter = match->remote.match_starter;
 
     break;
   case MULTI_LOCAL:
-    match->local.p1_start_round = rand() % 2;
-    printf("player1_started_round: %d\n", match->local.p1_start_round);
+    if (!is_rematch) {
+      match->local.p1_start_match = rand() % 2;
+    }
+    match->local.p1_start_round = match->local.p1_start_match;
+    printf("p1_start_match: %d\n", match->local.p1_start_round);
     /* fallthrough */
   case SINGLE:
     assert(match->player1 != NULL);
