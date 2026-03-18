@@ -25,6 +25,7 @@ int main(void) {
   test_hash_table();
   test_call_HT_delete_on_empty_hash_table();
 
+  printf("All tests passed!\n");
   return 0;
 }
 
