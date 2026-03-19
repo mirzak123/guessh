@@ -6,6 +6,7 @@
 #include "game_types.h"
 #include "hash_table.h"
 #include "room.h"
+#include "timer.h"
 #include <cjson/cJSON.h>
 #include <stddef.h>
 
@@ -75,6 +76,7 @@ typedef struct {
   HashTable *matches;
   HashTable *clients;
   HashTable *rooms;
+  Timer *timer_list;
   struct {
     WordStore *five;
     WordStore *six;

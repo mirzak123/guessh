@@ -32,6 +32,7 @@ GameServer *GS_create(void) {
   gs->matches = HT_create();
   gs->clients = HT_create();
   gs->rooms = HT_create();
+  gs->timer_list = NULL;
 
   gs->word_store.five = new_word_store(FIVE_LETTER_WORD_FILE, 5);
   gs->word_store.six = new_word_store(SIX_LETTER_WORD_FILE, 6);
