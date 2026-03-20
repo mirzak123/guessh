@@ -17,7 +17,7 @@ $(shell mkdir -p $(BUILD_DIR))
 SERVER_DIR := server
 CC         := gcc
 CFLAGS     := -std=gnu17 -Wall -Wextra -pedantic
-LDFLAGS    := 
+LDFLAGS    := -g -O0
 
 CFLAGS  += $(shell pkg-config --cflags libcjson)
 LDFLAGS += $(shell pkg-config --libs libcjson)
@@ -26,7 +26,7 @@ ASAN_FLAGS := -g -O0 -fsanitize=address -fno-omit-frame-pointer
 _SRCS := main.c network.c game_logic.c game_server.c game_types.c json_messages.c client.c util.c hash_table.c room.c
 SERVER_SRC := $(addprefix $(SERVER_DIR)/,$(_SRCS))
 
-_TEST_SRCS := test.c hash_table.c util.c
+_TEST_SRCS := test.c hash_table.c util.c timer.c
 TEST_SRC := $(addprefix $(SERVER_DIR)/,$(_TEST_SRCS))
 
 # ==========================================
@@ -40,13 +40,13 @@ build-all: build-server build-cli build-ssh
 
 # --- C Server Targets ---
 build-server:
-	$(CC) $(SERVER_SRC) $(CFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/server
+	$(CC) $(CFLAGS) $(LDFLAGS) $(SERVER_SRC) -o $(BUILD_DIR)/server
 
 run-server: build-server
 	$(BUILD_DIR)/server
 
 test-server:
-	$(CC) $(TEST_SRC) $(CFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/server-test
+	$(CC) $(CFLAGS) $(LDFLAGS) $(TEST_SRC) -o $(BUILD_DIR)/server-test
 	$(BUILD_DIR)/server-test
 
 debug-server:
