@@ -1,6 +1,7 @@
 #include "game_logic.c"
 #include "game_types.h"
 #include "hash_table.h"
+#include "timer.h"
 #include "util.h"
 #include <assert.h>
 #include <stdint.h>
@@ -11,19 +12,22 @@
 
 #define WORD_LEN 5
 
-void test_evaluate_guess(void);
-void test_hash_table(void);
+static void test_evaluate_guess(void);
+static void test_hash_table(void);
+static void test_generate_random_string(void);
+static void test_call_HT_delete_on_empty_hash_table(void);
+static void test_timer(void);
 
-void assert_feedback(LetterFeedback *feedback, LetterFeedback *expected);
-void print_feedback(LetterFeedback *feedback);
-void test_generate_random_string(void);
-void test_call_HT_delete_on_empty_hash_table(void);
+static void assert_feedback(LetterFeedback *feedback, LetterFeedback *expected);
 
 int main(void) {
   srand(time(NULL));
+
   test_evaluate_guess();
   test_hash_table();
   test_call_HT_delete_on_empty_hash_table();
+  test_generate_random_string();
+  test_timer();
 
   printf("All tests passed!\n");
   return 0;
@@ -31,7 +35,7 @@ int main(void) {
 
 void test_generate_random_string(void) {
   char *s = generate_random_string(7);
-  printf("%lu: |%s|\n", strlen(s), s);
+  assert(strlen(s) == 7);
   free(s);
 }
 
@@ -152,16 +156,37 @@ void test_call_HT_delete_on_empty_hash_table(void) {
   HT_delete(ht, KEY(1));
 }
 
+void test_timer(void) {
+  Timer *timer_list = NULL;
+  Timer *t1, *t2, *t3, *t4, *t_cur;
+
+  t1 = new_timer(30);
+  t2 = new_timer(10);
+  t3 = new_timer(40);
+  t4 = new_timer(5);
+
+  add_timer(&timer_list, t1);
+  add_timer(&timer_list, t2);
+  add_timer(&timer_list, t3);
+  add_timer(&timer_list, t4);
+
+  t_cur = timer_list;
+  assert(t_cur == t4);
+  t_cur = t_cur->next;
+  assert(t_cur == t2);
+  t_cur = t_cur->next;
+  assert(t_cur == t1);
+  t_cur = t_cur->next;
+  assert(t_cur == t3);
+
+  delete_timer(t1);
+  delete_timer(t2);
+  delete_timer(t3);
+  delete_timer(t4);
+}
+
 void assert_feedback(LetterFeedback *feedback, LetterFeedback *expected) {
   for (int i = 0; i < WORD_LEN; i++) {
     assert(feedback[i] == expected[i]);
   }
-}
-
-void print_feedback(LetterFeedback *feedback) {
-  printf("{");
-  for (int i = 0; i < WORD_LEN; i++) {
-    printf("%d ", feedback[i]);
-  }
-  printf("}\n");
 }

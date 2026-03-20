@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-Timer *new_timer(int seconds) {
+Timer *new_timer(size_t seconds) {
   Timer *timer = malloc(sizeof(Timer));
   if (timer == NULL) {
     perror("malloc");
@@ -51,5 +51,5 @@ void add_timer(Timer **head, Timer *timer) {
     current = current->next;
   }
 
-  current->next = timer;
+  prev->next = timer; // inserting at the end of the list
 }

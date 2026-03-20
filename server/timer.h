@@ -8,7 +8,7 @@ typedef struct Timer {
   struct Timer *next;
 } Timer;
 
-Timer *new_timer(int seconds);
+Timer *new_timer(size_t seconds);
 void delete_timer(Timer *timer);
 
 void check_timers(Timer *head);
