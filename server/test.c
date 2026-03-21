@@ -165,10 +165,10 @@ void test_timer(void) {
   t3 = new_timer(40);
   t4 = new_timer(5);
 
-  add_timer(&timer_list, t1);
-  add_timer(&timer_list, t2);
-  add_timer(&timer_list, t3);
-  add_timer(&timer_list, t4);
+  Timer_list_add(&timer_list, t1);
+  Timer_list_add(&timer_list, t2);
+  Timer_list_add(&timer_list, t3);
+  Timer_list_add(&timer_list, t4);
 
   print_timer_list(timer_list);
 
@@ -181,13 +181,13 @@ void test_timer(void) {
   t_cur = t_cur->next;
   assert(t_cur == t3);
 
-  remove_timer(&timer_list, t4);
+  Timer_list_remove(&timer_list, t4);
   assert(timer_list == t2);
-  remove_timer(&timer_list, t3);
+  Timer_list_remove(&timer_list, t3);
   assert(timer_list == t2);
-  remove_timer(&timer_list, t2);
+  Timer_list_remove(&timer_list, t2);
   assert(timer_list == t1);
-  remove_timer(&timer_list, t1);
+  Timer_list_remove(&timer_list, t1);
   assert(timer_list == NULL);
 
   delete_timer(t1);

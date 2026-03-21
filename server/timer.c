@@ -27,7 +27,7 @@ Timer *new_timer(size_t seconds) {
 
 void delete_timer(Timer *timer) { free(timer); }
 
-void add_timer(Timer **head, Timer *timer) {
+void Timer_list_add(Timer **head, Timer *timer) {
   if (*head == NULL) {
     *head = timer;
     return;
@@ -56,7 +56,7 @@ void add_timer(Timer **head, Timer *timer) {
   prev->next = timer; // inserting at the end of the list
 }
 
-void remove_timer(Timer **head, Timer *timer) {
+void Timer_list_remove(Timer **head, Timer *timer) {
   Timer *current = *head, *prev = NULL;
 
   while (current != NULL) {
