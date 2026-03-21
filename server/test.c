@@ -1,4 +1,5 @@
 #include "game_logic.c"
+#include "game_logic.h"
 #include "hash_table.h"
 #include "timer.h"
 #include "util.h"
@@ -16,6 +17,8 @@ static void test_hash_table(void);
 static void test_generate_random_string(void);
 static void test_call_HT_delete_on_empty_hash_table(void);
 static void test_timer(void);
+static void toggle(bool *data);
+static void increment(int *data);
 
 static void assert_feedback(LetterFeedback *feedback, LetterFeedback *expected);
 static void print_timer_list(Timer *head);
@@ -159,16 +162,29 @@ void test_call_HT_delete_on_empty_hash_table(void) {
 void test_timer(void) {
   Timer *timer_list = NULL;
   Timer *t1, *t2, *t3, *t4, *t_cur;
+  bool toggle_switch = false;
+  int counter = 0;
 
-  t1 = new_timer(30);
-  t2 = new_timer(10);
-  t3 = new_timer(40);
-  t4 = new_timer(5);
+  t1 = new_timer(30, (CallbackFunc)toggle, &toggle_switch);
+  t2 = new_timer(10, (CallbackFunc)toggle, &toggle_switch);
+  t3 = new_timer(40, (CallbackFunc)increment, &counter);
+  t4 = new_timer(5, (CallbackFunc)increment, &counter);
 
   Timer_list_add(&timer_list, t1);
   Timer_list_add(&timer_list, t2);
   Timer_list_add(&timer_list, t3);
   Timer_list_add(&timer_list, t4);
+
+  Timer_fire(t1);
+  assert(toggle_switch == true);
+  Timer_fire(t2);
+  assert(toggle_switch == false);
+  Timer_fire(t3);
+  assert(counter == 1);
+  Timer_fire(t4);
+  assert(counter == 2);
+  Timer_fire(t4);
+  assert(counter == 3);
 
   print_timer_list(timer_list);
 
@@ -195,6 +211,9 @@ void test_timer(void) {
   delete_timer(t3);
   delete_timer(t4);
 }
+
+void toggle(bool *data) { *data = !*data; }
+void increment(int *data) { (*data)++; }
 
 void assert_feedback(LetterFeedback *feedback, LetterFeedback *expected) {
   for (int i = 0; i < WORD_LEN; i++) {

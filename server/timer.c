@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-Timer *new_timer(size_t seconds) {
+Timer *new_timer(size_t seconds, CallbackFunc func, CallbackData data) {
   Timer *timer = malloc(sizeof(Timer));
   if (timer == NULL) {
     perror("malloc");
@@ -20,12 +20,20 @@ Timer *new_timer(size_t seconds) {
 
   timer->id = generate_unique_id();
   timer->timestamp = current_time + seconds;
+  timer->callback.func = func;
+  timer->callback.data = data;
   timer->next = NULL;
 
   return timer;
 }
 
 void delete_timer(Timer *timer) { free(timer); }
+
+void Timer_fire(Timer *timer) {
+  if (timer->callback.func != NULL) {
+    timer->callback.func(timer->callback.data);
+  }
+}
 
 void Timer_list_add(Timer **head, Timer *timer) {
   if (*head == NULL) {
