@@ -165,10 +165,10 @@ void test_timer(void) {
   bool toggle_switch = false;
   int counter = 0;
 
-  t1 = new_timer(30, (CallbackFunc)toggle, &toggle_switch);
-  t2 = new_timer(10, (CallbackFunc)toggle, &toggle_switch);
-  t3 = new_timer(40, (CallbackFunc)increment, &counter);
-  t4 = new_timer(5, (CallbackFunc)increment, &counter);
+  t1 = new_timer(30, (TimerCallbackFunc)toggle, &toggle_switch);
+  t2 = new_timer(10, (TimerCallbackFunc)toggle, &toggle_switch);
+  t3 = new_timer(40, (TimerCallbackFunc)increment, &counter);
+  t4 = new_timer(5, (TimerCallbackFunc)increment, &counter);
 
   Timer_list_add(&timer_list, t1);
   Timer_list_add(&timer_list, t2);

@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-Timer *new_timer(size_t seconds, CallbackFunc func, CallbackData data) {
+Timer *new_timer(size_t seconds, TimerCallbackFunc func, TimerCallbackData data) {
   Timer *timer = malloc(sizeof(Timer));
   if (timer == NULL) {
     perror("malloc");

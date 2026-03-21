@@ -3,20 +3,20 @@
 
 #include <stddef.h>
 
-typedef void (*CallbackFunc)(void *data);
-typedef void *CallbackData;
+typedef void (*TimerCallbackFunc)(void *data);
+typedef void *TimerCallbackData;
 
 typedef struct Timer {
   int id;
   size_t timestamp;
   struct {
-    CallbackFunc func;
-    CallbackData data;
+    TimerCallbackFunc func;
+    TimerCallbackData data;
   } callback;
   struct Timer *next;
 } Timer;
 
-Timer *new_timer(size_t seconds, CallbackFunc func, CallbackData data);
+Timer *new_timer(size_t seconds, TimerCallbackFunc func, TimerCallbackData data);
 void delete_timer(Timer *timer);
 
 void Timer_fire(Timer *timer);
