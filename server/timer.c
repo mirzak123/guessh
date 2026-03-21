@@ -1,4 +1,5 @@
 #include "timer.h"
+#include "util.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -17,6 +18,7 @@ Timer *new_timer(size_t seconds) {
     return NULL;
   }
 
+  timer->id = generate_unique_id();
   timer->timestamp = current_time + seconds;
   timer->next = NULL;
 
@@ -52,4 +54,23 @@ void add_timer(Timer **head, Timer *timer) {
   }
 
   prev->next = timer; // inserting at the end of the list
+}
+
+void remove_timer(Timer **head, Timer *timer) {
+  Timer *current = *head, *prev = NULL;
+
+  while (current != NULL) {
+    if (current != timer) {
+      prev = current;
+      current = current->next;
+      continue;
+    }
+
+    if (prev == NULL) {
+      *head = current->next;
+    } else {
+      prev->next = current->next;
+    }
+    return;
+  }
 }

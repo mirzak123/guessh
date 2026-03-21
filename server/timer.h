@@ -4,6 +4,7 @@
 #include <stddef.h>
 
 typedef struct Timer {
+  int id;
   size_t timestamp;
   struct Timer *next;
 } Timer;
@@ -11,7 +12,8 @@ typedef struct Timer {
 Timer *new_timer(size_t seconds);
 void delete_timer(Timer *timer);
 
-void check_timers(Timer *head);
+void check_timers(Timer **head);
 void add_timer(Timer **head, Timer *timer);
+void remove_timer(Timer **head, Timer *timer);
 
 #endif // !TIMER_H

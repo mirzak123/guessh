@@ -1,5 +1,4 @@
 #include "game_logic.c"
-#include "game_types.h"
 #include "hash_table.h"
 #include "timer.h"
 #include "util.h"
@@ -19,6 +18,7 @@ static void test_call_HT_delete_on_empty_hash_table(void);
 static void test_timer(void);
 
 static void assert_feedback(LetterFeedback *feedback, LetterFeedback *expected);
+static void print_timer_list(Timer *head);
 
 int main(void) {
   srand(time(NULL));
@@ -170,6 +170,8 @@ void test_timer(void) {
   add_timer(&timer_list, t3);
   add_timer(&timer_list, t4);
 
+  print_timer_list(timer_list);
+
   t_cur = timer_list;
   assert(t_cur == t4);
   t_cur = t_cur->next;
@@ -178,6 +180,15 @@ void test_timer(void) {
   assert(t_cur == t1);
   t_cur = t_cur->next;
   assert(t_cur == t3);
+
+  remove_timer(&timer_list, t4);
+  assert(timer_list == t2);
+  remove_timer(&timer_list, t3);
+  assert(timer_list == t2);
+  remove_timer(&timer_list, t2);
+  assert(timer_list == t1);
+  remove_timer(&timer_list, t1);
+  assert(timer_list == NULL);
 
   delete_timer(t1);
   delete_timer(t2);
@@ -189,4 +200,15 @@ void assert_feedback(LetterFeedback *feedback, LetterFeedback *expected) {
   for (int i = 0; i < WORD_LEN; i++) {
     assert(feedback[i] == expected[i]);
   }
+}
+
+void print_timer_list(Timer *head) {
+  printf("[%s]: ", __FUNCTION__);
+  while (head != NULL) {
+    printf("[%d]", head->id);
+    if (head->next != NULL)
+      printf(" -> ");
+    head = head->next;
+  }
+  printf("\n");
 }
