@@ -34,9 +34,9 @@ GameServer *GS_create(void) {
   gs->rooms = HT_create();
   gs->timer_list = NULL;
 
-  gs->word_store.five = new_word_store(FIVE_LETTER_WORD_FILE, 5);
-  gs->word_store.six = new_word_store(SIX_LETTER_WORD_FILE, 6);
-  gs->word_store.seven = new_word_store(SEVEN_LETTER_WORD_FILE, 7);
+  gs->word_store.five_secret = new_word_store(FIVE_LETTER_SECRET_WORD_FILE, 5);
+  gs->word_store.six_secret = new_word_store(SIX_LETTER_SECRET_WORD_FILE, 6);
+  gs->word_store.seven_secret = new_word_store(SEVEN_LETTER_SECRET_WORD_FILE, 7);
 
   return gs;
 }
@@ -46,9 +46,9 @@ void GS_destroy(GameServer *gs) {
   HT_destroy(gs->clients, (ValueDestructor)delete_client);
   HT_destroy(gs->matches, (ValueDestructor)delete_match);
 
-  delete_word_store(gs->word_store.five);
-  delete_word_store(gs->word_store.six);
-  delete_word_store(gs->word_store.seven);
+  delete_word_store(gs->word_store.five_secret);
+  delete_word_store(gs->word_store.six_secret);
+  delete_word_store(gs->word_store.seven_secret);
 
   free(gs);
 }
@@ -1034,11 +1034,11 @@ static void calculate_round_points(Round *round) {
 static WordStore *get_word_store(GameServer *gs, size_t word_len) {
   switch (word_len) {
   case 5:
-    return gs->word_store.five;
+    return gs->word_store.five_secret;
   case 6:
-    return gs->word_store.six;
+    return gs->word_store.six_secret;
   case 7:
-    return gs->word_store.seven;
+    return gs->word_store.seven_secret;
   }
   printf("Tried to get word store for unsupported word length: %lu\n", word_len);
   exit(EXIT_FAILURE);
