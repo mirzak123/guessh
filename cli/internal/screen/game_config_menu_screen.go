@@ -15,8 +15,10 @@ import (
 )
 
 const (
-	minRounds = 1
-	maxRounds = 5
+	minRounds         = 1
+	maxRounds         = 5
+	minSecondsPerTurn = 5
+	maxSecondsPerTurn = 300
 )
 
 var GameModeLabels = map[protocol.GameMode]string{
@@ -117,6 +119,25 @@ func NewGameConfigMenu(matchInfo *game.MatchInfo, hoveredPtr *protocol.GameMode)
 			}).
 			Value(&matchInfo.RawTotalRounds)
 
+		timerInput = huh.NewInput().
+				Title(fmt.Sprintf("How many seconds per turn? (%d - %d)", minSecondsPerTurn, maxSecondsPerTurn)).
+				Description("Leave empty for no time limit").
+				Validate(func(str string) error {
+				if str == "" {
+					return nil
+				}
+
+				t, err := strconv.Atoi(str)
+				if err != nil {
+					return errors.New("please enter a valid number")
+				}
+				if t < minSecondsPerTurn || t > maxSecondsPerTurn {
+					return fmt.Errorf("seconds per turn must be between %d and %d", minSecondsPerTurn, maxSecondsPerTurn)
+				}
+				return nil
+			}).
+			Value(&matchInfo.RawSecondsPerTurn)
+
 		roomIDInput = huh.NewInput().
 				Title("Room ID ").
 				Value(&matchInfo.RoomID).
@@ -171,12 +192,20 @@ func NewGameConfigMenu(matchInfo *game.MatchInfo, hoveredPtr *protocol.GameMode)
 					lines = append(lines, line("Word length: ", fmt.Sprintf("%d", matchInfo.WordLen)))
 					lines = append(lines, line("Rounds: ", matchInfo.RawTotalRounds))
 
+					if matchInfo.RawSecondsPerTurn != "" {
+						lines = append(lines, line("Seconds per turn: ", matchInfo.RawSecondsPerTurn))
+					}
+
 				case protocol.MULTI_LOCAL:
 					lines = append(lines, line("Player 1: ", matchInfo.PlayerName))
 					lines = append(lines, line("Player 2: ", matchInfo.OpponentName))
 					lines = append(lines, line("Game format: ", GameFormatLabels[matchInfo.Format]))
 					lines = append(lines, line("Word length: ", fmt.Sprintf("%d", matchInfo.WordLen)))
 					lines = append(lines, line("Rounds: ", matchInfo.RawTotalRounds))
+
+					if matchInfo.RawSecondsPerTurn != "" {
+						lines = append(lines, line("Seconds per turn: ", matchInfo.RawSecondsPerTurn))
+					}
 
 				case protocol.MULTI_REMOTE:
 					lines = append(lines, line("Player name: ", matchInfo.PlayerName))
@@ -186,6 +215,10 @@ func NewGameConfigMenu(matchInfo *game.MatchInfo, hoveredPtr *protocol.GameMode)
 						lines = append(lines, line("Game format: ", GameFormatLabels[matchInfo.Format]))
 						lines = append(lines, line("Word length: ", fmt.Sprintf("%d", matchInfo.WordLen)))
 						lines = append(lines, line("Rounds: ", matchInfo.RawTotalRounds))
+
+						if matchInfo.RawSecondsPerTurn != "" {
+							lines = append(lines, line("Seconds per turn: ", matchInfo.RawSecondsPerTurn))
+						}
 					}
 				}
 
@@ -207,6 +240,7 @@ func NewGameConfigMenu(matchInfo *game.MatchInfo, hoveredPtr *protocol.GameMode)
 			formatInput,
 			wordLenInput,
 			roundNumInput,
+			timerInput,
 		).WithHideFunc(func() bool {
 			return matchInfo.JoinExisting
 		}),

@@ -44,15 +44,20 @@ type CreateMatchEvent struct {
 }
 
 func NewCreateMatchEvent(mode GameMode, format GameFormat, wordLen, rounds, secondsPerTurn int, playerName string) *CreateMatchEvent {
-	return &CreateMatchEvent{
-		Type:           CREATE_MATCH,
-		Mode:           mode,
-		Format:         format,
-		WordLen:        wordLen,
-		Rounds:         rounds,
-		SecondsPerTurn: secondsPerTurn,
-		PlayerName:     playerName,
+	event := &CreateMatchEvent{
+		Type:       CREATE_MATCH,
+		Mode:       mode,
+		Format:     format,
+		WordLen:    wordLen,
+		Rounds:     rounds,
+		PlayerName: playerName,
 	}
+
+	if secondsPerTurn != 0 {
+		event.SecondsPerTurn = secondsPerTurn
+	}
+
+	return event
 }
 
 type MakeGuessEvent struct {

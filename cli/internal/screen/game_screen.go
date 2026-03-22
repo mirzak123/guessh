@@ -52,6 +52,13 @@ func (m *gameModel) Init() tea.Cmd {
 		}
 	}
 
+	if m.matchInfo.RawSecondsPerTurn != "" {
+		if m.matchInfo.SecondsPerTurn, err = strconv.Atoi(m.matchInfo.RawSecondsPerTurn); err != nil {
+			logger.Error("[Client.CreateMatch] Failed to convert matchInfo.RawTotalRounds after it passed validation: %v", err)
+			os.Exit(1)
+		}
+	}
+
 	var cmd tea.Cmd
 
 	if m.matchInfo.JoinExisting {
@@ -61,11 +68,12 @@ func (m *gameModel) Init() tea.Cmd {
 		})
 	} else {
 		cmd = emit(game.CreateMatchIntent{
-			Mode:       m.matchInfo.Mode,
-			Format:     m.matchInfo.Format,
-			WordLen:    m.matchInfo.WordLen,
-			Rounds:     m.matchInfo.TotalRounds,
-			PlayerName: m.matchInfo.PlayerName,
+			Mode:           m.matchInfo.Mode,
+			Format:         m.matchInfo.Format,
+			WordLen:        m.matchInfo.WordLen,
+			Rounds:         m.matchInfo.TotalRounds,
+			SecondsPerTurn: m.matchInfo.SecondsPerTurn,
+			PlayerName:     m.matchInfo.PlayerName,
 		})
 	}
 
