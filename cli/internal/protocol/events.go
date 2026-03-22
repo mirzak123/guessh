@@ -31,7 +31,7 @@ type EnvelopeEvent struct {
 	Type EventType `json:"type"`
 }
 
-/* Client Types */
+/* Client Events */
 
 type CreateMatchEvent struct {
 	Type           EventType  `json:"type"`
@@ -123,7 +123,7 @@ func NewTypingEvent(value string) *TypingEvent {
 	}
 }
 
-/* Server Types */
+/* Server Events */
 
 type ErrorEvent struct {
 	Type   EventType `json:"type"`
