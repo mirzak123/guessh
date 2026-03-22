@@ -22,7 +22,7 @@ func EnsureDictionariesLoaded() {
 		// This executes exactly once even if CLI is served through SSH and multiple clients connect
 		basePath := config.GetEnv("WORDS_PATH", "./words")
 
-		FiveLetterWords = ExtractWordsFromFile(filepath.Join(basePath, "five-letter-secret.txt"))
+		FiveLetterWords = ExtractWordsFromFile(filepath.Join(basePath, "five-letter-valid.txt"))
 		SixLetterWords = ExtractWordsFromFile(filepath.Join(basePath, "six-letter-secret.txt"))
 		SevenLetterWords = ExtractWordsFromFile(filepath.Join(basePath, "seven-letter-secret.txt"))
 	})
