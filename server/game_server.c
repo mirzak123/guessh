@@ -254,7 +254,7 @@ void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request)
   HT_set(gs->matches, KEY(match->id), match);
 
   if (seconds_per_turn > 0) {
-    TurnTimerReset *reset_data = malloc(sizeof(TurnTimerReset *));
+    TurnTimerReset *reset_data = malloc(sizeof(TurnTimerReset));
     reset_data->timer_list = &gs->timer_list;
     reset_data->match = match;
     match->turn_timer = new_timer(seconds_per_turn, (TimerCallbackFunc)expire_turn_timer, reset_data);
