@@ -14,6 +14,11 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+typedef struct {
+  Timer **timer_list;
+  Match *match;
+} TurnTimerReset;
+
 static MessageType parse_message(char *data, size_t size, cJSON **out);
 static Outcome calculate_match_outcome(Match *match);
 static void calculate_round_points(Round *round);
@@ -24,6 +29,7 @@ static bool already_guessed(char *word, char **guesses, size_t len);
 static void swap_turn(Match *match);
 static void start_turn(Match *match);
 static void send_guess_result(Match *match, cJSON *guess_result_json);
+static void expire_turn_timer(TurnTimerReset *reset_data);
 
 GameServer *GS_create(void) {
   GameServer *gs;
@@ -105,8 +111,9 @@ void GS_handle_request(GameServer *gs, Client *client) {
 
 void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request) {
   Match *match = NULL;
-  cJSON *rounds_json = NULL, *mode_json = NULL, *format_json = NULL, *word_len_json = NULL, *player_name_json = NULL;
-  size_t rounds, word_len;
+  cJSON *rounds_json = NULL, *mode_json = NULL, *format_json = NULL, *word_len_json = NULL, *player_name_json = NULL,
+        *seconds_per_turn_json = NULL;
+  size_t rounds, word_len, seconds_per_turn = 0;
   char *mode_str, *format_str, *player_name_str = NULL;
   GameMode game_mode;
   GameFormat game_format;
@@ -222,12 +229,36 @@ void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request)
     return;
   }
 
+  // parse secondsPerTurn
+  seconds_per_turn_json = cJSON_GetObjectItem(json_request, "secondsPerTurn");
+  if (seconds_per_turn_json != NULL) {
+    if (!cJSON_IsNumber(seconds_per_turn_json)) {
+      send_error(client->fd, E_INVALID_TYPE("secondsPerTurn", NUMBER));
+      return;
+    }
+
+    seconds_per_turn = seconds_per_turn_json->valueint;
+
+    printf("seconds per turn: %lu\n", seconds_per_turn);
+    if (seconds_per_turn < MIN_SECONDS_PER_TURN || seconds_per_turn > MAX_SECONDS_PER_TURN) {
+      send_error(client->fd, E_INVALID_SECONDS_PER_TURN);
+      return;
+    }
+  }
+
   match = new_match(game_mode, game_format, rounds, word_len);
   if (match == NULL) {
     printf("[GS_handle_create_match] error: new_match() returned NULL\n");
     return;
   }
   HT_set(gs->matches, KEY(match->id), match);
+
+  if (seconds_per_turn > 0) {
+    TurnTimerReset *reset_data = malloc(sizeof(TurnTimerReset *));
+    reset_data->timer_list = &gs->timer_list;
+    reset_data->match = match;
+    match->turn_timer = new_timer(seconds_per_turn, (TimerCallbackFunc)expire_turn_timer, reset_data);
+  }
 
   if (client->player != NULL) {
     // client was already in another match and assigned a player
@@ -733,12 +764,11 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
     swap_turn(match);
   }
 
-  Timer_list_reset(&gs->timer_list, match->turn_timer);
-
   send_guess_result(match, guess_result_json);
   cJSON_Delete(guess_result_json);
 
   if (!is_round_finished) {
+    Timer_list_reset(&gs->timer_list, match->turn_timer);
     start_turn(match);
     return;
   }
@@ -820,6 +850,8 @@ void GS_end_round(GameServer *gs, Match *match) {
     printf("get_round_words returned NULL\n");
     return;
   }
+
+  Timer_list_remove(&gs->timer_list, match->turn_timer);
 
   printf("[end_round] Ending round...\n");
   switch (match->mode) {
@@ -960,8 +992,10 @@ void GS_start_round(GameServer *gs, Match *match) {
     send_json(match->player1->client_fd, round_started_json);
     break;
   }
-  start_turn(match);
   cJSON_Delete(round_started_json);
+
+  Timer_list_reset(&gs->timer_list, match->turn_timer);
+  start_turn(match);
 }
 
 Player *get_opponent(Player *player1, Player *player2, Player *current) { return player1 == current ? player2 : player1; }
@@ -1088,4 +1122,11 @@ void start_turn(Match *match) {
     send_only_type(match->player1->client_fd, STR(WAIT_GUESS));
     break;
   }
+}
+
+void expire_turn_timer(TurnTimerReset *reset_data) {
+  printf("Turn timer expired!\n");
+  swap_turn(reset_data->match);
+  Timer_list_reset(reset_data->timer_list, reset_data->match->turn_timer);
+  start_turn(reset_data->match);
 }
