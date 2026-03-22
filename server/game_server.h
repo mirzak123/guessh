@@ -76,9 +76,9 @@ typedef struct {
   HashTable *clients;
   HashTable *rooms;
   struct {
-    WordStore *five;
-    WordStore *six;
-    WordStore *seven;
+    WordStore *five_secret;
+    WordStore *six_secret;
+    WordStore *seven_secret;
   } word_store;
 } GameServer;
 

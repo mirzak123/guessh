@@ -25,6 +25,7 @@ type gameModel struct {
 	guesses       []string
 	challenges    []*protocol.WordChallenge
 	challengesLen int
+	err           error
 }
 
 func NewGame(matchInfo *game.MatchInfo) *gameModel {
@@ -93,6 +94,7 @@ func (m *gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		case tea.KeyBackspace:
 			shouldRegisterInput = true
+			m.err = nil
 		case tea.KeyRunes:
 			r := &msg.Runes[0]
 			if *r >= 'A' && *r <= 'Z' {
@@ -113,10 +115,12 @@ func (m *gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.state == game.StateWaitGuess || m.state == game.StateWaitOpponentGuess {
 				v := m.input.Value()
 
-				if len(v) == m.matchInfo.WordLen && !m.alreadyGuessed(v) {
-					if m.validateGuess(v) {
+				if len(v) == m.matchInfo.WordLen {
+					if ok, err := m.validateGuess(v); ok {
 						m.input.SetValue("")
 						return m, emit(game.MakeGuessIntent{Guess: v})
+					} else {
+						m.err = err
 					}
 				}
 			}
@@ -252,12 +256,10 @@ func (m *gameModel) View() string {
 
 func (m *gameModel) statusBar() string {
 	var content string
+	var line1, line2 string
 
 	if m.state == game.StateRoundFinished {
-		var line1 string
 		var outcome string
-
-		line2 := ui.GrayText.Render("Press Enter to continue")
 
 		points := m.matchInfo.RoundPoints[m.matchInfo.CurrentRound-1]
 		if points > 0 {
@@ -292,6 +294,7 @@ func (m *gameModel) statusBar() string {
 		}
 
 		line1 = outcome
+		line2 = ui.GrayText.Render("Press Enter to continue")
 
 		switch m.matchInfo.Format {
 		case protocol.WORDLE:
@@ -323,16 +326,18 @@ func (m *gameModel) statusBar() string {
 				strings.Join(words, " • "),
 			)
 		}
-
-		content = lipgloss.JoinVertical(
-			lipgloss.Center,
-			line1,
-			line2,
-		)
-
 	} else {
-		content = ui.SmallLogo()
+		line1 = ui.SmallLogo()
+		if m.err != nil {
+			line2 = ui.RoseText.Render(fmt.Sprintf("Error: %s", m.err))
+		}
 	}
+
+	content = lipgloss.JoinVertical(
+		lipgloss.Center,
+		line1,
+		line2,
+	)
 
 	return lipgloss.NewStyle().
 		Width(m.width).
@@ -342,17 +347,24 @@ func (m *gameModel) statusBar() string {
 		Render(content)
 }
 
-func (m *gameModel) validateGuess(guess string) bool {
+func (m *gameModel) validateGuess(guess string) (bool, error) {
+	repeatedGuessErr := fmt.Errorf("'%s' was already guessed", guess)
+	invalidGuessErr := fmt.Errorf("'%s' is not a valid word", guess)
+
+	if m.alreadyGuessed(guess) {
+		return false, repeatedGuessErr
+	}
+
 	switch len(guess) {
 	case 5:
-		return slices.Index(game.FiveLetterWords, guess) != -1
+		return slices.Index(game.FiveLetterWords, guess) != -1, invalidGuessErr
 	case 6:
-		return slices.Index(game.SixLetterWords, guess) != -1
+		return slices.Index(game.SixLetterWords, guess) != -1, invalidGuessErr
 	case 7:
-		return slices.Index(game.SevenLetterWords, guess) != -1
+		return slices.Index(game.SevenLetterWords, guess) != -1, invalidGuessErr
 	default:
 		logger.Error("[validateGuess] received value of length %d", len(guess))
-		return false
+		return false, invalidGuessErr
 	}
 }
 
@@ -362,8 +374,8 @@ func emit(msg tea.Msg) tea.Cmd {
 	}
 }
 
-func (m *gameModel) alreadyGuessed(word string) bool {
-	return slices.Contains(m.guesses, word)
+func (m *gameModel) alreadyGuessed(guess string) bool {
+	return slices.Contains(m.guesses, guess)
 }
 
 func (m *gameModel) addGuess(word string) {

@@ -141,8 +141,8 @@ Find a better way to represent flow below 🙏🙏🙏
 
 | Type            | Content                                                                                                                   | Additional Info                              |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| CREATE_MATCH    | {"type": "CREATE_MATCH", "mode": single, "format": string, "rounds": number, "wordLength": number, "playerName"?: string} |                                              |
-| JOIN_ROOM       | {"type": "JOIN_ROOM", "roomId": string, "playerName"?: string}                                                            | playerName required only in multiplayer mode |
+| CREATE_MATCH    | {"type": "CREATE_MATCH", "mode": single, "format": string, "rounds": number, "wordLength": number, "playerName"?: string} | playerName required only in multiplayer mode |
+| JOIN_ROOM       | {"type": "JOIN_ROOM", "roomId": string, "playerName": string}                                                             |                                              |
 | MAKE_GUESS      | {"type": "MAKE_GUESS", "guess": string}                                                                                   |                                              |
 | REQUEST_REMATCH | {"type": "REQUEST_REMATCH"}                                                                                               |                                              |
 | DENY_REMATCH    | {"type": "DENY_REMATCH"}                                                                                                  |                                              |
