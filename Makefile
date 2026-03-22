@@ -50,8 +50,8 @@ test-server:
 	$(BUILD_DIR)/server-test
 
 debug-server:
-	$(CC) $(ASAN_FLAGS) $(CFLAGS) $(LDFLAGS) $(SERVER_SRC) -o $(BUILD_DIR)/server_debug
-	lldb -- $(BUILD_DIR)/server_debug
+	$(CC) $(ASAN_FLAGS) $(CFLAGS) $(LDFLAGS) $(SERVER_SRC) -o $(BUILD_DIR)/server-debug
+	lldb -- $(BUILD_DIR)/server-debug
 
 # --- Go CLI Targets ---
 build-cli:
