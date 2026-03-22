@@ -31,6 +31,7 @@ Timer *new_timer(size_t seconds, TimerCallbackFunc func, TimerCallbackData data)
 void delete_timer(Timer *timer) { free(timer); }
 
 void Timer_fire(Timer *timer) {
+  printf("Firing timer [%d]...\n", timer->id);
   if (timer->callback.func != NULL) {
     timer->callback.func(timer->callback.data);
   }
@@ -52,6 +53,10 @@ void Timer_list_add(Timer **head, Timer *timer) {
   Timer *current = *head, *prev = NULL;
 
   while (current != NULL) {
+    if (current == timer) {
+      return; // trying to add a timer that is already in the list
+    }
+
     if (current->timestamp > timer->timestamp) {
       timer->next = current;
 

@@ -19,6 +19,8 @@ static void test_generate_random_string(void);
 static void test_call_HT_delete_on_empty_hash_table(void);
 static void test_timer(void);
 static void test_timer_list_examine(void);
+static void test_timer_list_reset(void);
+
 static void toggle(bool *data);
 static void increment(int *data);
 
@@ -34,6 +36,7 @@ int main(void) {
   test_generate_random_string();
   test_timer();
   test_timer_list_examine();
+  test_timer_list_reset();
 
   printf("All tests passed!\n");
   return 0;
@@ -244,6 +247,39 @@ void test_timer_list_examine(void) {
   assert(counter == 2);
   assert(timer_list == t3);
   assert(timer_list->next == t2);
+}
+
+void test_timer_list_reset(void) {
+  Timer *timer_list = NULL;
+  Timer *t1, *t2, *t3;
+  int counter = 0, sleep_seconds = 3;
+
+  t1 = new_timer(5, (TimerCallbackFunc)increment, &counter);
+  t2 = new_timer(1, (TimerCallbackFunc)increment, &counter);
+  t3 = new_timer(15, (TimerCallbackFunc)increment, &counter);
+
+  Timer_list_add(&timer_list, t1);
+  Timer_list_add(&timer_list, t2);
+  Timer_list_add(&timer_list, t3);
+
+  assert(timer_list == t2);
+  Timer_list_examine(&timer_list);
+  assert(counter == 0);
+
+  printf("sleeping for %d seconds...\n", sleep_seconds);
+  sleep(sleep_seconds);
+
+  Timer_list_examine(&timer_list);
+  assert(counter == 1);
+
+  Timer_list_reset(&timer_list, t2);
+  assert(timer_list == t2);
+
+  printf("sleeping for %d seconds...\n", sleep_seconds);
+  sleep(sleep_seconds);
+
+  Timer_list_examine(&timer_list);
+  assert(counter == 3);
 }
 
 void toggle(bool *data) { *data = !*data; }
