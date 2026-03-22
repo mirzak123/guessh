@@ -5,6 +5,7 @@
 #include "hash_table.h"
 #include "json_messages.h"
 #include "room.h"
+#include "timer.h"
 #include <assert.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -19,6 +20,10 @@ static void calculate_round_points(Round *round);
 static WordStore *get_word_store(GameServer *gs, size_t word_len);
 static const char **get_round_words(Round *round);
 static bool already_guessed(char *word, char **guesses, size_t len);
+
+static void swap_turn(Match *match);
+static void start_turn(Match *match);
+static void send_guess_result(Match *match, cJSON *guess_result_json);
 
 GameServer *GS_create(void) {
   GameServer *gs;
@@ -305,7 +310,7 @@ void GS_cleanup_match(GameServer *gs, Match *match) {
   delete_match(match);
 }
 
-static MessageType parse_message(char *data, size_t size, cJSON **json_out) {
+MessageType parse_message(char *data, size_t size, cJSON **json_out) {
   cJSON *json_type = NULL;
   char *type;
   MessageType mt;
@@ -724,48 +729,19 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
 
   bool is_round_finished = success || (round->attempt_count >= round->max_attempts);
 
-  switch (match->mode) {
-  case MULTI_REMOTE:
-    send_json(player->client_fd, guess_result_json);
-    send_json(opponent->client_fd, guess_result_json);
-
-    if (solved_num == 0) { // in quordle, player that guessed, stays on turn
-      match->remote.on_turn = opponent;
-      opponent = player;
-      player = match->remote.on_turn;
-    }
-
-    if (!is_round_finished) {
-      send_only_type(player->client_fd, STR(WAIT_GUESS));
-      send_only_type(opponent->client_fd, STR(WAIT_OPPONENT_GUESS));
-    }
-    break;
-  case MULTI_LOCAL:
-    send_json(player->client_fd, guess_result_json);
-
-    if (solved_num == 0) {
-      match->local.p1_on_turn = !match->local.p1_on_turn;
-    }
-
-    if (!is_round_finished) {
-      if (match->local.p1_on_turn) {
-        send_only_type(player->client_fd, STR(WAIT_GUESS));
-      } else {
-        send_only_type(player->client_fd, STR(WAIT_OPPONENT_GUESS));
-      }
-    }
-    break;
-  case SINGLE:
-    send_json(player->client_fd, guess_result_json);
-    if (!is_round_finished) {
-      send_only_type(player->client_fd, STR(WAIT_GUESS));
-    }
-    break;
+  if (solved_num == 0) {
+    swap_turn(match);
   }
+
+  Timer_list_reset(&gs->timer_list, match->turn_timer);
+
+  send_guess_result(match, guess_result_json);
   cJSON_Delete(guess_result_json);
 
-  if (!is_round_finished)
+  if (!is_round_finished) {
+    start_turn(match);
     return;
+  }
 
   calculate_round_points(round);
   GS_end_round(gs, match);
@@ -970,39 +946,27 @@ void GS_start_round(GameServer *gs, Match *match) {
     send_json(match->player1->client_fd, round_started_json);
 
     match->remote.on_turn = match->remote.round_starter;
-
-    Player *not_on_turn = get_opponent(match->player1, match->player2, match->remote.on_turn);
-    send_only_type(match->remote.on_turn->client_fd, STR(WAIT_GUESS));
-    send_only_type(not_on_turn->client_fd, STR(WAIT_OPPONENT_GUESS));
-
     break;
   case MULTI_LOCAL:
     assert(match->player1 != NULL);
     send_json(match->player1->client_fd, round_started_json);
 
     match->local.p1_on_turn = match->local.p1_start_round;
-
     printf("player1_on_turn: %d\n", match->local.p1_on_turn);
-
-    if (match->local.p1_on_turn) {
-      send_only_type(match->player1->client_fd, STR(WAIT_GUESS));
-    } else {
-      send_only_type(match->player1->client_fd, STR(WAIT_OPPONENT_GUESS));
-    }
 
     break;
   case SINGLE:
     assert(match->player1 != NULL);
     send_json(match->player1->client_fd, round_started_json);
-    send_only_type(match->player1->client_fd, STR(WAIT_GUESS));
     break;
   }
+  start_turn(match);
   cJSON_Delete(round_started_json);
 }
 
 Player *get_opponent(Player *player1, Player *player2, Player *current) { return player1 == current ? player2 : player1; }
 
-static Outcome calculate_match_outcome(Match *match) {
+Outcome calculate_match_outcome(Match *match) {
   int total_points = 0;
   for (int i = 0; i <= match->round_idx; i++) {
     total_points += match->rounds[i]->points;
@@ -1015,7 +979,7 @@ static Outcome calculate_match_outcome(Match *match) {
   return OUTCOME_NONE;
 }
 
-static void calculate_round_points(Round *round) {
+void calculate_round_points(Round *round) {
   for (size_t i = 0; i < round->wc_num; i++) {
     WordChallenge *wc = round->wc_list[i];
     switch (wc->solved_by) {
@@ -1031,7 +995,7 @@ static void calculate_round_points(Round *round) {
   }
 }
 
-static WordStore *get_word_store(GameServer *gs, size_t word_len) {
+WordStore *get_word_store(GameServer *gs, size_t word_len) {
   switch (word_len) {
   case 5:
     return gs->word_store.five_secret;
@@ -1044,7 +1008,7 @@ static WordStore *get_word_store(GameServer *gs, size_t word_len) {
   exit(EXIT_FAILURE);
 }
 
-static const char **get_round_words(Round *round) {
+const char **get_round_words(Round *round) {
   const char **words = malloc(sizeof(char *) * round->wc_num);
   if (words == NULL) {
     perror("malloc");
@@ -1058,11 +1022,70 @@ static const char **get_round_words(Round *round) {
   return words;
 }
 
-static bool already_guessed(char *word, char **guesses, size_t len) {
+bool already_guessed(char *word, char **guesses, size_t len) {
   for (size_t i = 0; i < len; i++) {
     if (!strcmp(guesses[i], word)) {
       return true;
     }
   }
   return false;
+}
+
+void send_guess_result(Match *match, cJSON *guess_result_json) {
+  Player *player, *opponent;
+
+  switch (match->mode) {
+  case MULTI_REMOTE:
+    player = match->remote.on_turn;
+    opponent = get_opponent(match->player1, match->player2, player);
+    send_json(player->client_fd, guess_result_json);
+    send_json(opponent->client_fd, guess_result_json);
+    break;
+  case MULTI_LOCAL:
+    send_json(match->player1->client_fd, guess_result_json);
+    break;
+  case SINGLE:
+    send_json(match->player1->client_fd, guess_result_json);
+    break;
+  }
+}
+
+void swap_turn(Match *match) {
+  Player *player, *opponent;
+
+  switch (match->mode) {
+  case MULTI_REMOTE:
+    opponent = match->remote.on_turn;
+    player = get_opponent(match->player1, match->player2, opponent);
+    match->remote.on_turn = player;
+    break;
+  case MULTI_LOCAL:
+    match->local.p1_on_turn = !match->local.p1_on_turn;
+    break;
+  case SINGLE:
+    break;
+  }
+}
+
+void start_turn(Match *match) {
+  Player *player, *opponent;
+
+  switch (match->mode) {
+  case MULTI_REMOTE:
+    player = match->remote.on_turn;
+    opponent = get_opponent(match->player1, match->player2, player);
+    send_only_type(player->client_fd, STR(WAIT_GUESS));
+    send_only_type(opponent->client_fd, STR(WAIT_OPPONENT_GUESS));
+    break;
+  case MULTI_LOCAL:
+    if (match->local.p1_on_turn) {
+      send_only_type(match->player1->client_fd, STR(WAIT_GUESS));
+    } else {
+      send_only_type(match->player1->client_fd, STR(WAIT_OPPONENT_GUESS));
+    }
+    break;
+  case SINGLE:
+    send_only_type(match->player1->client_fd, STR(WAIT_GUESS));
+    break;
+  }
 }

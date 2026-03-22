@@ -2,6 +2,7 @@
 #define GAME_TYPES_H
 
 #include "game_logic.h"
+#include "timer.h"
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -71,6 +72,7 @@ typedef struct Match {
   Outcome outcome;
   Player *player1;
   Player *player2;
+  Timer *turn_timer;
   union {
     struct {
       bool p1_on_turn;

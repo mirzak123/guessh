@@ -97,6 +97,10 @@ void Timer_list_remove(Timer **head, Timer *timer) {
 }
 
 void Timer_list_reset(Timer **head, Timer *timer) {
+  if (timer == NULL) {
+    return;
+  }
+
   Timer_list_remove(head, timer);
   timer->timestamp = time(NULL) + timer->seconds;
   Timer_list_add(head, timer);
