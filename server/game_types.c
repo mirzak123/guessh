@@ -25,6 +25,7 @@ Match *new_match(GameMode mode, GameFormat format, size_t round_capacity, size_t
   match->format = format;
   match->word_len = word_len;
   match->round_idx = -1;
+  match->turn_timer = NULL;
 
   match->rounds = calloc(round_capacity, sizeof(Round *));
   if (match->rounds == NULL) {
@@ -49,6 +50,12 @@ void delete_match(Match *match) {
     delete_round(match->rounds[i]);
   }
   free(match->rounds);
+
+  if (match->turn_timer != NULL) {
+    free(match->turn_timer->callback.data);
+    free(match->turn_timer);
+  }
+
   free(match);
 }
 
