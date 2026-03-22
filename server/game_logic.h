@@ -10,9 +10,9 @@
 #define ENV_WORDS_PATH "WORDS_PATH"
 #define DEFAULT_WORDS_PATH "./words"
 
-#define FIVE_LETTER_WORD_FILE "five-letter.txt"
-#define SIX_LETTER_WORD_FILE "six-letter.txt"
-#define SEVEN_LETTER_WORD_FILE "seven-letter.txt"
+#define FIVE_LETTER_WORD_FILE "five-letter-secret.txt"
+#define SIX_LETTER_WORD_FILE "six-letter-secret.txt"
+#define SEVEN_LETTER_WORD_FILE "seven-letter-secret.txt"
 
 struct WordChallenge;
 
