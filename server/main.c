@@ -11,10 +11,12 @@
 #include "game_logic.h"
 #include "game_server.h"
 #include "network.h"
+#include "timer.h"
 
 #define ENV_PORT "GUESSH_SERVER_PORT"
 #define DEFAULT_PORT "2480"
 #define BUFF_LEN 1000
+#define POLL_TIMEOUT 500
 
 static void handle_shutdown(int sig);
 
@@ -47,7 +49,9 @@ int main(void) {
   signal(SIGTERM, handle_shutdown);
 
   while (server_running) {
-    int poll_count = poll(pfds, fd_count, -1);
+    Timer_list_examine(&gs->timer_list);
+
+    int poll_count = poll(pfds, fd_count, POLL_TIMEOUT);
 
     if (poll_count == -1) {
       if (errno == EINTR)
@@ -57,7 +61,9 @@ int main(void) {
       exit(1);
     }
 
-    process_connections(gs, listen_fd, &fd_size, &fd_count, &pfds);
+    if (poll_count > 0) {
+      process_connections(gs, listen_fd, &fd_size, &fd_count, &pfds);
+    }
   }
 
   printf("\nShutting down gracefully...\n");
