@@ -20,6 +20,7 @@ Timer *new_timer(size_t seconds, TimerCallbackFunc func, TimerCallbackData data)
 
   timer->id = generate_unique_id();
   timer->timestamp = current_time + seconds;
+  timer->seconds = seconds;
   timer->callback.func = func;
   timer->callback.data = data;
   timer->next = NULL;
@@ -32,6 +33,13 @@ void delete_timer(Timer *timer) { free(timer); }
 void Timer_fire(Timer *timer) {
   if (timer->callback.func != NULL) {
     timer->callback.func(timer->callback.data);
+  }
+}
+
+void Timer_list_examine(Timer **head) {
+  while (*head != NULL && (*head)->timestamp <= time(NULL)) {
+    Timer_fire(*head);
+    *head = (*head)->next;
   }
 }
 
@@ -81,4 +89,10 @@ void Timer_list_remove(Timer **head, Timer *timer) {
     }
     return;
   }
+}
+
+void Timer_list_reset(Timer **head, Timer *timer) {
+  Timer_list_remove(head, timer);
+  timer->timestamp = time(NULL) + timer->seconds;
+  Timer_list_add(head, timer);
 }

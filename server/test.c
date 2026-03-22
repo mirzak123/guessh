@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 
 #define WORD_LEN 5
 
@@ -17,6 +18,7 @@ static void test_hash_table(void);
 static void test_generate_random_string(void);
 static void test_call_HT_delete_on_empty_hash_table(void);
 static void test_timer(void);
+static void test_timer_list_examine(void);
 static void toggle(bool *data);
 static void increment(int *data);
 
@@ -31,6 +33,7 @@ int main(void) {
   test_call_HT_delete_on_empty_hash_table();
   test_generate_random_string();
   test_timer();
+  test_timer_list_examine();
 
   printf("All tests passed!\n");
   return 0;
@@ -210,6 +213,37 @@ void test_timer(void) {
   delete_timer(t2);
   delete_timer(t3);
   delete_timer(t4);
+}
+
+void test_timer_list_examine(void) {
+  Timer *timer_list = NULL;
+  Timer *t1, *t2, *t3, *t4;
+  int counter = 0, sleep_seconds = 5;
+
+  t1 = new_timer(3, (TimerCallbackFunc)increment, &counter);
+  t2 = new_timer(30, (TimerCallbackFunc)increment, &counter);
+  t3 = new_timer(15, (TimerCallbackFunc)increment, &counter);
+  t4 = new_timer(2, (TimerCallbackFunc)increment, &counter);
+
+  Timer_list_add(&timer_list, t1);
+  Timer_list_add(&timer_list, t2);
+  Timer_list_add(&timer_list, t3);
+  Timer_list_add(&timer_list, t4);
+
+  printf("sleeping for %d seconds...\n", sleep_seconds);
+  sleep(sleep_seconds);
+
+  Timer_list_examine(&timer_list);
+
+  assert(counter == 2);
+  assert(timer_list == t3);
+  assert(timer_list->next == t2);
+
+  Timer_list_examine(&timer_list);
+
+  assert(counter == 2);
+  assert(timer_list == t3);
+  assert(timer_list->next == t2);
 }
 
 void toggle(bool *data) { *data = !*data; }

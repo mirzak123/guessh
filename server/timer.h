@@ -8,7 +8,8 @@ typedef void *TimerCallbackData;
 
 typedef struct Timer {
   int id;
-  size_t timestamp;
+  long timestamp;
+  size_t seconds;
   struct {
     TimerCallbackFunc func;
     TimerCallbackData data;
@@ -21,8 +22,9 @@ void delete_timer(Timer *timer);
 
 void Timer_fire(Timer *timer);
 
-void Timer_list_check(Timer **head);
+void Timer_list_examine(Timer **head);
 void Timer_list_add(Timer **head, Timer *timer);
 void Timer_list_remove(Timer **head, Timer *timer);
+void Timer_list_reset(Timer **head, Timer *timer);
 
 #endif // !TIMER_H
