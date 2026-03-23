@@ -38,9 +38,30 @@ void Timer_fire(Timer *timer) {
 }
 
 void Timer_list_examine(Timer **head) {
-  while (*head != NULL && (*head)->timestamp <= time(NULL)) {
-    Timer_fire(*head);
-    *head = (*head)->next;
+  Timer *current = *head, *next;
+
+  /* NOTE: To future self:
+   * If Timer_fire want to reset the timer, and we insert the timer into the same list
+   * we are traversing, it will skip it with `*head = (*head)->next`. This is why we
+   * point the head to an empty list. Any timer that wants to reset will be added to this
+   * empty list within Timer_fire, and any timer that did not fire in this round, we add
+   * back to the list.
+   *
+   * TODO: This defeats the purpose of the linked list timing scheme, as we need to loop through
+   * all timers in every iteration, so I should really think of a solution to reset the timers on the
+   * original list without breaking stuff. Works for now. */
+  *head = NULL;
+  while (current != NULL && (current)->timestamp <= time(NULL)) {
+    next = current->next;
+    Timer_fire(current);
+    current = next;
+    printf("first loop\n");
+  }
+
+  while (current != NULL) {
+    Timer_list_add(head, current);
+    current = current->next;
+    printf("second loop\n");
   }
 }
 
@@ -104,5 +125,6 @@ void Timer_list_reset(Timer **head, Timer *timer) {
 
   Timer_list_remove(head, timer);
   timer->timestamp = time(NULL) + timer->seconds;
+  timer->next = NULL;
   Timer_list_add(head, timer);
 }

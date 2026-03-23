@@ -293,7 +293,7 @@ void GS_cleanup_after_client_disconnect(GameServer *gs, Client *client) {
     Player *player = client->player;
 
     if (player->match != NULL) {
-      GS_end_match(player->match, player);
+      GS_end_match(gs, player->match, player);
       GS_cleanup_match(gs, player->match);
     }
 
@@ -795,8 +795,12 @@ void GS_handle_leave_match(GameServer *gs, Client *client) {
   client->player->match = NULL;
 }
 
-void GS_end_match(Match *match, Player *disconnected_player) {
+void GS_end_match(GameServer *gs, Match *match, Player *disconnected_player) {
   cJSON *match_finished_json = NULL;
+
+  if (match->turn_timer != NULL) {
+    Timer_list_remove(&gs->timer_list, match->turn_timer);
+  }
 
   switch (match->mode) {
   case MULTI_REMOTE:
@@ -881,7 +885,7 @@ void GS_end_round(GameServer *gs, Match *match) {
   if (match->round_idx + 1 < (int)match->round_capacity) {
     GS_start_round(gs, match);
   } else {
-    GS_end_match(match, NULL);
+    GS_end_match(gs, match, NULL);
   }
 }
 
@@ -994,7 +998,7 @@ void GS_start_round(GameServer *gs, Match *match) {
   }
   cJSON_Delete(round_started_json);
 
-  Timer_list_reset(&gs->timer_list, match->turn_timer);
+  Timer_list_add(&gs->timer_list, match->turn_timer);
   start_turn(match);
 }
 
