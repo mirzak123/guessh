@@ -1,6 +1,7 @@
 #include "game_types.h"
 #include "game_logic.h"
 #include "room.h"
+#include "timer.h"
 #include "util.h"
 
 #include <assert.h>
@@ -52,7 +53,7 @@ void delete_match(Match *match) {
   free(match->rounds);
 
   if (match->turn_timer != NULL) {
-    free(match->turn_timer);
+    delete_timer(match->turn_timer);
   }
 
   free(match);
