@@ -5,9 +5,6 @@
 #include <stdlib.h>
 #include <time.h>
 
-/* Returns true if timer should be reset */
-static bool Timer_fire(Timer *timer);
-
 Timer *new_timer(size_t seconds, TimerCallbackFunc func, TimerCallbackData data) {
   Timer *timer = malloc(sizeof(Timer));
   if (timer == NULL) {
