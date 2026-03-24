@@ -14,11 +14,6 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-typedef struct {
-  Timer **timer_list;
-  Match *match;
-} TurnTimerReset;
-
 static MessageType parse_message(char *data, size_t size, cJSON **out);
 static Outcome calculate_match_outcome(Match *match);
 static void calculate_round_points(Round *round);
@@ -29,7 +24,7 @@ static bool already_guessed(char *word, char **guesses, size_t len);
 static void swap_turn(Match *match);
 static void start_turn(Match *match);
 static void send_guess_result(Match *match, cJSON *guess_result_json);
-static void expire_turn_timer(TurnTimerReset *reset_data);
+static bool expire_turn_timer(Match *match);
 
 GameServer *GS_create(void) {
   GameServer *gs;
@@ -254,10 +249,7 @@ void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request)
   HT_set(gs->matches, KEY(match->id), match);
 
   if (seconds_per_turn > 0) {
-    TurnTimerReset *reset_data = malloc(sizeof(TurnTimerReset));
-    reset_data->timer_list = &gs->timer_list;
-    reset_data->match = match;
-    match->turn_timer = new_timer(seconds_per_turn, (TimerCallbackFunc)expire_turn_timer, reset_data);
+    match->turn_timer = new_timer(seconds_per_turn, (TimerCallbackFunc)expire_turn_timer, match);
   }
 
   if (client->player != NULL) {
@@ -1128,9 +1120,9 @@ void start_turn(Match *match) {
   }
 }
 
-void expire_turn_timer(TurnTimerReset *reset_data) {
+bool expire_turn_timer(Match *match) {
   printf("Turn timer expired!\n");
-  swap_turn(reset_data->match);
-  Timer_list_reset(reset_data->timer_list, reset_data->match->turn_timer);
-  start_turn(reset_data->match);
+  swap_turn(match);
+  start_turn(match);
+  return true;
 }

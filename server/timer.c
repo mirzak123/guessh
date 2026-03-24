@@ -1,8 +1,12 @@
 #include "timer.h"
 #include "util.h"
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+
+/* Returns true if timer should be reset */
+static bool Timer_fire(Timer *timer);
 
 Timer *new_timer(size_t seconds, TimerCallbackFunc func, TimerCallbackData data) {
   Timer *timer = malloc(sizeof(Timer));
@@ -30,38 +34,31 @@ Timer *new_timer(size_t seconds, TimerCallbackFunc func, TimerCallbackData data)
 
 void delete_timer(Timer *timer) { free(timer); }
 
-void Timer_fire(Timer *timer) {
+bool Timer_fire(Timer *timer) {
   printf("Firing timer [%d]...\n", timer->id);
   if (timer->callback.func != NULL) {
-    timer->callback.func(timer->callback.data);
+    return timer->callback.func(timer->callback.data);
   }
+  return false;
 }
 
 void Timer_list_examine(Timer **head) {
-  Timer *current = *head, *next;
-
-  /* NOTE: To future self:
-   * If Timer_fire want to reset the timer, and we insert the timer into the same list
-   * we are traversing, it will skip it with `*head = (*head)->next`. This is why we
-   * point the head to an empty list. Any timer that wants to reset will be added to this
-   * empty list within Timer_fire, and any timer that did not fire in this round, we add
-   * back to the list.
-   *
-   * TODO: This defeats the purpose of the linked list timing scheme, as we need to loop through
-   * all timers in every iteration, so I should really think of a solution to reset the timers on the
-   * original list without breaking stuff. Works for now. */
-  *head = NULL;
-  while (current != NULL && (current)->timestamp <= time(NULL)) {
-    next = current->next;
-    Timer_fire(current);
-    current = next;
-    printf("first loop\n");
+  Timer *reset_list = NULL, *next = NULL;
+  while (*head != NULL && (*head)->timestamp <= time(NULL)) {
+    next = (*head)->next;
+    bool should_reset = Timer_fire(*head);
+    if (should_reset) {
+      (*head)->next = reset_list;
+      reset_list = *head;
+    }
+    *head = next;
   }
 
-  while (current != NULL) {
-    Timer_list_add(head, current);
-    current = current->next;
-    printf("second loop\n");
+  while (reset_list != NULL) {
+    next = reset_list->next;
+    reset_list->timestamp = time(NULL) + reset_list->seconds;
+    Timer_list_add(head, reset_list);
+    reset_list = next;
   }
 }
 

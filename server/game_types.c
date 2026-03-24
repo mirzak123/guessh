@@ -52,7 +52,6 @@ void delete_match(Match *match) {
   free(match->rounds);
 
   if (match->turn_timer != NULL) {
-    free(match->turn_timer->callback.data);
     free(match->turn_timer);
   }
 
