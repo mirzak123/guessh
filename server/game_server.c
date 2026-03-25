@@ -889,14 +889,14 @@ void GS_start_match(GameServer *gs, Match *match, bool is_rematch) {
   switch (match->mode) {
   case MULTI_REMOTE:
     assert(match->player2 != NULL);
-    match_started_json =
-        json_match_started(match->id, match->format, match->round_capacity, match->word_len, match->player1->name);
+    match_started_json = json_match_started(match->id, match->format, match->round_capacity, match->word_len, match->turn_timer,
+                                            match->player1->name);
     send_json(match->player2->client_fd, match_started_json);
     cJSON_Delete(match_started_json);
 
     assert(match->player1 != NULL);
-    match_started_json =
-        json_match_started(match->id, match->format, match->round_capacity, match->word_len, match->player2->name);
+    match_started_json = json_match_started(match->id, match->format, match->round_capacity, match->word_len, match->turn_timer,
+                                            match->player2->name);
     send_json(match->player1->client_fd, match_started_json);
     cJSON_Delete(match_started_json);
 
@@ -919,7 +919,8 @@ void GS_start_match(GameServer *gs, Match *match, bool is_rematch) {
     /* fallthrough */
   case SINGLE:
     assert(match->player1 != NULL);
-    match_started_json = json_match_started(match->id, match->format, match->round_capacity, match->word_len, NULL);
+    match_started_json =
+        json_match_started(match->id, match->format, match->round_capacity, match->word_len, match->turn_timer, NULL);
     send_json(match->player1->client_fd, match_started_json);
     cJSON_Delete(match_started_json);
   }
@@ -1061,6 +1062,7 @@ bool already_guessed(char *word, char **guesses, size_t len) {
   return false;
 }
 
+// TODO: update this to take in a guess and create the json internally
 void send_guess_result(Match *match, cJSON *guess_result_json) {
   Player *player, *opponent;
 
@@ -1122,7 +1124,19 @@ void start_turn(Match *match) {
 
 bool expire_turn_timer(Match *match) {
   printf("Turn timer expired!\n");
-  swap_turn(match);
+  cJSON *guess_result_json = NULL;
+
+  switch (match->mode) {
+  case MULTI_REMOTE:
+  case MULTI_LOCAL:
+    swap_turn(match);
+    break;
+  case SINGLE:
+    guess_result_json = json_guess_result(NULL, match->rounds[match->round_idx], match->word_len);
+    send_json(match->player1->client_fd, guess_result_json);
+    cJSON_Delete(guess_result_json);
+    break;
+  }
   start_turn(match);
   return true;
 }

@@ -34,7 +34,8 @@ cJSON *json_room_join_failed(const char *room_id, const char *reason) {
   return json;
 }
 
-cJSON *json_match_started(const char *match_id, GameFormat format, int rounds, size_t word_len, char *opponent_name) {
+cJSON *json_match_started(const char *match_id, GameFormat format, int rounds, size_t word_len, Timer *turn_timer,
+                          char *opponent_name) {
   cJSON *json = cJSON_CreateObject();
   char *format_str;
   switch (format) {
@@ -50,6 +51,11 @@ cJSON *json_match_started(const char *match_id, GameFormat format, int rounds, s
   cJSON_AddStringToObject(json, "format", format_str);
   cJSON_AddNumberToObject(json, "rounds", rounds);
   cJSON_AddNumberToObject(json, "wordLength", word_len);
+
+  if (turn_timer != NULL) {
+    cJSON_AddNumberToObject(json, "secondsPerTurn", turn_timer->seconds);
+  }
+
   if (opponent_name != NULL) {
     cJSON_AddStringToObject(json, "opponentName", opponent_name);
   }
