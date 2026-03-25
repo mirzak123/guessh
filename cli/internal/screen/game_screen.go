@@ -10,22 +10,26 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/charmbracelet/bubbles/timer"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
 type gameModel struct {
-	width, height int
-	matchInfo     *game.MatchInfo
-	input         textinput.Model
-	state         game.GameState
-	roundInfo     *game.RoundInfo
-	guesses       []string
-	challenges    []*protocol.WordChallenge
-	challengesLen int
-	err           error
+	width, height  int
+	matchInfo      *game.MatchInfo
+	input          textinput.Model
+	state          game.GameState
+	roundInfo      *game.RoundInfo
+	guesses        []string
+	challenges     []*protocol.WordChallenge
+	challengesLen  int
+	turnTimer      timer.Model
+	secondsPerTurn int
+	err            error
 }
 
 func NewGame(matchInfo *game.MatchInfo) *gameModel {
@@ -145,9 +149,16 @@ func (m *gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, tea.Batch(cmds...)
 	}
-	var cmd tea.Cmd
-	m.input, cmd = m.input.Update(msg)
-	return m, cmd
+
+	var inputCmd tea.Cmd
+	var timerCmd tea.Cmd
+
+	m.input, inputCmd = m.input.Update(msg)
+	m.turnTimer, timerCmd = m.turnTimer.Update(msg)
+
+	cmds = append(cmds, inputCmd, timerCmd)
+
+	return m, tea.Batch(cmds...)
 }
 
 func (m *gameModel) View() string {
@@ -181,10 +192,11 @@ func (m *gameModel) View() string {
 	gridWidth := lipgloss.Width(gridView)
 
 	var (
-		p1Symbol = ui.PlayerBlock()
-		p2Symbol string
-		p1Name   string
-		p2Name   string
+		p1Symbol  = ui.PlayerBlock()
+		p2Symbol  string
+		p1Name    string
+		p2Name    string
+		countdown string
 	)
 
 	if m.matchInfo.Mode == protocol.SINGLE {
@@ -206,8 +218,24 @@ func (m *gameModel) View() string {
 		p2Symbol,
 	)
 
+	if m.turnTimer.Running() {
+		seconds := int(m.turnTimer.Timeout.Seconds())
+		countdown = fmt.Sprintf("%3d", seconds)
+
+		if seconds < 10 {
+			countdown = ui.RoseText.Render(countdown)
+		}
+
+		if m.matchInfo.PlayerOnTurn {
+			player1 = fmt.Sprintf("%s %s", player1, countdown)
+		} else {
+			player2 = fmt.Sprintf("%s %s", countdown, player2)
+		}
+	}
+
 	p1w := lipgloss.Width(player1)
 	p2w := lipgloss.Width(player2)
+
 	maxPlayerWidth := max(p1w, p2w)
 
 	if p1w < maxPlayerWidth {
@@ -407,4 +435,12 @@ func (m *gameModel) initChallenges() {
 	for i := range challengesLen {
 		m.challenges[i] = protocol.NewWordChallenge(m.matchInfo.MaxAttempts)
 	}
+}
+
+func (m *gameModel) setTimer() tea.Cmd {
+	if m.secondsPerTurn > 0 {
+		m.turnTimer = timer.New(time.Second * time.Duration(m.secondsPerTurn))
+		return m.turnTimer.Init()
+	}
+	return nil
 }

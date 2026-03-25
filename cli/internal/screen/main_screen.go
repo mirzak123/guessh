@@ -194,9 +194,9 @@ func (m *mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.flushing = true
 
 		for _, bufferedEvent := range m.eventBuffer {
-			msgFromEvent := m.handleEvent(bufferedEvent)
-			if msgFromEvent != nil {
-				cmds = append(cmds, emit(msgFromEvent))
+			eventCmd := m.handleEvent(bufferedEvent)
+			if eventCmd != nil {
+				cmds = append(cmds, eventCmd)
 			}
 		}
 
@@ -222,9 +222,9 @@ func (m *mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			logger.Debug("UI paused, buffering event")
 			m.eventBuffer = append(m.eventBuffer, msg)
 		} else {
-			msgFromEvent := m.handleEvent(msg)
-			if msgFromEvent != nil {
-				cmds = append(cmds, emit(msgFromEvent))
+			eventCmd := m.handleEvent(msg)
+			if eventCmd != nil {
+				cmds = append(cmds, eventCmd)
 			}
 		}
 		logger.Debug("[%s] event buffer: %v", m.matchInfo.PlayerName, m.eventBuffer)
@@ -346,7 +346,7 @@ func (m *mainModel) View() string {
 	)
 }
 
-func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
+func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Cmd {
 	msg := []byte(eventMsg)
 	event := &protocol.EnvelopeEvent{}
 
@@ -388,6 +388,10 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 		m.requestRematchScreen.opponentName = matchStartedEvent.OpponentName
 		m.requestRematchScreen.opponentDeniedRematch = false
 
+		if matchStartedEvent.SecondsPerTurn > 0 {
+			m.game.secondsPerTurn = matchStartedEvent.SecondsPerTurn
+		}
+
 	case protocol.ROUND_STARTED:
 		roundStartedEvent := &protocol.RoundStartedEvent{}
 		if err := json.Unmarshal(msg, roundStartedEvent); err != nil {
@@ -400,6 +404,7 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 		m.matchInfo.CurrentAttempt = 0
 		m.matchInfo.MaxAttempts = roundStartedEvent.MaxAttempts
 		m.matchInfo.CurrentRound = roundStartedEvent.RoundNumber
+
 		m.game.initChallenges()
 		m.game.input.SetValue("")
 
@@ -408,16 +413,20 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 		m.game.state = game.StateWaitGuess
 		m.game.input.Focus()
 		m.game.input.SetValue("")
+		return m.game.setTimer()
 
 	case protocol.WAIT_OPPONENT_GUESS:
 		m.matchInfo.PlayerOnTurn = false
 		m.game.state = game.StateWaitOpponentGuess
 		m.game.input.SetValue("")
+
 		if m.matchInfo.Mode == protocol.MULTI_LOCAL {
 			m.game.input.Focus()
 		} else {
 			m.game.input.Blur()
 		}
+
+		return m.game.setTimer()
 
 	case protocol.WAIT_OPPONENT_JOIN:
 		m.game.state = game.StateWaitOpponentJoin
@@ -480,12 +489,12 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 
 		m.game.state = game.StateMatchFinished
 
-		return MatchFinishedMsg{
+		return emit(MatchFinishedMsg{
 			roundsPlayed: m.matchInfo.RoundsPlayed,
 			roundPoints:  m.matchInfo.RoundPoints,
 			matchOutcome: matchFinishedEvent.Outcome,
 			opponentLeft: matchFinishedEvent.OpponentLeft,
-		}
+		})
 
 	case protocol.ROOM_CREATED:
 		roomCreatedEvent := &protocol.RoomCreatedEvent{}
@@ -494,9 +503,9 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Msg {
 			return nil
 		}
 
-		return RoomCreatedMsg{
+		return emit(RoomCreatedMsg{
 			roomID: roomCreatedEvent.RoomID,
-		}
+		})
 
 	case protocol.ROOM_JOIN_FAILED:
 		roomJoinFailedEvent := &protocol.RoomJoinFailedEvent{}
