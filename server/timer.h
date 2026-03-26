@@ -19,7 +19,7 @@ typedef struct Timer {
 } Timer;
 
 Timer *new_timer(size_t seconds, TimerCallbackFunc func, TimerCallbackData data);
-void delete_timer(Timer *timer);
+void delete_timer(Timer *timer, bool delete_data);
 
 /* Returns true if timer should be reset */
 bool Timer_fire(Timer *timer);

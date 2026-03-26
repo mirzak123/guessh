@@ -29,7 +29,12 @@ Timer *new_timer(size_t seconds, TimerCallbackFunc func, TimerCallbackData data)
   return timer;
 }
 
-void delete_timer(Timer *timer) { free(timer); }
+void delete_timer(Timer *timer, bool delete_data) {
+  if (delete_data) {
+    free(timer->callback.data);
+  }
+  free(timer);
+}
 
 bool Timer_fire(Timer *timer) {
   printf("Firing timer [%d]...\n", timer->id);

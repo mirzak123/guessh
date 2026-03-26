@@ -14,17 +14,24 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+typedef struct {
+  GameServer *gs;
+  Match *match;
+} TurnTimerData;
+
 static MessageType parse_message(char *data, size_t size, cJSON **out);
 static Outcome calculate_match_outcome(Match *match);
 static void calculate_round_points(Round *round);
 static WordStore *get_word_store(GameServer *gs, size_t word_len);
 static const char **get_round_words(Round *round);
 static bool already_guessed(char *word, char **guesses, size_t len);
+static bool is_round_finished(Round *round);
+static void add_guess_attempt(Round *round, char *guess);
 
 static void swap_turn(Match *match);
 static void start_turn(Match *match);
 static void send_guess_result(Match *match, cJSON *guess_result_json);
-static bool expire_turn_timer(Match *match);
+static bool expire_turn_timer(TurnTimerData *timer_data);
 
 GameServer *GS_create(void) {
   GameServer *gs;
@@ -249,7 +256,14 @@ void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request)
   HT_set(gs->matches, KEY(match->id), match);
 
   if (seconds_per_turn > 0) {
-    match->turn_timer = new_timer(seconds_per_turn, (TimerCallbackFunc)expire_turn_timer, match);
+    TurnTimerData *timer_data = malloc(sizeof(TurnTimerData));
+    if (timer_data == NULL) {
+      perror("timer_data malloc");
+      delete_match(match);
+    }
+    timer_data->gs = gs;
+    timer_data->match = match;
+    match->turn_timer = new_timer(seconds_per_turn, (TimerCallbackFunc)expire_turn_timer, timer_data);
   }
 
   if (client->player != NULL) {
@@ -678,7 +692,6 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
   Player *player, *opponent;
   cJSON *guess_json, *guess_result_json;
   char *guess;
-  bool success;
   bool player1_on_turn;
 
   player = client->player;
@@ -743,14 +756,10 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
     break;
   }
 
-  round->guess_attempts[round->attempt_count++] = strdup(guess);
+  add_guess_attempt(round, guess);
   size_t solved_num = evaluate_guess(guess, round->wc_list, round->wc_num, player1_on_turn);
   round->solved_num += solved_num;
   guess_result_json = json_guess_result(guess, round, match->word_len);
-
-  success = round->solved_num == round->wc_num;
-
-  bool is_round_finished = success || (round->attempt_count >= round->max_attempts);
 
   if (solved_num == 0) {
     swap_turn(match);
@@ -759,14 +768,12 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
   send_guess_result(match, guess_result_json);
   cJSON_Delete(guess_result_json);
 
-  if (!is_round_finished) {
+  if (is_round_finished(round)) {
+    GS_end_round(gs, match);
+  } else {
     Timer_list_reset(&gs->timer_list, match->turn_timer);
     start_turn(match);
-    return;
   }
-
-  calculate_round_points(round);
-  GS_end_round(gs, match);
 }
 
 void GS_handle_leave_match(GameServer *gs, Client *client) {
@@ -837,17 +844,17 @@ void GS_end_match(GameServer *gs, Match *match, Player *disconnected_player) {
   }
 }
 
-void GS_end_round(GameServer *gs, Match *match) {
+bool GS_end_round(GameServer *gs, Match *match) {
   Round *round = match->rounds[match->round_idx];
   cJSON *round_finished_json = NULL;
+
+  calculate_round_points(round);
 
   const char **words = get_round_words(round);
   if (words == NULL) {
     printf("get_round_words returned NULL\n");
-    return;
+    return false;
   }
-
-  Timer_list_remove(&gs->timer_list, match->turn_timer);
 
   printf("[end_round] Ending round...\n");
   switch (match->mode) {
@@ -876,8 +883,10 @@ void GS_end_round(GameServer *gs, Match *match) {
 
   if (match->round_idx + 1 < (int)match->round_capacity) {
     GS_start_round(gs, match);
+    return true;
   } else {
     GS_end_match(gs, match, NULL);
+    return false;
   }
 }
 
@@ -926,6 +935,9 @@ void GS_start_match(GameServer *gs, Match *match, bool is_rematch) {
   }
 
   GS_start_round(gs, match);
+  if (match->turn_timer != NULL) {
+    Timer_list_add(&gs->timer_list, match->turn_timer);
+  }
 }
 
 void GS_start_round(GameServer *gs, Match *match) {
@@ -991,7 +1003,6 @@ void GS_start_round(GameServer *gs, Match *match) {
   }
   cJSON_Delete(round_started_json);
 
-  Timer_list_add(&gs->timer_list, match->turn_timer);
   start_turn(match);
 }
 
@@ -1043,7 +1054,7 @@ const char **get_round_words(Round *round) {
   const char **words = malloc(sizeof(char *) * round->wc_num);
   if (words == NULL) {
     perror("malloc");
-    return (NULL);
+    return NULL;
   }
 
   for (size_t i = 0; i < round->wc_num; i++) {
@@ -1122,10 +1133,12 @@ void start_turn(Match *match) {
   }
 }
 
-bool expire_turn_timer(Match *match) {
+bool expire_turn_timer(TurnTimerData *timer_data) {
   printf("Turn timer expired!\n");
-  cJSON *guess_result_json = NULL;
+  GameServer *gs = timer_data->gs;
+  Match *match = timer_data->match;
   Round *round = NULL;
+  cJSON *guess_result_json = NULL;
 
   switch (match->mode) {
   case MULTI_REMOTE:
@@ -1142,11 +1155,23 @@ bool expire_turn_timer(Match *match) {
       }
     }
 
-    guess_result_json = json_guess_result("", round, match->word_len);
+    char *filler_guess = "";
+    add_guess_attempt(round, filler_guess);
+    guess_result_json = json_guess_result(filler_guess, round, match->word_len);
     send_json(match->player1->client_fd, guess_result_json);
     cJSON_Delete(guess_result_json);
+
+    if (is_round_finished(round)) {
+      return GS_end_round(gs, match);
+    }
     break;
   }
   start_turn(match);
   return true;
 }
+
+bool is_round_finished(Round *round) {
+  return (round->solved_num == round->wc_num) || (round->attempt_count >= round->max_attempts);
+}
+
+void add_guess_attempt(Round *round, char *guess) { round->guess_attempts[round->attempt_count++] = strdup(guess); }

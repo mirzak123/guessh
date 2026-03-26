@@ -53,7 +53,7 @@ void delete_match(Match *match) {
   free(match->rounds);
 
   if (match->turn_timer != NULL) {
-    delete_timer(match->turn_timer);
+    delete_timer(match->turn_timer, true);
   }
 
   free(match);

@@ -21,8 +21,8 @@ static void test_timer(void);
 static void test_timer_list_examine(void);
 static void test_timer_list_reset(void);
 
-static void toggle(bool *data);
-static void increment(int *data);
+static bool toggle(bool *data);
+static bool increment(int *data);
 
 static void assert_feedback(LetterFeedback *feedback, LetterFeedback *expected);
 static void print_timer_list(Timer *head);
@@ -212,10 +212,10 @@ void test_timer(void) {
   Timer_list_remove(&timer_list, t1);
   assert(timer_list == NULL);
 
-  delete_timer(t1);
-  delete_timer(t2);
-  delete_timer(t3);
-  delete_timer(t4);
+  delete_timer(t1, false);
+  delete_timer(t2, false);
+  delete_timer(t3, false);
+  delete_timer(t4, false);
 }
 
 void test_timer_list_examine(void) {
@@ -282,8 +282,14 @@ void test_timer_list_reset(void) {
   assert(counter == 3);
 }
 
-void toggle(bool *data) { *data = !*data; }
-void increment(int *data) { (*data)++; }
+bool toggle(bool *data) {
+  *data = !*data;
+  return false;
+}
+bool increment(int *data) {
+  (*data)++;
+  return false;
+}
 
 void assert_feedback(LetterFeedback *feedback, LetterFeedback *expected) {
   for (int i = 0; i < WORD_LEN; i++) {
