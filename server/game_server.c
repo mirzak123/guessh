@@ -1142,7 +1142,7 @@ bool expire_turn_timer(Match *match) {
       }
     }
 
-    json_guess_result(NULL, round, match->word_len);
+    guess_result_json = json_guess_result("", round, match->word_len);
     send_json(match->player1->client_fd, guess_result_json);
     cJSON_Delete(guess_result_json);
     break;
