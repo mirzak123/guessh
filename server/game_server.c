@@ -1125,6 +1125,7 @@ void start_turn(Match *match) {
 bool expire_turn_timer(Match *match) {
   printf("Turn timer expired!\n");
   cJSON *guess_result_json = NULL;
+  Round *round = NULL;
 
   switch (match->mode) {
   case MULTI_REMOTE:
@@ -1132,7 +1133,16 @@ bool expire_turn_timer(Match *match) {
     swap_turn(match);
     break;
   case SINGLE:
-    guess_result_json = json_guess_result(NULL, match->rounds[match->round_idx], match->word_len);
+    round = match->rounds[match->round_idx];
+
+    for (size_t i = 0; i < round->wc_num; i++) {
+      WordChallenge *wc = round->wc_list[i];
+      for (size_t j = 0; j < match->word_len; j++) {
+        wc->feedback[j] = LETTER_ABSENT;
+      }
+    }
+
+    json_guess_result(NULL, round, match->word_len);
     send_json(match->player1->client_fd, guess_result_json);
     cJSON_Delete(guess_result_json);
     break;
