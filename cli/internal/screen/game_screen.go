@@ -241,11 +241,7 @@ func (m *gameModel) View() string {
 	p1w := lipgloss.Width(player1)
 	p2w := lipgloss.Width(player2)
 
-	logger.Debug("p1w: %d", p1w)
-	logger.Debug("p2w: %d", p2w)
-
 	maxPlayerWidth := max(p1w, p2w)
-	logger.Debug("maxPlayerWidth: %d", maxPlayerWidth)
 
 	if p1w < maxPlayerWidth {
 		player1 += strings.Repeat(" ", maxPlayerWidth-p1w)
