@@ -225,18 +225,27 @@ func (m *gameModel) View() string {
 		if seconds < 10 {
 			countdown = ui.RoseText.Render(countdown)
 		}
+	} else {
+		countdown = strings.Repeat(" ", 3)
+	}
 
-		if m.matchInfo.PlayerOnTurn {
-			player1 = fmt.Sprintf("%s %s", player1, countdown)
-		} else {
-			player2 = fmt.Sprintf("%s %s", countdown, player2)
-		}
+	cdW := lipgloss.Width(countdown)
+	if m.matchInfo.PlayerOnTurn {
+		player1 = fmt.Sprintf("%s %s", player1, countdown)
+		player2 = fmt.Sprintf("%s %s", strings.Repeat(" ", cdW), player2)
+	} else {
+		player1 = fmt.Sprintf("%s %s", player1, strings.Repeat(" ", cdW))
+		player2 = fmt.Sprintf("%s %s", countdown, player2)
 	}
 
 	p1w := lipgloss.Width(player1)
 	p2w := lipgloss.Width(player2)
 
+	logger.Debug("p1w: %d", p1w)
+	logger.Debug("p2w: %d", p2w)
+
 	maxPlayerWidth := max(p1w, p2w)
+	logger.Debug("maxPlayerWidth: %d", maxPlayerWidth)
 
 	if p1w < maxPlayerWidth {
 		player1 += strings.Repeat(" ", maxPlayerWidth-p1w)
@@ -249,14 +258,12 @@ func (m *gameModel) View() string {
 
 	gameAreaWidth := gridWidth + maxPlayerWidth*2 // TODO: verify this is correct
 
-	totalComponentsWidth :=
-		maxPlayerWidth +
-			lipgloss.Width(outcomes) +
-			maxPlayerWidth
+	totalComponentsWidth := maxPlayerWidth + lipgloss.Width(outcomes) + maxPlayerWidth
 
 	totalSpace := max(0, gameAreaWidth-totalComponentsWidth)
 
 	gapWidth := totalSpace / 2
+
 	leftSpacer := strings.Repeat(" ", gapWidth)
 	rightSpacer := strings.Repeat(" ", totalSpace-gapWidth)
 
@@ -385,7 +392,7 @@ func (m *gameModel) statusBar() string {
 
 func (m *gameModel) validateGuess(guess string) (bool, error) {
 	repeatedGuessErr := fmt.Errorf("'%s' was already guessed", guess)
-	invalidGuessErr := fmt.Errorf("'%s' is not a valid word", guess)
+	invalidGuessErr := fmt.Errorf("'%s' is not a valid guess", guess)
 
 	if m.alreadyGuessed(guess) {
 		return false, repeatedGuessErr
