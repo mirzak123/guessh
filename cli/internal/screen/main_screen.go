@@ -413,12 +413,14 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Cmd {
 		m.game.state = game.StateWaitGuess
 		m.game.input.Focus()
 		m.game.input.SetValue("")
+		m.game.err = nil
 		return m.game.setTimer()
 
 	case protocol.WAIT_OPPONENT_GUESS:
 		m.matchInfo.PlayerOnTurn = false
 		m.game.state = game.StateWaitOpponentGuess
 		m.game.input.SetValue("")
+		m.game.err = nil
 
 		if m.matchInfo.Mode == protocol.MULTI_LOCAL {
 			m.game.input.Focus()
