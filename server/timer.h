@@ -18,20 +18,22 @@ typedef struct Timer {
     TimerCallbackData data;
   } callback;
   struct Timer *next;
+  struct TimerList *tl;
 } Timer;
-
-Timer *new_timer(size_t seconds, TimerCallbackFunc func, TimerCallbackData data);
-void delete_timer(Timer *timer, bool delete_data);
-
-TimerFireAction Timer_fire(Timer *timer);
 
 typedef struct TimerList {
   Timer *head;
 } TimerList;
 
+TimerFireAction Timer_fire(Timer *timer);
+
+Timer *new_timer(TimerList *tl, TimerCallbackFunc func, TimerCallbackData data, size_t seconds);
+void delete_timer(Timer *timer, bool delete_data);
+
+void Timer_arm(Timer *timer);
+void Timer_disarm(Timer *timer);
+void Timer_rearm(Timer *timer);
+
 void TimerList_examine(TimerList *tl);
-void TimerList_arm(TimerList *tl, Timer *timer);
-void TimerList_disarm(TimerList *tl, Timer *timer);
-void TimerList_rearm(TimerList *tl, Timer *timer);
 
 #endif // !TIMER_H

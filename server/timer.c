@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-Timer *new_timer(size_t seconds, TimerCallbackFunc func, TimerCallbackData data) {
+Timer *new_timer(TimerList *tl, TimerCallbackFunc func, TimerCallbackData data, size_t seconds) {
   Timer *timer = malloc(sizeof(Timer));
   if (timer == NULL) {
     perror("malloc");
@@ -25,6 +25,7 @@ Timer *new_timer(size_t seconds, TimerCallbackFunc func, TimerCallbackData data)
   timer->callback.func = func;
   timer->callback.data = data;
   timer->next = NULL;
+  timer->tl = tl;
 
   return timer;
 }
@@ -58,12 +59,13 @@ void TimerList_examine(TimerList *tl) {
   while (rearm_list != NULL) {
     next = rearm_list->next;
     rearm_list->timestamp = time(NULL) + rearm_list->seconds;
-    TimerList_arm(tl, rearm_list);
+    Timer_arm(rearm_list);
     rearm_list = next;
   }
 }
 
-void TimerList_arm(TimerList *tl, Timer *timer) {
+void Timer_arm(Timer *timer) {
+  TimerList *tl = timer->tl;
   if (tl->head == NULL) {
     tl->head = timer;
     return;
@@ -96,8 +98,8 @@ void TimerList_arm(TimerList *tl, Timer *timer) {
   prev->next = timer; // inserting at the end of the list
 }
 
-void TimerList_disarm(TimerList *tl, Timer *timer) {
-  Timer *current = tl->head, *prev = NULL;
+void Timer_disarm(Timer *timer) {
+  Timer *current = timer->tl->head, *prev = NULL;
 
   while (current != NULL) {
     if (current != timer) {
@@ -107,7 +109,7 @@ void TimerList_disarm(TimerList *tl, Timer *timer) {
     }
 
     if (prev == NULL) {
-      tl->head = current->next;
+      timer->tl->head = current->next;
     } else {
       prev->next = current->next;
     }
@@ -115,14 +117,14 @@ void TimerList_disarm(TimerList *tl, Timer *timer) {
   }
 }
 
-void TimerList_rearm(TimerList *tl, Timer *timer) {
+void Timer_rearm(Timer *timer) {
   if (timer == NULL) {
     printf("Trying to reset a NULL timer\n");
     return;
   }
 
-  TimerList_disarm(tl, timer);
+  Timer_disarm(timer);
   timer->timestamp = time(NULL) + timer->seconds;
   timer->next = NULL;
-  TimerList_arm(tl, timer);
+  Timer_arm(timer);
 }

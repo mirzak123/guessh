@@ -14,6 +14,8 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#define READY_FOR_TURN_TIMEOUT 10
+
 typedef struct {
   GameServer *gs;
   Match *match;
@@ -29,9 +31,10 @@ static bool is_round_finished(Round *round);
 static void add_guess_attempt(Round *round, char *guess);
 
 static void swap_turn(Match *match);
-static void start_turn(GameServer *gs, Match *match);
+static void start_turn(Match *match);
 static void send_guess_result(Match *match, char *guess);
 static TimerFireAction expire_turn_timer(TurnTimerData *timer_data);
+static TimerFireAction expire_post_round_timer(Match *match);
 
 GameServer *GS_create(void) {
   GameServer *gs;
@@ -264,11 +267,16 @@ void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request)
     }
     timer_data->gs = gs;
     timer_data->match = match;
-    match->turn_timer = new_timer(seconds_per_turn, (TimerCallbackFunc)expire_turn_timer, timer_data);
+    match->turn_timer = new_timer(gs->timer_list, (TimerCallbackFunc)expire_turn_timer, timer_data, seconds_per_turn);
+
+    if (game_mode == MULTI_REMOTE) {
+      match->post_round_timer =
+          new_timer(gs->timer_list, (TimerCallbackFunc)expire_post_round_timer, match, READY_FOR_TURN_TIMEOUT);
+    }
   }
 
   if (client->player != NULL) {
-    // client was already in another match and assigned a player
+    // client was already in another match and had an assigned player
     delete_player(client->player);
     client->player = NULL;
   }
@@ -745,7 +753,7 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
   if (is_round_finished(round)) {
     GS_end_round(gs, match); // TODO: arm the ready for turn timer if match isn't over
   } else {
-    start_turn(gs, match);
+    start_turn(match);
   }
 }
 
@@ -786,7 +794,7 @@ void GS_handle_ready_for_turn(GameServer *gs, Client *client) {
     if (opponent->waiting_ready_for_turn) {
       player->waiting_ready_for_turn = false;
       opponent->waiting_ready_for_turn = false;
-      start_turn(gs, match);
+      start_turn(match);
     }
     break;
   case SINGLE:
@@ -796,10 +804,12 @@ void GS_handle_ready_for_turn(GameServer *gs, Client *client) {
 }
 
 void GS_end_match(GameServer *gs, Match *match, Player *disconnected_player) {
+  (void)gs;
+
   cJSON *match_finished_json = NULL;
 
   if (match->turn_timer != NULL) {
-    TimerList_disarm(gs->timer_list, match->turn_timer);
+    Timer_disarm(match->turn_timer);
   }
 
   switch (match->mode) {
@@ -937,7 +947,7 @@ void GS_start_match(GameServer *gs, Match *match, bool is_rematch) {
 
   GS_start_round(gs, match);
   if (match->turn_timer != NULL) {
-    TimerList_arm(gs->timer_list, match->turn_timer);
+    Timer_arm(match->turn_timer);
   }
 }
 
@@ -1004,7 +1014,7 @@ void GS_start_round(GameServer *gs, Match *match) {
   }
   cJSON_Delete(round_started_json);
 
-  start_turn(gs, match);
+  start_turn(match);
 }
 
 Player *get_opponent(Player *player1, Player *player2, Player *current) { return player1 == current ? player2 : player1; }
@@ -1113,7 +1123,7 @@ void swap_turn(Match *match) {
   }
 }
 
-void start_turn(GameServer *gs, Match *match) {
+void start_turn(Match *match) {
   Player *player, *opponent;
 
   switch (match->mode) {
@@ -1136,7 +1146,7 @@ void start_turn(GameServer *gs, Match *match) {
   }
 
   if (match->turn_timer != NULL) {
-    TimerList_arm(gs->timer_list, match->turn_timer);
+    Timer_arm(match->turn_timer);
   }
 }
 
@@ -1175,6 +1185,8 @@ TimerFireAction expire_turn_timer(TurnTimerData *timer_data) {
   }
   return TIMER_FIRE_REARM;
 }
+
+TimerFireAction expire_post_round_timer(Match *match) {}
 
 bool is_round_finished(Round *round) {
   return (round->solved_num == round->wc_num) || (round->attempt_count >= round->max_attempts);

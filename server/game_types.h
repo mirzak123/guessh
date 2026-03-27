@@ -74,6 +74,7 @@ typedef struct Match {
   Player *player1;
   Player *player2;
   Timer *turn_timer;
+  Timer *post_round_timer;
   union {
     struct {
       bool p1_on_turn;

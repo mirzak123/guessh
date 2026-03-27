@@ -171,15 +171,15 @@ void test_timer(void) {
   bool toggle_switch = false;
   int counter = 0;
 
-  t1 = new_timer(30, (TimerCallbackFunc)toggle, &toggle_switch);
-  t2 = new_timer(10, (TimerCallbackFunc)toggle, &toggle_switch);
-  t3 = new_timer(40, (TimerCallbackFunc)increment, &counter);
-  t4 = new_timer(5, (TimerCallbackFunc)increment, &counter);
+  t1 = new_timer(&tl, (TimerCallbackFunc)toggle, &toggle_switch, 30);
+  t2 = new_timer(&tl, (TimerCallbackFunc)toggle, &toggle_switch, 10);
+  t3 = new_timer(&tl, (TimerCallbackFunc)increment, &counter, 40);
+  t4 = new_timer(&tl, (TimerCallbackFunc)increment, &counter, 5);
 
-  TimerList_arm(&tl, t1);
-  TimerList_arm(&tl, t2);
-  TimerList_arm(&tl, t3);
-  TimerList_arm(&tl, t4);
+  Timer_arm(t1);
+  Timer_arm(t2);
+  Timer_arm(t3);
+  Timer_arm(t4);
 
   Timer_fire(t1);
   assert(toggle_switch == true);
@@ -203,13 +203,13 @@ void test_timer(void) {
   t_cur = t_cur->next;
   assert(t_cur == t3);
 
-  TimerList_disarm(&tl, t4);
+  Timer_disarm(t4);
   assert(tl.head == t2);
-  TimerList_disarm(&tl, t3);
+  Timer_disarm(t3);
   assert(tl.head == t2);
-  TimerList_disarm(&tl, t2);
+  Timer_disarm(t2);
   assert(tl.head == t1);
-  TimerList_disarm(&tl, t1);
+  Timer_disarm(t1);
   assert(tl.head == NULL);
 
   delete_timer(t1, false);
@@ -223,15 +223,15 @@ void test_timer_list_examine(void) {
   Timer *t1, *t2, *t3, *t4;
   int counter = 0, sleep_seconds = 5;
 
-  t1 = new_timer(3, (TimerCallbackFunc)increment, &counter);
-  t2 = new_timer(30, (TimerCallbackFunc)increment, &counter);
-  t3 = new_timer(15, (TimerCallbackFunc)increment, &counter);
-  t4 = new_timer(2, (TimerCallbackFunc)increment, &counter);
+  t1 = new_timer(&tl, (TimerCallbackFunc)increment, &counter, 3);
+  t2 = new_timer(&tl, (TimerCallbackFunc)increment, &counter, 30);
+  t3 = new_timer(&tl, (TimerCallbackFunc)increment, &counter, 15);
+  t4 = new_timer(&tl, (TimerCallbackFunc)increment, &counter, 2);
 
-  TimerList_arm(&tl, t2);
-  TimerList_arm(&tl, t1);
-  TimerList_arm(&tl, t3);
-  TimerList_arm(&tl, t4);
+  Timer_arm(t2);
+  Timer_arm(t1);
+  Timer_arm(t3);
+  Timer_arm(t4);
 
   printf("sleeping for %d seconds...\n", sleep_seconds);
   sleep(sleep_seconds);
@@ -254,13 +254,13 @@ void test_timer_list_rearm(void) {
   Timer *t1, *t2, *t3;
   int counter = 0, sleep_seconds = 3;
 
-  t1 = new_timer(5, (TimerCallbackFunc)increment, &counter);
-  t2 = new_timer(1, (TimerCallbackFunc)increment, &counter);
-  t3 = new_timer(15, (TimerCallbackFunc)increment, &counter);
+  t1 = new_timer(&tl, (TimerCallbackFunc)increment, &counter, 5);
+  t2 = new_timer(&tl, (TimerCallbackFunc)increment, &counter, 1);
+  t3 = new_timer(&tl, (TimerCallbackFunc)increment, &counter, 15);
 
-  TimerList_arm(&tl, t1);
-  TimerList_arm(&tl, t2);
-  TimerList_arm(&tl, t3);
+  Timer_arm(t1);
+  Timer_arm(t2);
+  Timer_arm(t3);
 
   assert(tl.head == t2);
   TimerList_examine(&tl);
@@ -272,7 +272,7 @@ void test_timer_list_rearm(void) {
   TimerList_examine(&tl);
   assert(counter == 1);
 
-  TimerList_arm(&tl, t2);
+  Timer_arm(t2);
   assert(tl.head == t2);
 
   printf("sleeping for %d seconds...\n", sleep_seconds);
