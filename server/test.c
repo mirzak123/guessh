@@ -19,10 +19,10 @@ static void test_generate_random_string(void);
 static void test_call_HT_delete_on_empty_hash_table(void);
 static void test_timer(void);
 static void test_timer_list_examine(void);
-static void test_timer_list_reset(void);
+static void test_timer_list_rearm(void);
 
-static bool toggle(bool *data);
-static bool increment(int *data);
+static TimerFireAction toggle(bool *data);
+static TimerFireAction increment(int *data);
 
 static void assert_feedback(LetterFeedback *feedback, LetterFeedback *expected);
 static void print_timer_list(Timer *head);
@@ -36,7 +36,7 @@ int main(void) {
   test_generate_random_string();
   test_timer();
   test_timer_list_examine();
-  test_timer_list_reset();
+  test_timer_list_rearm();
 
   printf("All tests passed!\n");
   return 0;
@@ -249,7 +249,7 @@ void test_timer_list_examine(void) {
   assert(timer_list->next == t2);
 }
 
-void test_timer_list_reset(void) {
+void test_timer_list_rearm(void) {
   Timer *timer_list = NULL;
   Timer *t1, *t2, *t3;
   int counter = 0, sleep_seconds = 3;
@@ -282,11 +282,12 @@ void test_timer_list_reset(void) {
   assert(counter == 3);
 }
 
-bool toggle(bool *data) {
+TimerFireAction toggle(bool *data) {
   *data = !*data;
   return false;
 }
-bool increment(int *data) {
+
+TimerFireAction increment(int *data) {
   (*data)++;
   return false;
 }

@@ -4,7 +4,9 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-typedef bool (*TimerCallbackFunc)(void *data);
+typedef enum { TIMER_FIRE_NONE, TIMER_FIRE_REARM } TimerFireAction;
+
+typedef TimerFireAction (*TimerCallbackFunc)(void *data);
 typedef void *TimerCallbackData;
 
 typedef struct Timer {
@@ -21,7 +23,7 @@ typedef struct Timer {
 Timer *new_timer(size_t seconds, TimerCallbackFunc func, TimerCallbackData data);
 void delete_timer(Timer *timer, bool delete_data);
 
-bool Timer_fire(Timer *timer);
+TimerFireAction Timer_fire(Timer *timer);
 
 void Timer_list_examine(Timer **head);
 void Timer_list_add(Timer **head, Timer *timer);

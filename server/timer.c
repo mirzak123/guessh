@@ -29,38 +29,37 @@ Timer *new_timer(size_t seconds, TimerCallbackFunc func, TimerCallbackData data)
   return timer;
 }
 
-void delete_timer(Timer *timer, bool delete_data) {
-  if (delete_data) {
+void delete_timer(Timer *timer, bool free_data) {
+  if (free_data) {
     free(timer->callback.data);
   }
   free(timer);
 }
 
-bool Timer_fire(Timer *timer) {
+TimerFireAction Timer_fire(Timer *timer) {
   printf("Firing timer [%d]...\n", timer->id);
   if (timer->callback.func != NULL) {
     return timer->callback.func(timer->callback.data);
   }
-  return false;
+  return TIMER_FIRE_NONE;
 }
 
 void Timer_list_examine(Timer **head) {
-  Timer *reset_list = NULL, *next = NULL;
+  Timer *rearm_list = NULL, *next = NULL;
   while (*head != NULL && (*head)->timestamp <= time(NULL)) {
     next = (*head)->next;
-    bool should_reset = Timer_fire(*head);
-    if (should_reset) {
-      (*head)->next = reset_list;
-      reset_list = *head;
+    if (Timer_fire(*head) == TIMER_FIRE_REARM) {
+      (*head)->next = rearm_list;
+      rearm_list = *head;
     }
     *head = next;
   }
 
-  while (reset_list != NULL) {
-    next = reset_list->next;
-    reset_list->timestamp = time(NULL) + reset_list->seconds;
-    Timer_list_add(head, reset_list);
-    reset_list = next;
+  while (rearm_list != NULL) {
+    next = rearm_list->next;
+    rearm_list->timestamp = time(NULL) + rearm_list->seconds;
+    Timer_list_add(head, rearm_list);
+    rearm_list = next;
   }
 }
 

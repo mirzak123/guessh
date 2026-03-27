@@ -31,7 +31,7 @@ static void add_guess_attempt(Round *round, char *guess);
 static void swap_turn(Match *match);
 static void start_turn(Match *match);
 static void send_guess_result(Match *match, cJSON *guess_result_json);
-static bool expire_turn_timer(TurnTimerData *timer_data);
+static TimerFireAction expire_turn_timer(TurnTimerData *timer_data);
 
 GameServer *GS_create(void) {
   GameServer *gs;
@@ -844,7 +844,7 @@ void GS_end_match(GameServer *gs, Match *match, Player *disconnected_player) {
   }
 }
 
-bool GS_end_round(GameServer *gs, Match *match) {
+TimerFireAction GS_end_round(GameServer *gs, Match *match) {
   Round *round = match->rounds[match->round_idx];
   cJSON *round_finished_json = NULL;
 
@@ -1133,7 +1133,7 @@ void start_turn(Match *match) {
   }
 }
 
-bool expire_turn_timer(TurnTimerData *timer_data) {
+TimerFireAction expire_turn_timer(TurnTimerData *timer_data) {
   printf("Turn timer expired!\n");
   GameServer *gs = timer_data->gs;
   Match *match = timer_data->match;
@@ -1167,7 +1167,7 @@ bool expire_turn_timer(TurnTimerData *timer_data) {
     break;
   }
   start_turn(match);
-  return true;
+  return TIMER_FIRE_REARM;
 }
 
 bool is_round_finished(Round *round) {

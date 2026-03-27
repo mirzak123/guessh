@@ -104,7 +104,7 @@ void GS_create_room(GameServer *gs, Match *match, Client *client);
 void GS_start_match(GameServer *gs, Match *match, bool is_rematch);
 void GS_start_round(GameServer *gs, Match *match);
 void GS_end_match(GameServer *gs, Match *match, Player *disconnected_player);
-bool GS_end_round(GameServer *gs, Match *match);
+TimerFireAction GS_end_round(GameServer *gs, Match *match);
 bool GS_add_player_to_match(Match *match, Player *player);
 
 void GS_cleanup_after_client_disconnect(GameServer *gs, Client *client);
