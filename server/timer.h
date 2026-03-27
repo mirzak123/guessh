@@ -25,9 +25,13 @@ void delete_timer(Timer *timer, bool delete_data);
 
 TimerFireAction Timer_fire(Timer *timer);
 
-void Timer_list_examine(Timer **head);
-void Timer_list_add(Timer **head, Timer *timer);
-void Timer_list_remove(Timer **head, Timer *timer);
-void Timer_list_rearm(Timer **head, Timer *timer);
+typedef struct TimerList {
+  Timer *head;
+} TimerList;
+
+void TimerList_examine(TimerList *tl);
+void TimerList_add(TimerList *tl, Timer *timer);
+void TimerList_remove(TimerList *tl, Timer *timer);
+void TimerList_rearm(TimerList *tl, Timer *timer);
 
 #endif // !TIMER_H

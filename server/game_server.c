@@ -45,7 +45,7 @@ GameServer *GS_create(void) {
   gs->matches = HT_create();
   gs->clients = HT_create();
   gs->rooms = HT_create();
-  gs->timer_list = NULL;
+  gs->timer_list = calloc(1, sizeof(TimerList));
 
   gs->word_store.five_secret = new_word_store(FIVE_LETTER_SECRET_WORD_FILE, 5);
   gs->word_store.six_secret = new_word_store(SIX_LETTER_SECRET_WORD_FILE, 6);
@@ -58,6 +58,7 @@ void GS_destroy(GameServer *gs) {
   HT_destroy(gs->rooms, (ValueDestructor)delete_room);
   HT_destroy(gs->clients, (ValueDestructor)delete_client);
   HT_destroy(gs->matches, (ValueDestructor)delete_match);
+  free(gs->timer_list);
 
   delete_word_store(gs->word_store.five_secret);
   delete_word_store(gs->word_store.six_secret);
@@ -771,7 +772,7 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
   if (is_round_finished(round)) {
     GS_end_round(gs, match);
   } else {
-    Timer_list_rearm(&gs->timer_list, match->turn_timer);
+    TimerList_rearm(gs->timer_list, match->turn_timer);
     start_turn(match);
   }
 }
@@ -798,7 +799,7 @@ void GS_end_match(GameServer *gs, Match *match, Player *disconnected_player) {
   cJSON *match_finished_json = NULL;
 
   if (match->turn_timer != NULL) {
-    Timer_list_remove(&gs->timer_list, match->turn_timer);
+    TimerList_remove(gs->timer_list, match->turn_timer);
   }
 
   switch (match->mode) {
@@ -936,7 +937,7 @@ void GS_start_match(GameServer *gs, Match *match, bool is_rematch) {
 
   GS_start_round(gs, match);
   if (match->turn_timer != NULL) {
-    Timer_list_add(&gs->timer_list, match->turn_timer);
+    TimerList_add(gs->timer_list, match->turn_timer);
   }
 }
 

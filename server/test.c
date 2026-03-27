@@ -25,7 +25,7 @@ static TimerFireAction toggle(bool *data);
 static TimerFireAction increment(int *data);
 
 static void assert_feedback(LetterFeedback *feedback, LetterFeedback *expected);
-static void print_timer_list(Timer *head);
+void print_timer_list(TimerList *tl);
 
 int main(void) {
   srand(time(NULL));
@@ -166,7 +166,7 @@ void test_call_HT_delete_on_empty_hash_table(void) {
 }
 
 void test_timer(void) {
-  Timer *timer_list = NULL;
+  TimerList tl = {NULL};
   Timer *t1, *t2, *t3, *t4, *t_cur;
   bool toggle_switch = false;
   int counter = 0;
@@ -176,10 +176,10 @@ void test_timer(void) {
   t3 = new_timer(40, (TimerCallbackFunc)increment, &counter);
   t4 = new_timer(5, (TimerCallbackFunc)increment, &counter);
 
-  Timer_list_add(&timer_list, t1);
-  Timer_list_add(&timer_list, t2);
-  Timer_list_add(&timer_list, t3);
-  Timer_list_add(&timer_list, t4);
+  TimerList_add(&tl, t1);
+  TimerList_add(&tl, t2);
+  TimerList_add(&tl, t3);
+  TimerList_add(&tl, t4);
 
   Timer_fire(t1);
   assert(toggle_switch == true);
@@ -192,9 +192,9 @@ void test_timer(void) {
   Timer_fire(t4);
   assert(counter == 3);
 
-  print_timer_list(timer_list);
+  print_timer_list(&tl);
 
-  t_cur = timer_list;
+  t_cur = tl.head;
   assert(t_cur == t4);
   t_cur = t_cur->next;
   assert(t_cur == t2);
@@ -203,14 +203,14 @@ void test_timer(void) {
   t_cur = t_cur->next;
   assert(t_cur == t3);
 
-  Timer_list_remove(&timer_list, t4);
-  assert(timer_list == t2);
-  Timer_list_remove(&timer_list, t3);
-  assert(timer_list == t2);
-  Timer_list_remove(&timer_list, t2);
-  assert(timer_list == t1);
-  Timer_list_remove(&timer_list, t1);
-  assert(timer_list == NULL);
+  TimerList_remove(&tl, t4);
+  assert(tl.head == t2);
+  TimerList_remove(&tl, t3);
+  assert(tl.head == t2);
+  TimerList_remove(&tl, t2);
+  assert(tl.head == t1);
+  TimerList_remove(&tl, t1);
+  assert(tl.head == NULL);
 
   delete_timer(t1, false);
   delete_timer(t2, false);
@@ -219,7 +219,7 @@ void test_timer(void) {
 }
 
 void test_timer_list_examine(void) {
-  Timer *timer_list = NULL;
+  TimerList tl = {NULL};
   Timer *t1, *t2, *t3, *t4;
   int counter = 0, sleep_seconds = 5;
 
@@ -228,29 +228,29 @@ void test_timer_list_examine(void) {
   t3 = new_timer(15, (TimerCallbackFunc)increment, &counter);
   t4 = new_timer(2, (TimerCallbackFunc)increment, &counter);
 
-  Timer_list_add(&timer_list, t1);
-  Timer_list_add(&timer_list, t2);
-  Timer_list_add(&timer_list, t3);
-  Timer_list_add(&timer_list, t4);
+  TimerList_add(&tl, t2);
+  TimerList_add(&tl, t1);
+  TimerList_add(&tl, t3);
+  TimerList_add(&tl, t4);
 
   printf("sleeping for %d seconds...\n", sleep_seconds);
   sleep(sleep_seconds);
 
-  Timer_list_examine(&timer_list);
+  TimerList_examine(&tl);
 
   assert(counter == 2);
-  assert(timer_list == t3);
-  assert(timer_list->next == t2);
+  assert(tl.head == t3);
+  assert(tl.head->next == t2);
 
-  Timer_list_examine(&timer_list);
+  TimerList_examine(&tl);
 
   assert(counter == 2);
-  assert(timer_list == t3);
-  assert(timer_list->next == t2);
+  assert(tl.head == t3);
+  assert(tl.head->next == t2);
 }
 
 void test_timer_list_rearm(void) {
-  Timer *timer_list = NULL;
+  TimerList tl = {NULL};
   Timer *t1, *t2, *t3;
   int counter = 0, sleep_seconds = 3;
 
@@ -258,27 +258,27 @@ void test_timer_list_rearm(void) {
   t2 = new_timer(1, (TimerCallbackFunc)increment, &counter);
   t3 = new_timer(15, (TimerCallbackFunc)increment, &counter);
 
-  Timer_list_add(&timer_list, t1);
-  Timer_list_add(&timer_list, t2);
-  Timer_list_add(&timer_list, t3);
+  TimerList_add(&tl, t1);
+  TimerList_add(&tl, t2);
+  TimerList_add(&tl, t3);
 
-  assert(timer_list == t2);
-  Timer_list_examine(&timer_list);
+  assert(tl.head == t2);
+  TimerList_examine(&tl);
   assert(counter == 0);
 
   printf("sleeping for %d seconds...\n", sleep_seconds);
   sleep(sleep_seconds);
 
-  Timer_list_examine(&timer_list);
+  TimerList_examine(&tl);
   assert(counter == 1);
 
-  Timer_list_rearm(&timer_list, t2);
-  assert(timer_list == t2);
+  TimerList_rearm(&tl, t2);
+  assert(tl.head == t2);
 
   printf("sleeping for %d seconds...\n", sleep_seconds);
   sleep(sleep_seconds);
 
-  Timer_list_examine(&timer_list);
+  TimerList_examine(&tl);
   assert(counter == 3);
 }
 
@@ -298,13 +298,15 @@ void assert_feedback(LetterFeedback *feedback, LetterFeedback *expected) {
   }
 }
 
-void print_timer_list(Timer *head) {
+void print_timer_list(TimerList *tl) {
   printf("[%s]: ", __FUNCTION__);
-  while (head != NULL) {
-    printf("[%d]", head->id);
-    if (head->next != NULL)
+
+  Timer *current = tl->head;
+  while (current != NULL) {
+    printf("[%d]", current->id);
+    if (current->next != NULL)
       printf(" -> ");
-    head = head->next;
+    current = current->next;
   }
   printf("\n");
 }

@@ -49,7 +49,7 @@ int main(void) {
   signal(SIGTERM, handle_shutdown);
 
   while (server_running) {
-    Timer_list_examine(&gs->timer_list);
+    TimerList_examine(gs->timer_list);
 
     int poll_count = poll(pfds, fd_count, POLL_TIMEOUT);
 

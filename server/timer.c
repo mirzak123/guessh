@@ -44,32 +44,32 @@ TimerFireAction Timer_fire(Timer *timer) {
   return TIMER_FIRE_NONE;
 }
 
-void Timer_list_examine(Timer **head) {
+void TimerList_examine(TimerList *tl) {
   Timer *rearm_list = NULL, *next = NULL;
-  while (*head != NULL && (*head)->timestamp <= time(NULL)) {
-    next = (*head)->next;
-    if (Timer_fire(*head) == TIMER_FIRE_REARM) {
-      (*head)->next = rearm_list;
-      rearm_list = *head;
+  while (tl->head != NULL && tl->head->timestamp <= time(NULL)) {
+    next = tl->head->next;
+    if (Timer_fire(tl->head) == TIMER_FIRE_REARM) {
+      tl->head->next = rearm_list;
+      rearm_list = tl->head;
     }
-    *head = next;
+    tl->head = next;
   }
 
   while (rearm_list != NULL) {
     next = rearm_list->next;
     rearm_list->timestamp = time(NULL) + rearm_list->seconds;
-    Timer_list_add(head, rearm_list);
+    TimerList_add(tl, rearm_list);
     rearm_list = next;
   }
 }
 
-void Timer_list_add(Timer **head, Timer *timer) {
-  if (*head == NULL) {
-    *head = timer;
+void TimerList_add(TimerList *tl, Timer *timer) {
+  if (tl->head == NULL) {
+    tl->head = timer;
     return;
   }
 
-  Timer *current = *head, *prev = NULL;
+  Timer *current = tl->head, *prev = NULL;
 
   while (current != NULL) {
     if (current == timer) {
@@ -80,7 +80,7 @@ void Timer_list_add(Timer **head, Timer *timer) {
       timer->next = current;
 
       if (prev == NULL) { // inserting at the beginning of the list
-        *head = timer;
+        tl->head = timer;
         return;
       }
 
@@ -96,8 +96,8 @@ void Timer_list_add(Timer **head, Timer *timer) {
   prev->next = timer; // inserting at the end of the list
 }
 
-void Timer_list_remove(Timer **head, Timer *timer) {
-  Timer *current = *head, *prev = NULL;
+void TimerList_remove(TimerList *tl, Timer *timer) {
+  Timer *current = tl->head, *prev = NULL;
 
   while (current != NULL) {
     if (current != timer) {
@@ -107,7 +107,7 @@ void Timer_list_remove(Timer **head, Timer *timer) {
     }
 
     if (prev == NULL) {
-      *head = current->next;
+      tl->head = current->next;
     } else {
       prev->next = current->next;
     }
@@ -115,14 +115,14 @@ void Timer_list_remove(Timer **head, Timer *timer) {
   }
 }
 
-void Timer_list_rearm(Timer **head, Timer *timer) {
+void TimerList_rearm(TimerList *tl, Timer *timer) {
   if (timer == NULL) {
     printf("Trying to reset a NULL timer\n");
     return;
   }
 
-  Timer_list_remove(head, timer);
+  TimerList_remove(tl, timer);
   timer->timestamp = time(NULL) + timer->seconds;
   timer->next = NULL;
-  Timer_list_add(head, timer);
+  TimerList_add(tl, timer);
 }

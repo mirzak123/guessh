@@ -80,7 +80,7 @@ typedef struct {
   HashTable *matches;
   HashTable *clients;
   HashTable *rooms;
-  Timer *timer_list;
+  TimerList *timer_list;
   struct {
     WordStore *five_secret;
     WordStore *six_secret;
