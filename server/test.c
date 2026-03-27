@@ -272,7 +272,7 @@ void test_timer_list_reset(void) {
   Timer_list_examine(&timer_list);
   assert(counter == 1);
 
-  Timer_list_reset(&timer_list, t2);
+  Timer_list_rearm(&timer_list, t2);
   assert(timer_list == t2);
 
   printf("sleeping for %d seconds...\n", sleep_seconds);

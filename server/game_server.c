@@ -771,7 +771,7 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
   if (is_round_finished(round)) {
     GS_end_round(gs, match);
   } else {
-    Timer_list_reset(&gs->timer_list, match->turn_timer);
+    Timer_list_rearm(&gs->timer_list, match->turn_timer);
     start_turn(match);
   }
 }

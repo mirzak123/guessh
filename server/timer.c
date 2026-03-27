@@ -116,7 +116,7 @@ void Timer_list_remove(Timer **head, Timer *timer) {
   }
 }
 
-void Timer_list_reset(Timer **head, Timer *timer) {
+void Timer_list_rearm(Timer **head, Timer *timer) {
   if (timer == NULL) {
     printf("Trying to reset a NULL timer\n");
     return;
