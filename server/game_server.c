@@ -30,7 +30,7 @@ static void add_guess_attempt(Round *round, char *guess);
 
 static void swap_turn(Match *match);
 static void start_turn(GameServer *gs, Match *match);
-static void send_guess_result(Match *match, cJSON *guess_result_json);
+static void send_guess_result(Match *match, char *guess);
 static TimerFireAction expire_turn_timer(TurnTimerData *timer_data);
 
 GameServer *GS_create(void) {
@@ -666,7 +666,7 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
   Match *match = NULL;
   Round *round;
   Player *player, *opponent;
-  cJSON *guess_json, *guess_result_json;
+  cJSON *guess_json;
   char *guess;
   bool player1_on_turn;
 
@@ -735,20 +735,17 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
   add_guess_attempt(round, guess);
   size_t solved_num = evaluate_guess(guess, round->wc_list, round->wc_num, player1_on_turn);
   round->solved_num += solved_num;
-  guess_result_json = json_guess_result(guess, round, match->word_len);
 
   if (solved_num == 0) {
     swap_turn(match);
   }
 
-  send_guess_result(match, guess_result_json);
-  cJSON_Delete(guess_result_json);
+  send_guess_result(match, guess);
 
   if (is_round_finished(round)) {
-    GS_end_round(gs, match);
+    GS_end_round(gs, match); // TODO: arm the ready for turn timer if match isn't over
   } else {
-    TimerList_arm(gs->timer_list, match->turn_timer);
-    start_turn(match);
+    start_turn(gs, match);
   }
 }
 
@@ -789,7 +786,7 @@ void GS_handle_ready_for_turn(GameServer *gs, Client *client) {
     if (opponent->waiting_ready_for_turn) {
       player->waiting_ready_for_turn = false;
       opponent->waiting_ready_for_turn = false;
-      start_turn(match);
+      start_turn(gs, match);
     }
     break;
   case SINGLE:
@@ -1007,7 +1004,7 @@ void GS_start_round(GameServer *gs, Match *match) {
   }
   cJSON_Delete(round_started_json);
 
-  start_turn(match);
+  start_turn(gs, match);
 }
 
 Player *get_opponent(Player *player1, Player *player2, Player *current) { return player1 == current ? player2 : player1; }
@@ -1077,9 +1074,9 @@ bool already_guessed(char *word, char **guesses, size_t len) {
   return false;
 }
 
-// TODO: update this to take in a guess and create the json internally
-void send_guess_result(Match *match, cJSON *guess_result_json) {
+void send_guess_result(Match *match, char *guess) {
   Player *player, *opponent;
+  cJSON *guess_result_json = json_guess_result(guess, match->rounds[match->round_idx], match->word_len);
 
   switch (match->mode) {
   case MULTI_REMOTE:
@@ -1095,6 +1092,8 @@ void send_guess_result(Match *match, cJSON *guess_result_json) {
     send_json(match->player1->client_fd, guess_result_json);
     break;
   }
+
+  cJSON_Delete(guess_result_json);
 }
 
 void swap_turn(Match *match) {
@@ -1174,7 +1173,6 @@ TimerFireAction expire_turn_timer(TurnTimerData *timer_data) {
     }
     break;
   }
-  start_turn(match);
   return TIMER_FIRE_REARM;
 }
 
