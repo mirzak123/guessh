@@ -29,7 +29,7 @@ static bool is_round_finished(Round *round);
 static void add_guess_attempt(Round *round, char *guess);
 
 static void swap_turn(Match *match);
-static void start_turn(Match *match);
+static void start_turn(GameServer *gs, Match *match);
 static void send_guess_result(Match *match, cJSON *guess_result_json);
 static TimerFireAction expire_turn_timer(TurnTimerData *timer_data);
 
@@ -747,7 +747,7 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
   if (is_round_finished(round)) {
     GS_end_round(gs, match);
   } else {
-    TimerList_rearm(gs->timer_list, match->turn_timer);
+    TimerList_arm(gs->timer_list, match->turn_timer);
     start_turn(match);
   }
 }
@@ -802,7 +802,7 @@ void GS_end_match(GameServer *gs, Match *match, Player *disconnected_player) {
   cJSON *match_finished_json = NULL;
 
   if (match->turn_timer != NULL) {
-    TimerList_remove(gs->timer_list, match->turn_timer);
+    TimerList_disarm(gs->timer_list, match->turn_timer);
   }
 
   switch (match->mode) {
@@ -940,7 +940,7 @@ void GS_start_match(GameServer *gs, Match *match, bool is_rematch) {
 
   GS_start_round(gs, match);
   if (match->turn_timer != NULL) {
-    TimerList_add(gs->timer_list, match->turn_timer);
+    TimerList_arm(gs->timer_list, match->turn_timer);
   }
 }
 
@@ -1114,7 +1114,7 @@ void swap_turn(Match *match) {
   }
 }
 
-void start_turn(Match *match) {
+void start_turn(GameServer *gs, Match *match) {
   Player *player, *opponent;
 
   switch (match->mode) {
@@ -1134,6 +1134,10 @@ void start_turn(Match *match) {
   case SINGLE:
     send_only_type(match->player1->client_fd, STR(WAIT_GUESS));
     break;
+  }
+
+  if (match->turn_timer != NULL) {
+    TimerList_arm(gs->timer_list, match->turn_timer);
   }
 }
 

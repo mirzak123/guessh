@@ -30,8 +30,8 @@ typedef struct TimerList {
 } TimerList;
 
 void TimerList_examine(TimerList *tl);
-void TimerList_add(TimerList *tl, Timer *timer);
-void TimerList_remove(TimerList *tl, Timer *timer);
+void TimerList_arm(TimerList *tl, Timer *timer);
+void TimerList_disarm(TimerList *tl, Timer *timer);
 void TimerList_rearm(TimerList *tl, Timer *timer);
 
 #endif // !TIMER_H

@@ -58,12 +58,12 @@ void TimerList_examine(TimerList *tl) {
   while (rearm_list != NULL) {
     next = rearm_list->next;
     rearm_list->timestamp = time(NULL) + rearm_list->seconds;
-    TimerList_add(tl, rearm_list);
+    TimerList_arm(tl, rearm_list);
     rearm_list = next;
   }
 }
 
-void TimerList_add(TimerList *tl, Timer *timer) {
+void TimerList_arm(TimerList *tl, Timer *timer) {
   if (tl->head == NULL) {
     tl->head = timer;
     return;
@@ -96,7 +96,7 @@ void TimerList_add(TimerList *tl, Timer *timer) {
   prev->next = timer; // inserting at the end of the list
 }
 
-void TimerList_remove(TimerList *tl, Timer *timer) {
+void TimerList_disarm(TimerList *tl, Timer *timer) {
   Timer *current = tl->head, *prev = NULL;
 
   while (current != NULL) {
@@ -121,8 +121,8 @@ void TimerList_rearm(TimerList *tl, Timer *timer) {
     return;
   }
 
-  TimerList_remove(tl, timer);
+  TimerList_disarm(tl, timer);
   timer->timestamp = time(NULL) + timer->seconds;
   timer->next = NULL;
-  TimerList_add(tl, timer);
+  TimerList_arm(tl, timer);
 }

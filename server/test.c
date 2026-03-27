@@ -176,10 +176,10 @@ void test_timer(void) {
   t3 = new_timer(40, (TimerCallbackFunc)increment, &counter);
   t4 = new_timer(5, (TimerCallbackFunc)increment, &counter);
 
-  TimerList_add(&tl, t1);
-  TimerList_add(&tl, t2);
-  TimerList_add(&tl, t3);
-  TimerList_add(&tl, t4);
+  TimerList_arm(&tl, t1);
+  TimerList_arm(&tl, t2);
+  TimerList_arm(&tl, t3);
+  TimerList_arm(&tl, t4);
 
   Timer_fire(t1);
   assert(toggle_switch == true);
@@ -203,13 +203,13 @@ void test_timer(void) {
   t_cur = t_cur->next;
   assert(t_cur == t3);
 
-  TimerList_remove(&tl, t4);
+  TimerList_disarm(&tl, t4);
   assert(tl.head == t2);
-  TimerList_remove(&tl, t3);
+  TimerList_disarm(&tl, t3);
   assert(tl.head == t2);
-  TimerList_remove(&tl, t2);
+  TimerList_disarm(&tl, t2);
   assert(tl.head == t1);
-  TimerList_remove(&tl, t1);
+  TimerList_disarm(&tl, t1);
   assert(tl.head == NULL);
 
   delete_timer(t1, false);
@@ -228,10 +228,10 @@ void test_timer_list_examine(void) {
   t3 = new_timer(15, (TimerCallbackFunc)increment, &counter);
   t4 = new_timer(2, (TimerCallbackFunc)increment, &counter);
 
-  TimerList_add(&tl, t2);
-  TimerList_add(&tl, t1);
-  TimerList_add(&tl, t3);
-  TimerList_add(&tl, t4);
+  TimerList_arm(&tl, t2);
+  TimerList_arm(&tl, t1);
+  TimerList_arm(&tl, t3);
+  TimerList_arm(&tl, t4);
 
   printf("sleeping for %d seconds...\n", sleep_seconds);
   sleep(sleep_seconds);
@@ -258,9 +258,9 @@ void test_timer_list_rearm(void) {
   t2 = new_timer(1, (TimerCallbackFunc)increment, &counter);
   t3 = new_timer(15, (TimerCallbackFunc)increment, &counter);
 
-  TimerList_add(&tl, t1);
-  TimerList_add(&tl, t2);
-  TimerList_add(&tl, t3);
+  TimerList_arm(&tl, t1);
+  TimerList_arm(&tl, t2);
+  TimerList_arm(&tl, t3);
 
   assert(tl.head == t2);
   TimerList_examine(&tl);
@@ -272,7 +272,7 @@ void test_timer_list_rearm(void) {
   TimerList_examine(&tl);
   assert(counter == 1);
 
-  TimerList_rearm(&tl, t2);
+  TimerList_arm(&tl, t2);
   assert(tl.head == t2);
 
   printf("sleeping for %d seconds...\n", sleep_seconds);
