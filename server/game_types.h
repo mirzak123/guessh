@@ -29,6 +29,7 @@ typedef struct Player {
   char *name;
   struct Match *match;
   struct Room *room;
+  bool waiting_ready_for_turn;
   bool wants_rematch;
 } Player;
 

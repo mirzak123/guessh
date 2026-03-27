@@ -19,7 +19,7 @@ typedef struct {
   Match *match;
 } TurnTimerData;
 
-static MessageType parse_message(char *data, size_t size, cJSON **out);
+static MessageType parse_client_event(char *data, size_t size, cJSON **out);
 static Outcome calculate_match_outcome(Match *match);
 static void calculate_round_points(Round *round);
 static WordStore *get_word_store(GameServer *gs, size_t word_len);
@@ -73,7 +73,7 @@ void GS_handle_request(GameServer *gs, Client *client) {
   char *data = client->buf_start;
   size_t size = client->payload_size;
 
-  mt = parse_message(data, size, &json_request);
+  mt = parse_client_event(data, size, &json_request);
 
   switch (mt) {
   case MALFORMED_MESSAGE:
@@ -325,8 +325,10 @@ void GS_cleanup_room(GameServer *gs, Room *room, Player *disconnected_player) {
   if (opponent != NULL) {
     send_only_type(opponent->client_fd, STR(OPPONENT_LEFT));
     opponent->room = NULL;
+    opponent->waiting_ready_for_turn = false;
   }
   disconnected_player->room = NULL;
+  disconnected_player->waiting_ready_for_turn = false;
 
   HT_delete(gs->rooms, KEY(room->id));
   delete_room(room);
@@ -348,26 +350,25 @@ void GS_cleanup_match(GameServer *gs, Match *match) {
   delete_match(match);
 }
 
-MessageType parse_message(char *data, size_t size, cJSON **json_out) {
+MessageType parse_client_event(char *data, size_t size, cJSON **json_out) {
   cJSON *json_type = NULL;
   char *type;
   MessageType mt;
 
   *json_out = cJSON_ParseWithLength(data, size);
   if (*json_out == NULL) {
-    printf("[parse_message] cJSON failed to parse message\n");
+    printf("[%s] cJSON failed to parse message\n", __FUNCTION__);
     return MALFORMED_MESSAGE;
   }
-  // printf("[parse_message] json_out: %s\n", cJSON_PrintUnformatted(*json_out));
 
   json_type = cJSON_GetObjectItem(*json_out, "type");
   if (json_type == NULL) {
-    printf("[parse_message] message missing 'type' field\n");
+    printf("[%s] message missing 'type' field\n", __FUNCTION__);
     return MALFORMED_MESSAGE;
   }
 
   if (!cJSON_IsString(json_type)) {
-    printf("[parse_message] message 'type' field is not a string\n");
+    printf("[%s] message 'type' field is not a string\n", __FUNCTION__);
     return MALFORMED_MESSAGE;
   }
   type = cJSON_GetStringValue(json_type);
@@ -384,34 +385,8 @@ MessageType parse_message(char *data, size_t size, cJSON **json_out) {
     mt = DENY_REMATCH;
   } else if (!strcmp("LEAVE_MATCH", type)) {
     mt = LEAVE_MATCH;
-  } else if (!strcmp("OPPONENT_LEFT", type)) {
-    mt = OPPONENT_LEFT;
-  } else if (!strcmp("ROOM_CREATED", type)) {
-    mt = ROOM_CREATED;
-  } else if (!strcmp("ROOM_JOINED", type)) {
-    mt = ROOM_JOINED;
-  } else if (!strcmp("ROOM_JOIN_FAILED", type)) {
-    mt = ROOM_JOIN_FAILED;
-  } else if (!strcmp("WAIT_OPPONENT_JOIN", type)) {
-    mt = WAIT_OPPONENT_JOIN;
-  } else if (!strcmp("MATCH_STARTED", type)) {
-    mt = MATCH_STARTED;
-  } else if (!strcmp("ROUND_STARTED", type)) {
-    mt = ROUND_STARTED;
-  } else if (!strcmp("WAIT_GUESS", type)) {
-    mt = WAIT_GUESS;
-  } else if (!strcmp("WAIT_OPPONENT_GUESS", type)) {
-    mt = WAIT_OPPONENT_GUESS;
-  } else if (!strcmp("GUESS_RESULT", type)) {
-    mt = GUESS_RESULT;
-  } else if (!strcmp("ROUND_FINISHED", type)) {
-    mt = ROUND_FINISHED;
-  } else if (!strcmp("MATCH_FINISHED", type)) {
-    mt = MATCH_FINISHED;
   } else if (!strcmp("TYPING", type)) {
     mt = TYPING;
-  } else if (!strcmp("OPPONENT_TYPING", type)) {
-    mt = OPPONENT_TYPING;
   } else {
     mt = UNSUPPORTED_MESSAGE_TYPE;
   }
@@ -793,6 +768,34 @@ void GS_handle_leave_match(GameServer *gs, Client *client) {
   HT_delete(gs->matches, KEY(match->id));
   delete_match(match);
   client->player->match = NULL;
+}
+
+void GS_handle_ready_for_turn(GameServer *gs, Client *client) {
+  (void)gs;
+  Player *player = client->player, *opponent;
+
+  if (client->player == NULL || !client->player->waiting_ready_for_turn) {
+    send_error(client->fd, E_NOT_WAITING_FOR_READY_FOR_TURN);
+    return;
+  }
+
+  Match *match = client->player->match;
+
+  assert(match != NULL);
+
+  switch (match->mode) {
+  case MULTI_REMOTE:
+    opponent = get_opponent(match->player1, match->player2, player);
+    if (opponent->waiting_ready_for_turn) {
+      player->waiting_ready_for_turn = false;
+      opponent->waiting_ready_for_turn = false;
+      start_turn(match);
+    }
+    break;
+  case SINGLE:
+  case MULTI_LOCAL:
+    break;
+  }
 }
 
 void GS_end_match(GameServer *gs, Match *match, Player *disconnected_player) {
