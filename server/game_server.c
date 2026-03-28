@@ -805,11 +805,14 @@ void GS_handle_ready_for_turn(GameServer *gs, Client *client) {
       player->waiting_ready_for_turn = false;
       opponent->waiting_ready_for_turn = false;
       start_turn(match);
+      Timer_disarm(match->post_round_timer);
+    } else {
+      player->waiting_ready_for_turn = true;
     }
-    Timer_disarm(match->post_round_timer);
     break;
   case SINGLE:
   case MULTI_LOCAL:
+    start_turn(match);
     break;
   }
 }

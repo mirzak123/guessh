@@ -52,7 +52,7 @@ void TimerList_examine(TimerList *tl) {
     current = next;
   }
 
-  while (current != NULL) {
+  while (current != NULL) { // TODO: Reverse the two lists
     next = current->next;
     Timer_arm(current);
     current = next;
