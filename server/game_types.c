@@ -56,6 +56,10 @@ void delete_match(Match *match) {
     delete_timer(match->turn_timer, true);
   }
 
+  if (match->post_round_timer != NULL) {
+    delete_timer(match->post_round_timer, true);
+  }
+
   free(match);
 }
 

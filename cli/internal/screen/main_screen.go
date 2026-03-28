@@ -417,7 +417,7 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Cmd {
 		m.game.input.Focus()
 		m.game.input.SetValue("")
 		m.game.err = nil
-		return m.game.setTimer()
+		return m.game.setTurnTimer()
 
 	case protocol.WAIT_OPPONENT_GUESS:
 		m.matchInfo.PlayerOnTurn = false
@@ -431,7 +431,7 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Cmd {
 			m.game.input.Blur()
 		}
 
-		return m.game.setTimer()
+		return m.game.setTurnTimer()
 
 	case protocol.WAIT_OPPONENT_JOIN:
 		m.game.state = game.StateWaitOpponentJoin
@@ -475,6 +475,7 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Cmd {
 		m.matchInfo.CorrectWords = roundFinishedEvent.Words
 		m.game.input.Blur()
 		m.game.turnTimer.Stop()
+		m.game.postRoundTimeout = roundFinishedEvent.PostTurnTimeout
 
 		logger.Debug("Round points: %v", m.matchInfo.RoundPoints)
 		m.matchInfo.RoundPoints[m.matchInfo.CurrentRound-1] = roundFinishedEvent.Points
@@ -484,7 +485,7 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Cmd {
 		if !m.flushing {
 			m.eventsPaused = true
 		}
-		return nil
+		return emit(m.game.setPostRoundTimer())
 
 	case protocol.MATCH_FINISHED:
 		matchFinishedEvent := &protocol.MatchFinishedEvent{}

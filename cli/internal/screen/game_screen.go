@@ -19,18 +19,19 @@ import (
 )
 
 type gameModel struct {
-	width, height  int
-	matchInfo      *game.MatchInfo
-	input          textinput.Model
-	state          game.GameState
-	roundInfo      *game.RoundInfo
-	guesses        []string
-	challenges     []*protocol.WordChallenge
-	challengesLen  int
-	turnTimer      timer.Model
-	postRoundTimer timer.Model
-	turnTimeout    int
-	err            error
+	width, height    int
+	matchInfo        *game.MatchInfo
+	input            textinput.Model
+	state            game.GameState
+	roundInfo        *game.RoundInfo
+	guesses          []string
+	challenges       []*protocol.WordChallenge
+	challengesLen    int
+	turnTimer        timer.Model
+	postRoundTimer   timer.Model
+	turnTimeout      int
+	postRoundTimeout int
+	err              error
 }
 
 func NewGame(matchInfo *game.MatchInfo) *gameModel {
@@ -352,6 +353,8 @@ func (m *gameModel) statusBar() string {
 				ui.GrayText.Render(""),
 				ui.RoseText.Render(countdown),
 			)
+		} else {
+			logger.Debug("Perhaps not running sire")
 		}
 
 		switch m.matchInfo.Format {
@@ -460,10 +463,18 @@ func (m *gameModel) initChallenges() {
 	}
 }
 
-func (m *gameModel) setTimer() tea.Cmd {
+func (m *gameModel) setTurnTimer() tea.Cmd {
 	if m.turnTimeout > 0 {
 		m.turnTimer = timer.New(time.Second * time.Duration(m.turnTimeout))
 		return m.turnTimer.Init()
+	}
+	return nil
+}
+
+func (m *gameModel) setPostRoundTimer() tea.Cmd {
+	if m.postRoundTimeout > 0 {
+		m.postRoundTimer = timer.New(time.Second * time.Duration(m.postRoundTimeout))
+		return m.postRoundTimer.Init()
 	}
 	return nil
 }

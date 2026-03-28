@@ -272,7 +272,15 @@ void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request)
   }
 
   if (game_mode == MULTI_REMOTE) {
-    match->post_round_timer = new_timer(gs->timer_list, (TimerCallbackFunc)expire_post_round_timer, match, POST_ROUND_TIMEOUT);
+    MatchTimerData *timer_data = malloc(sizeof(MatchTimerData));
+    if (timer_data == NULL) {
+      perror("timer_data malloc");
+      delete_match(match);
+    }
+    timer_data->gs = gs;
+    timer_data->match = match;
+    match->post_round_timer =
+        new_timer(gs->timer_list, (TimerCallbackFunc)expire_post_round_timer, timer_data, POST_ROUND_TIMEOUT);
   }
 
   if (client->player != NULL) {
