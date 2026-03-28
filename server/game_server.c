@@ -80,7 +80,7 @@ void GS_handle_request(GameServer *gs, Client *client) {
 
   switch (mt) {
   case MALFORMED_MESSAGE:
-    printf("[GS_handle_request] Malformed request received: \"%s\"\n", data);
+    printf("[%s] Malformed request received: \"%s\"\n", __FUNCTION__, data);
     if (json_request) {
       cJSON_Delete(json_request);
     }
@@ -106,6 +106,9 @@ void GS_handle_request(GameServer *gs, Client *client) {
     break;
   case TYPING:
     GS_handle_typing(client, json_request);
+    break;
+  case READY_FOR_TURN:
+    GS_handle_ready_for_turn(gs, client);
     break;
   case UNSUPPORTED_MESSAGE_TYPE:
   default:
@@ -381,20 +384,22 @@ MessageType parse_client_event(char *data, size_t size, cJSON **json_out) {
   }
   type = cJSON_GetStringValue(json_type);
 
-  if (!strcmp("CREATE_MATCH", type)) {
+  if (!strcmp(STR(CREATE_MATCH), type)) {
     mt = CREATE_MATCH;
-  } else if (!strcmp("JOIN_ROOM", type)) {
+  } else if (!strcmp(STR(JOIN_ROOM), type)) {
     mt = JOIN_ROOM;
-  } else if (!strcmp("MAKE_GUESS", type)) {
+  } else if (!strcmp(STR(MAKE_GUESS), type)) {
     mt = MAKE_GUESS;
-  } else if (!strcmp("REQUEST_REMATCH", type)) {
+  } else if (!strcmp(STR(REQUEST_REMATCH), type)) {
     mt = REQUEST_REMATCH;
-  } else if (!strcmp("DENY_REMATCH", type)) {
+  } else if (!strcmp(STR(DENY_REMATCH), type)) {
     mt = DENY_REMATCH;
-  } else if (!strcmp("LEAVE_MATCH", type)) {
+  } else if (!strcmp(STR(LEAVE_MATCH), type)) {
     mt = LEAVE_MATCH;
-  } else if (!strcmp("TYPING", type)) {
+  } else if (!strcmp(STR(TYPING), type)) {
     mt = TYPING;
+  } else if (!strcmp(STR(READY_FOR_TURN), type)) {
+    mt = READY_FOR_TURN;
   } else {
     mt = UNSUPPORTED_MESSAGE_TYPE;
   }
@@ -796,6 +801,7 @@ void GS_handle_ready_for_turn(GameServer *gs, Client *client) {
       opponent->waiting_ready_for_turn = false;
       start_turn(match);
     }
+    Timer_disarm(match->post_round_timer);
     break;
   case SINGLE:
   case MULTI_LOCAL:
@@ -1186,7 +1192,10 @@ TimerFireAction expire_turn_timer(TurnTimerData *timer_data) {
   return TIMER_FIRE_REARM;
 }
 
-TimerFireAction expire_post_round_timer(Match *match) {}
+TimerFireAction expire_post_round_timer(Match *match) {
+  Timer_rearm(match->turn_timer);
+  return TIMER_FIRE_NONE;
+}
 
 bool is_round_finished(Round *round) {
   return (round->solved_num == round->wc_num) || (round->attempt_count >= round->max_attempts);

@@ -119,7 +119,7 @@ func (m *gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyEnter:
 			logger.Debug("Game state: [%s]", m.state)
 			if m.state == game.StateRoundFinished {
-				return m, emit(game.ContinueIntent{})
+				return m, emit(game.ReadyForTurnIntent{})
 			}
 			if m.state == game.StateWaitOpponentGuess && m.matchInfo.Mode != protocol.MULTI_LOCAL {
 				break
