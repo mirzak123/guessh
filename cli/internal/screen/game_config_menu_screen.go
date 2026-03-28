@@ -15,10 +15,10 @@ import (
 )
 
 const (
-	minRounds         = 1
-	maxRounds         = 5
-	minSecondsPerTurn = 5
-	maxSecondsPerTurn = 300
+	minRounds      = 1
+	maxRounds      = 5
+	minTurnTimeout = 5
+	maxTurnTimeout = 300
 )
 
 var GameModeLabels = map[protocol.GameMode]string{
@@ -120,7 +120,7 @@ func NewGameConfigMenu(matchInfo *game.MatchInfo, hoveredPtr *protocol.GameMode)
 			Value(&matchInfo.RawTotalRounds)
 
 		timerInput = huh.NewInput().
-				Title(fmt.Sprintf("How many seconds per turn? (%d - %d)", minSecondsPerTurn, maxSecondsPerTurn)).
+				Title(fmt.Sprintf("How many seconds per turn? (%d - %d)", minTurnTimeout, maxTurnTimeout)).
 				Description("Leave empty for no time limit").
 				Validate(func(str string) error {
 				if str == "" {
@@ -131,12 +131,12 @@ func NewGameConfigMenu(matchInfo *game.MatchInfo, hoveredPtr *protocol.GameMode)
 				if err != nil {
 					return errors.New("please enter a valid number")
 				}
-				if t < minSecondsPerTurn || t > maxSecondsPerTurn {
-					return fmt.Errorf("seconds per turn must be between %d and %d", minSecondsPerTurn, maxSecondsPerTurn)
+				if t < minTurnTimeout || t > maxTurnTimeout {
+					return fmt.Errorf("seconds per turn must be between %d and %d", minTurnTimeout, maxTurnTimeout)
 				}
 				return nil
 			}).
-			Value(&matchInfo.RawSecondsPerTurn)
+			Value(&matchInfo.RawTurnTimeout)
 
 		roomIDInput = huh.NewInput().
 				Title("Room ID ").
@@ -192,8 +192,8 @@ func NewGameConfigMenu(matchInfo *game.MatchInfo, hoveredPtr *protocol.GameMode)
 					lines = append(lines, line("Word length: ", fmt.Sprintf("%d", matchInfo.WordLen)))
 					lines = append(lines, line("Rounds: ", matchInfo.RawTotalRounds))
 
-					if matchInfo.RawSecondsPerTurn != "" {
-						lines = append(lines, line("Seconds per turn: ", matchInfo.RawSecondsPerTurn))
+					if matchInfo.RawTurnTimeout != "" {
+						lines = append(lines, line("Seconds per turn: ", matchInfo.RawTurnTimeout))
 					}
 
 				case protocol.MULTI_LOCAL:
@@ -203,8 +203,8 @@ func NewGameConfigMenu(matchInfo *game.MatchInfo, hoveredPtr *protocol.GameMode)
 					lines = append(lines, line("Word length: ", fmt.Sprintf("%d", matchInfo.WordLen)))
 					lines = append(lines, line("Rounds: ", matchInfo.RawTotalRounds))
 
-					if matchInfo.RawSecondsPerTurn != "" {
-						lines = append(lines, line("Seconds per turn: ", matchInfo.RawSecondsPerTurn))
+					if matchInfo.RawTurnTimeout != "" {
+						lines = append(lines, line("Seconds per turn: ", matchInfo.RawTurnTimeout))
 					}
 
 				case protocol.MULTI_REMOTE:
@@ -216,8 +216,8 @@ func NewGameConfigMenu(matchInfo *game.MatchInfo, hoveredPtr *protocol.GameMode)
 						lines = append(lines, line("Word length: ", fmt.Sprintf("%d", matchInfo.WordLen)))
 						lines = append(lines, line("Rounds: ", matchInfo.RawTotalRounds))
 
-						if matchInfo.RawSecondsPerTurn != "" {
-							lines = append(lines, line("Seconds per turn: ", matchInfo.RawSecondsPerTurn))
+						if matchInfo.RawTurnTimeout != "" {
+							lines = append(lines, line("Seconds per turn: ", matchInfo.RawTurnTimeout))
 						}
 					}
 				}

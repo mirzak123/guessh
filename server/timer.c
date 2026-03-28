@@ -20,7 +20,6 @@ Timer *new_timer(TimerList *tl, TimerCallbackFunc func, TimerCallbackData data, 
   }
 
   timer->id = generate_unique_id();
-  timer->timestamp = current_time + seconds;
   timer->seconds = seconds;
   timer->callback.func = func;
   timer->callback.data = data;

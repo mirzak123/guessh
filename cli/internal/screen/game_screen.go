@@ -28,7 +28,8 @@ type gameModel struct {
 	challenges     []*protocol.WordChallenge
 	challengesLen  int
 	turnTimer      timer.Model
-	secondsPerTurn int
+	postRoundTimer timer.Model
+	turnTimeout    int
 	err            error
 }
 
@@ -56,8 +57,8 @@ func (m *gameModel) Init() tea.Cmd {
 		}
 	}
 
-	if m.matchInfo.RawSecondsPerTurn != "" {
-		if m.matchInfo.SecondsPerTurn, err = strconv.Atoi(m.matchInfo.RawSecondsPerTurn); err != nil {
+	if m.matchInfo.RawTurnTimeout != "" {
+		if m.matchInfo.TurnTimeout, err = strconv.Atoi(m.matchInfo.RawTurnTimeout); err != nil {
 			logger.Error("[Client.CreateMatch] Failed to convert matchInfo.RawTotalRounds after it passed validation: %v", err)
 			os.Exit(1)
 		}
@@ -72,12 +73,12 @@ func (m *gameModel) Init() tea.Cmd {
 		})
 	} else {
 		cmd = emit(game.CreateMatchIntent{
-			Mode:           m.matchInfo.Mode,
-			Format:         m.matchInfo.Format,
-			WordLen:        m.matchInfo.WordLen,
-			Rounds:         m.matchInfo.TotalRounds,
-			SecondsPerTurn: m.matchInfo.SecondsPerTurn,
-			PlayerName:     m.matchInfo.PlayerName,
+			Mode:        m.matchInfo.Mode,
+			Format:      m.matchInfo.Format,
+			WordLen:     m.matchInfo.WordLen,
+			Rounds:      m.matchInfo.TotalRounds,
+			TurnTimeout: m.matchInfo.TurnTimeout,
+			PlayerName:  m.matchInfo.PlayerName,
 		})
 	}
 
@@ -124,6 +125,10 @@ func (m *gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.state == game.StateWaitOpponentGuess && m.matchInfo.Mode != protocol.MULTI_LOCAL {
 				break
 			}
+			if m.state == game.StateRoundFinished && m.matchInfo.Mode == protocol.MULTI_REMOTE {
+				m.state = game.StateWaitOpponentReady
+				break
+			}
 			if m.state == game.StateWaitGuess || m.state == game.StateWaitOpponentGuess {
 				v := m.input.Value()
 
@@ -150,13 +155,12 @@ func (m *gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(cmds...)
 	}
 
-	var inputCmd tea.Cmd
-	var timerCmd tea.Cmd
+	var inputCmd, timerCmd, postTurnTimerCmd tea.Cmd
 
 	m.input, inputCmd = m.input.Update(msg)
 	m.turnTimer, timerCmd = m.turnTimer.Update(msg)
 
-	cmds = append(cmds, inputCmd, timerCmd)
+	cmds = append(cmds, inputCmd, timerCmd, postTurnTimerCmd)
 
 	return m, tea.Batch(cmds...)
 }
@@ -295,9 +299,9 @@ func (m *gameModel) View() string {
 
 func (m *gameModel) statusBar() string {
 	var content string
-	var line1, line2 string
+	var line1, line2, line3 string
 
-	if m.state == game.StateRoundFinished {
+	if m.state == game.StateRoundFinished || m.state == game.StateWaitOpponentReady {
 		var outcome string
 
 		points := m.matchInfo.RoundPoints[m.matchInfo.CurrentRound-1]
@@ -333,7 +337,22 @@ func (m *gameModel) statusBar() string {
 		}
 
 		line1 = outcome
-		line2 = ui.GrayText.Render("Press Enter to continue")
+		switch m.state {
+		case game.StateRoundFinished:
+			line2 = ui.GrayText.Render("Press Enter to continue")
+		case game.StateWaitOpponentReady:
+			line2 = ui.GrayText.Render("")
+		}
+
+		if m.matchInfo.Mode == protocol.MULTI_REMOTE && m.postRoundTimer.Running() {
+			seconds := int(m.postRoundTimer.Timeout.Seconds())
+			countdown := fmt.Sprintf("%3d", seconds)
+
+			line3 = lipgloss.JoinHorizontal(lipgloss.Center,
+				ui.GrayText.Render(""),
+				ui.RoseText.Render(countdown),
+			)
+		}
 
 		switch m.matchInfo.Format {
 		case protocol.WORDLE:
@@ -376,6 +395,7 @@ func (m *gameModel) statusBar() string {
 		lipgloss.Center,
 		line1,
 		line2,
+		line3,
 	)
 
 	return lipgloss.NewStyle().
@@ -441,8 +461,8 @@ func (m *gameModel) initChallenges() {
 }
 
 func (m *gameModel) setTimer() tea.Cmd {
-	if m.secondsPerTurn > 0 {
-		m.turnTimer = timer.New(time.Second * time.Duration(m.secondsPerTurn))
+	if m.turnTimeout > 0 {
+		m.turnTimer = timer.New(time.Second * time.Duration(m.turnTimeout))
 		return m.turnTimer.Init()
 	}
 	return nil

@@ -13,8 +13,10 @@
 #define MAX_ROUNDS 5
 #define MAX_CLIENTS 100
 
-#define MIN_SECONDS_PER_TURN 5
-#define MAX_SECONDS_PER_TURN 300
+#define MIN_TURN_TIMEOUT 5
+#define MAX_TURN_TIMEOUT 300
+
+#define POST_ROUND_TIMEOUT 10
 
 // don't ask...
 #define STR_HELPER(x) #x
@@ -33,7 +35,7 @@
 #define E_INVALID_VALUE(field, reason) "Invalid value received for field '" field "': " reason
 #define E_INVALID_ROUNDS "Round number must be between 1 and " STR(MAX_ROUNDS)
 #define E_INVALID_WORD_LEN "wordLength must be between " STR(MIN_WORD_LEN) " and " STR(MAX_WORD_LEN)
-#define E_INVALID_SECONDS_PER_TURN "secondsPerTurn must be between " STR(MIN_SECONDS_PER_TURN) " and " STR(MAX_SECONDS_PER_TURN)
+#define E_INVALID_TURN_TIMEOUT "turnTimeout must be between " STR(MIN_TURN_TIMEOUT) " and " STR(MAX_TURN_TIMEOUT)
 #define E_NOT_ON_TURN "Opponent is currently on turn"
 #define E_NOT_WAITING_FOR_READY_FOR_TURN "Not currently waiting for ready for turn event"
 #define E_REPEATED_GUESS "Repeating guesses is not allowed"

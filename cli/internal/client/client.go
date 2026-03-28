@@ -19,13 +19,13 @@ func NewClient(conn net.Conn) *Client {
 	}
 }
 
-func (c *Client) CreateMatch(mode protocol.GameMode, format protocol.GameFormat, wordLen, rounds, secondsPerTurn int, playerName string) {
+func (c *Client) CreateMatch(mode protocol.GameMode, format protocol.GameFormat, wordLen, rounds, turnTimeout int, playerName string) {
 	var (
 		msg []byte
 		err error
 	)
 
-	createMatchEvent := protocol.NewCreateMatchEvent(mode, format, wordLen, rounds, secondsPerTurn, playerName)
+	createMatchEvent := protocol.NewCreateMatchEvent(mode, format, wordLen, rounds, turnTimeout, playerName)
 	if msg, err = json.Marshal(createMatchEvent); err != nil {
 		logger.Error("[client] Failed to marshal CreateMatchEvent: %v", err)
 		os.Exit(1)

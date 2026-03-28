@@ -14,12 +14,10 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#define READY_FOR_TURN_TIMEOUT 10
-
 typedef struct {
   GameServer *gs;
   Match *match;
-} TurnTimerData;
+} MatchTimerData;
 
 static MessageType parse_client_event(char *data, size_t size, cJSON **out);
 static Outcome calculate_match_outcome(Match *match);
@@ -33,8 +31,8 @@ static void add_guess_attempt(Round *round, char *guess);
 static void swap_turn(Match *match);
 static void start_turn(Match *match);
 static void send_guess_result(Match *match, char *guess);
-static TimerFireAction expire_turn_timer(TurnTimerData *timer_data);
-static TimerFireAction expire_post_round_timer(Match *match);
+static void expire_turn_timer(MatchTimerData *timer_data);
+static void expire_post_round_timer(MatchTimerData *timer_data);
 
 GameServer *GS_create(void) {
   GameServer *gs;
@@ -121,8 +119,8 @@ void GS_handle_request(GameServer *gs, Client *client) {
 void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request) {
   Match *match = NULL;
   cJSON *rounds_json = NULL, *mode_json = NULL, *format_json = NULL, *word_len_json = NULL, *player_name_json = NULL,
-        *seconds_per_turn_json = NULL;
-  size_t rounds, word_len, seconds_per_turn = 0;
+        *turn_timeout_json = NULL;
+  size_t rounds, word_len, turn_timeout = 0;
   char *mode_str, *format_str, *player_name_str = NULL;
   GameMode game_mode;
   GameFormat game_format;
@@ -238,19 +236,19 @@ void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request)
     return;
   }
 
-  // parse secondsPerTurn
-  seconds_per_turn_json = cJSON_GetObjectItem(json_request, "secondsPerTurn");
-  if (seconds_per_turn_json != NULL) {
-    if (!cJSON_IsNumber(seconds_per_turn_json)) {
-      send_error(client->fd, E_INVALID_TYPE("secondsPerTurn", NUMBER));
+  // parse turnTimeout
+  turn_timeout_json = cJSON_GetObjectItem(json_request, "turnTimeout");
+  if (turn_timeout_json != NULL) {
+    if (!cJSON_IsNumber(turn_timeout_json)) {
+      send_error(client->fd, E_INVALID_TYPE("turnTimeout", NUMBER));
       return;
     }
 
-    seconds_per_turn = seconds_per_turn_json->valueint;
+    turn_timeout = turn_timeout_json->valueint;
 
-    printf("seconds per turn: %lu\n", seconds_per_turn);
-    if (seconds_per_turn < MIN_SECONDS_PER_TURN || seconds_per_turn > MAX_SECONDS_PER_TURN) {
-      send_error(client->fd, E_INVALID_SECONDS_PER_TURN);
+    printf("turn timeout: %lu\n", turn_timeout);
+    if (turn_timeout < MIN_TURN_TIMEOUT || turn_timeout > MAX_TURN_TIMEOUT) {
+      send_error(client->fd, E_INVALID_TURN_TIMEOUT);
       return;
     }
   }
@@ -262,20 +260,19 @@ void GS_handle_create_match(GameServer *gs, Client *client, cJSON *json_request)
   }
   HT_set(gs->matches, KEY(match->id), match);
 
-  if (seconds_per_turn > 0) {
-    TurnTimerData *timer_data = malloc(sizeof(TurnTimerData));
+  if (turn_timeout > 0) {
+    MatchTimerData *timer_data = malloc(sizeof(MatchTimerData));
     if (timer_data == NULL) {
       perror("timer_data malloc");
       delete_match(match);
     }
     timer_data->gs = gs;
     timer_data->match = match;
-    match->turn_timer = new_timer(gs->timer_list, (TimerCallbackFunc)expire_turn_timer, timer_data, seconds_per_turn);
+    match->turn_timer = new_timer(gs->timer_list, (TimerCallbackFunc)expire_turn_timer, timer_data, turn_timeout);
+  }
 
-    if (game_mode == MULTI_REMOTE) {
-      match->post_round_timer =
-          new_timer(gs->timer_list, (TimerCallbackFunc)expire_post_round_timer, match, READY_FOR_TURN_TIMEOUT);
-    }
+  if (game_mode == MULTI_REMOTE) {
+    match->post_round_timer = new_timer(gs->timer_list, (TimerCallbackFunc)expire_post_round_timer, match, POST_ROUND_TIMEOUT);
   }
 
   if (client->player != NULL) {
@@ -876,22 +873,27 @@ void GS_end_round(GameServer *gs, Match *match) {
   printf("[end_round] Ending round...\n");
   switch (match->mode) {
   case MULTI_REMOTE:
-    round_finished_json = json_round_finished(round->points * -1, words, round->wc_num);
+    round_finished_json = json_round_finished(round->points * -1, words, round->wc_num, match->post_round_timer);
     send_json(match->player2->client_fd, round_finished_json);
     cJSON_Delete(round_finished_json);
 
-    round_finished_json = json_round_finished(round->points, words, round->wc_num);
+    round_finished_json = json_round_finished(round->points, words, round->wc_num, match->post_round_timer);
     send_json(match->player1->client_fd, round_finished_json);
     cJSON_Delete(round_finished_json);
 
     match->remote.round_starter = get_opponent(match->player1, match->player2, match->remote.round_starter);
+    match->player1->waiting_ready_for_turn = true;
+    match->player2->waiting_ready_for_turn = true;
+
+    Timer_rearm(match->post_round_timer);
 
     break;
   case MULTI_LOCAL:
     match->local.p1_start_round = !match->local.p1_start_round;
+    match->player1->waiting_ready_for_turn = true;
     /* fallthrough */
   case SINGLE:
-    round_finished_json = json_round_finished(round->points, words, round->wc_num);
+    round_finished_json = json_round_finished(round->points, words, round->wc_num, match->post_round_timer);
     send_json(match->player1->client_fd, round_finished_json);
     cJSON_Delete(round_finished_json);
   }
@@ -1152,11 +1154,11 @@ void start_turn(Match *match) {
   }
 
   if (match->turn_timer != NULL) {
-    Timer_arm(match->turn_timer);
+    Timer_rearm(match->turn_timer);
   }
 }
 
-TimerFireAction expire_turn_timer(TurnTimerData *timer_data) {
+void expire_turn_timer(MatchTimerData *timer_data) {
   printf("Turn timer expired!\n");
   GameServer *gs = timer_data->gs;
   Match *match = timer_data->match;
@@ -1189,13 +1191,9 @@ TimerFireAction expire_turn_timer(TurnTimerData *timer_data) {
     }
     break;
   }
-  return TIMER_FIRE_REARM;
 }
 
-TimerFireAction expire_post_round_timer(Match *match) {
-  Timer_rearm(match->turn_timer);
-  return TIMER_FIRE_NONE;
-}
+void expire_post_round_timer(MatchTimerData *timer_data) { GS_start_round(timer_data->gs, timer_data->match); }
 
 bool is_round_finished(Round *round) {
   return (round->solved_num == round->wc_num) || (round->attempt_count >= round->max_attempts);

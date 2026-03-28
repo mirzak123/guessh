@@ -10,7 +10,7 @@ const (
 	StateInit GameState = iota
 	StateMatchStarted
 	StateWaitGuess
-	StateWaitingGuessResult
+	StateWaitOpponentReady
 	StateWaitOpponentJoin
 	StateWaitOpponentGuess
 	StateRoundFinished
@@ -24,8 +24,8 @@ type MatchInfo struct {
 	CurrentRound        int
 	RawTotalRounds      string
 	TotalRounds         int
-	RawSecondsPerTurn   string
-	SecondsPerTurn      int
+	RawTurnTimeout   string
+	TurnTimeout      int
 	RoundsPlayed        int
 	MaxAttempts         int
 	CurrentAttempt      int
@@ -44,7 +44,7 @@ func NewMatchInfo() *MatchInfo {
 	return &MatchInfo{}
 }
 
-type RoundInfo struct { // TODO: Possibly not needed anymore
+type RoundInfo struct { // TODO: Remove this (unused)
 	Word   string
 	Points int
 }
@@ -70,8 +70,8 @@ func (s GameState) String() string {
 		str = "StateWaitOpponentGuess"
 	case StateWaitOpponentJoin:
 		str = "StateWaitOpponentJoin"
-	case StateWaitingGuessResult:
-		str = "StateWaitGuess"
+	case StateWaitOpponentReady:
+		str = "StateWaitOpponentReady"
 	}
 	return str
 }

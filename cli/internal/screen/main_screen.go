@@ -165,7 +165,7 @@ func (m *mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.waitingOpponentScreen.roomID = msg.roomID
 
 	case game.CreateMatchIntent:
-		m.client.CreateMatch(msg.Mode, msg.Format, msg.WordLen, msg.Rounds, msg.SecondsPerTurn, msg.PlayerName)
+		m.client.CreateMatch(msg.Mode, msg.Format, msg.WordLen, msg.Rounds, msg.TurnTimeout, msg.PlayerName)
 
 	case game.JoinRoomIntent:
 		m.client.JoinRoom(msg.RoomId, msg.PlayerName)
@@ -391,8 +391,8 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Cmd {
 		m.requestRematchScreen.opponentName = matchStartedEvent.OpponentName
 		m.requestRematchScreen.opponentDeniedRematch = false
 
-		if matchStartedEvent.SecondsPerTurn > 0 {
-			m.game.secondsPerTurn = matchStartedEvent.SecondsPerTurn
+		if matchStartedEvent.TurnTimeout > 0 {
+			m.game.turnTimeout = matchStartedEvent.TurnTimeout
 		}
 
 	case protocol.ROUND_STARTED:
@@ -474,6 +474,7 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Cmd {
 		m.game.roundInfo.Points = roundFinishedEvent.Points
 		m.matchInfo.CorrectWords = roundFinishedEvent.Words
 		m.game.input.Blur()
+		m.game.turnTimer.Stop()
 
 		logger.Debug("Round points: %v", m.matchInfo.RoundPoints)
 		m.matchInfo.RoundPoints[m.matchInfo.CurrentRound-1] = roundFinishedEvent.Points

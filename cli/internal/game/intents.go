@@ -11,7 +11,7 @@ type CreateMatchIntent struct {
 	Format         protocol.GameFormat
 	WordLen        int
 	Rounds         int
-	SecondsPerTurn int
+	TurnTimeout int
 	PlayerName     string
 }
 

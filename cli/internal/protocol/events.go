@@ -38,16 +38,16 @@ type EnvelopeEvent struct {
 /* Client Events */
 
 type CreateMatchEvent struct {
-	Type           EventType  `json:"type"`
-	Mode           GameMode   `json:"mode"`
-	Format         GameFormat `json:"format"`
-	WordLen        int        `json:"wordLength"`
-	Rounds         int        `json:"rounds"`
-	SecondsPerTurn int        `json:"secondsPerTurn,omitempty"`
-	PlayerName     string     `json:"playerName,omitempty"`
+	Type        EventType  `json:"type"`
+	Mode        GameMode   `json:"mode"`
+	Format      GameFormat `json:"format"`
+	WordLen     int        `json:"wordLength"`
+	Rounds      int        `json:"rounds"`
+	TurnTimeout int        `json:"turnTimeout,omitempty"`
+	PlayerName  string     `json:"playerName,omitempty"`
 }
 
-func NewCreateMatchEvent(mode GameMode, format GameFormat, wordLen, rounds, secondsPerTurn int, playerName string) *CreateMatchEvent {
+func NewCreateMatchEvent(mode GameMode, format GameFormat, wordLen, rounds, turnTimeout int, playerName string) *CreateMatchEvent {
 	event := &CreateMatchEvent{
 		Type:       CREATE_MATCH,
 		Mode:       mode,
@@ -57,8 +57,8 @@ func NewCreateMatchEvent(mode GameMode, format GameFormat, wordLen, rounds, seco
 		PlayerName: playerName,
 	}
 
-	if secondsPerTurn != 0 {
-		event.SecondsPerTurn = secondsPerTurn
+	if turnTimeout != 0 {
+		event.TurnTimeout = turnTimeout
 	}
 
 	return event
@@ -150,13 +150,13 @@ type ErrorEvent struct {
 }
 
 type MatchStartedEvent struct {
-	Type           EventType  `json:"type"`
-	MatchID        string     `json:"matchId"`
-	Format         GameFormat `json:"format"`
-	Rounds         int        `json:"rounds"`
-	WordLength     int        `json:"wordLength"`
-	SecondsPerTurn int        `json:"secondsPerTurn,omitempty"`
-	OpponentName   string     `json:"opponentName,omitempty"`
+	Type         EventType  `json:"type"`
+	MatchID      string     `json:"matchId"`
+	Format       GameFormat `json:"format"`
+	Rounds       int        `json:"rounds"`
+	WordLength   int        `json:"wordLength"`
+	TurnTimeout  int        `json:"turnTimeout,omitempty"`
+	OpponentName string     `json:"opponentName,omitempty"`
 }
 
 type RoundStartedEvent struct {

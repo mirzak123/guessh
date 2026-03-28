@@ -16,7 +16,7 @@
 #define ENV_PORT "GUESSH_SERVER_PORT"
 #define DEFAULT_PORT "2480"
 #define BUFF_LEN 1000
-#define POLL_TIMEOUT 500
+#define POLL_TIMEOUT 100
 
 static void handle_shutdown(int sig);
 
