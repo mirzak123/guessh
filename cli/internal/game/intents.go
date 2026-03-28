@@ -37,3 +37,5 @@ type LeaveMatchIntent struct{}
 type RequestRematchIntent struct{}
 
 type DenyRematchIntent struct{}
+
+type ReadyForTurnIntent struct{}

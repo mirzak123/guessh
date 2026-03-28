@@ -212,6 +212,9 @@ func (m *mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.client.Typing(msg.Value)
 		}
 
+	case game.ReadyForTurnIntent:
+		m.client.ReadyForTurn()
+
 	case transport.ServerDisconnectedMsg:
 		m.screenID = ServerDownScreenID
 
