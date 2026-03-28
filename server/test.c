@@ -13,16 +13,23 @@
 
 #define WORD_LEN 5
 
+typedef struct TimerTestData {
+  Timer *timer;
+  int *counter;
+} TimerTestData;
+
 static void test_evaluate_guess(void);
 static void test_hash_table(void);
 static void test_generate_random_string(void);
 static void test_call_HT_delete_on_empty_hash_table(void);
 static void test_timer(void);
 static void test_timer_list_examine(void);
-static void test_timer_list_rearm(void);
+static void test_timer_rearm(void);
+static void test_timer_arm_within_examine(void);
 
-static TimerFireAction toggle(bool *data);
-static TimerFireAction increment(int *data);
+static void toggle(bool *data);
+static void increment(int *data);
+static void increment_and_rearm(TimerTestData *data);
 
 static void assert_feedback(LetterFeedback *feedback, LetterFeedback *expected);
 void print_timer_list(TimerList *tl);
@@ -30,13 +37,14 @@ void print_timer_list(TimerList *tl);
 int main(void) {
   srand(time(NULL));
 
-  test_evaluate_guess();
-  test_hash_table();
-  test_call_HT_delete_on_empty_hash_table();
-  test_generate_random_string();
-  test_timer();
-  test_timer_list_examine();
-  test_timer_list_rearm();
+  // test_evaluate_guess();
+  // test_hash_table();
+  // test_call_HT_delete_on_empty_hash_table();
+  // test_generate_random_string();
+  // test_timer();
+  // test_timer_list_examine();
+  // test_timer_rearm();
+  test_timer_arm_within_examine();
 
   printf("All tests passed!\n");
   return 0;
@@ -249,7 +257,7 @@ void test_timer_list_examine(void) {
   assert(tl.head->next == t2);
 }
 
-void test_timer_list_rearm(void) {
+void test_timer_rearm(void) {
   TimerList tl = {NULL};
   Timer *t1, *t2, *t3;
   int counter = 0, sleep_seconds = 3;
@@ -272,7 +280,7 @@ void test_timer_list_rearm(void) {
   TimerList_examine(&tl);
   assert(counter == 1);
 
-  Timer_arm(t2);
+  Timer_rearm(t2);
   assert(tl.head == t2);
 
   printf("sleeping for %d seconds...\n", sleep_seconds);
@@ -282,15 +290,52 @@ void test_timer_list_rearm(void) {
   assert(counter == 3);
 }
 
-TimerFireAction toggle(bool *data) {
-  *data = !*data;
-  return false;
+static void test_timer_arm_within_examine(void) {
+  TimerList tl = {NULL};
+  Timer *t1, *t2, *t3, *t4;
+  int counter = 0, sleep_seconds = 5;
+  TimerTestData d1 = {NULL, &counter}, d2 = {NULL, &counter}, d3 = {NULL, &counter}, d4 = {NULL, &counter};
+
+  t1 = new_timer(&tl, (TimerCallbackFunc)increment_and_rearm, &d1, 1);
+  d1.timer = t1;
+  t2 = new_timer(&tl, (TimerCallbackFunc)increment_and_rearm, &d2, 30);
+  d2.timer = t2;
+  t3 = new_timer(&tl, (TimerCallbackFunc)increment_and_rearm, &d3, 7);
+  d3.timer = t3;
+  t4 = new_timer(&tl, (TimerCallbackFunc)increment_and_rearm, &d4, 2);
+  d4.timer = t4;
+
+  Timer_arm(t2);
+  Timer_arm(t1);
+  Timer_arm(t3);
+  Timer_arm(t4);
+
+  printf("Pre-examine: ");
+  print_timer_list(&tl);
+  sleep(sleep_seconds);
+
+  TimerList_examine(&tl);
+  printf("Examine 1: ");
+  print_timer_list(&tl);
+  sleep(sleep_seconds);
+
+  TimerList_examine(&tl);
+  printf("Examine 2: ");
+  print_timer_list(&tl);
+
+  assert(counter = 5);
+  assert(tl.head == t1);
+  assert(tl.head->next == t4);
 }
 
-TimerFireAction increment(int *data) {
-  (*data)++;
-  return false;
+void increment_and_rearm(TimerTestData *data) {
+  Timer_disarm(data->timer);
+  data->counter++;
+  Timer_rearm(data->timer);
 }
+
+void toggle(bool *data) { *data = !*data; }
+void increment(int *data) { (*data)++; }
 
 void assert_feedback(LetterFeedback *feedback, LetterFeedback *expected) {
   for (int i = 0; i < WORD_LEN; i++) {

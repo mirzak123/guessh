@@ -814,10 +814,6 @@ void GS_end_match(GameServer *gs, Match *match, Player *disconnected_player) {
 
   cJSON *match_finished_json = NULL;
 
-  if (match->turn_timer != NULL) {
-    Timer_disarm(match->turn_timer);
-  }
-
   switch (match->mode) {
   case MULTI_REMOTE:
     match->outcome = calculate_match_outcome(match);
@@ -861,16 +857,20 @@ void GS_end_match(GameServer *gs, Match *match, Player *disconnected_player) {
   }
 }
 
-TimerFireAction GS_end_round(GameServer *gs, Match *match) {
+void GS_end_round(GameServer *gs, Match *match) {
   Round *round = match->rounds[match->round_idx];
   cJSON *round_finished_json = NULL;
+
+  if (match->turn_timer != NULL) {
+    Timer_disarm(match->turn_timer);
+  }
 
   calculate_round_points(round);
 
   const char **words = get_round_words(round);
   if (words == NULL) {
     printf("get_round_words returned NULL\n");
-    return false;
+    return;
   }
 
   printf("[end_round] Ending round...\n");
@@ -900,10 +900,10 @@ TimerFireAction GS_end_round(GameServer *gs, Match *match) {
 
   if (match->round_idx + 1 < (int)match->round_capacity) {
     GS_start_round(gs, match);
-    return true;
+    return;
   } else {
     GS_end_match(gs, match, NULL);
-    return false;
+    return;
   }
 }
 
@@ -1185,7 +1185,7 @@ TimerFireAction expire_turn_timer(TurnTimerData *timer_data) {
     cJSON_Delete(guess_result_json);
 
     if (is_round_finished(round)) {
-      return GS_end_round(gs, match);
+      GS_end_round(gs, match);
     }
     break;
   }

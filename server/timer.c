@@ -37,30 +37,26 @@ void delete_timer(Timer *timer, bool free_data) {
   free(timer);
 }
 
-TimerFireAction Timer_fire(Timer *timer) {
+void Timer_fire(Timer *timer) {
   printf("Firing timer [%d]...\n", timer->id);
   if (timer->callback.func != NULL) {
-    return timer->callback.func(timer->callback.data);
+    timer->callback.func(timer->callback.data);
   }
-  return TIMER_FIRE_NONE;
 }
 
 void TimerList_examine(TimerList *tl) {
-  Timer *rearm_list = NULL, *next = NULL;
-  while (tl->head != NULL && tl->head->timestamp <= time(NULL)) {
-    next = tl->head->next;
-    if (Timer_fire(tl->head) == TIMER_FIRE_REARM) {
-      tl->head->next = rearm_list;
-      rearm_list = tl->head;
-    }
-    tl->head = next;
+  Timer *current = tl->head, *next = NULL;
+  tl->head = NULL;
+  while (current != NULL && current->timestamp <= time(NULL)) {
+    next = current->next;
+    Timer_fire(current);
+    current = next;
   }
 
-  while (rearm_list != NULL) {
-    next = rearm_list->next;
-    rearm_list->timestamp = time(NULL) + rearm_list->seconds;
-    Timer_arm(rearm_list);
-    rearm_list = next;
+  while (current != NULL) {
+    next = current->next;
+    Timer_arm(current);
+    current = next;
   }
 }
 
@@ -119,11 +115,10 @@ void Timer_disarm(Timer *timer) {
 
 void Timer_rearm(Timer *timer) {
   if (timer == NULL) {
-    printf("Trying to reset a NULL timer\n");
+    printf("Trying to rearm a NULL timer\n");
     return;
   }
 
-  Timer_disarm(timer);
   timer->timestamp = time(NULL) + timer->seconds;
   timer->next = NULL;
   Timer_arm(timer);
