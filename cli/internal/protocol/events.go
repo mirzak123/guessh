@@ -2,20 +2,22 @@ package protocol
 
 type EventType string
 
-const (
-	CREATE_MATCH            EventType = "CREATE_MATCH"
-	JOIN_ROOM               EventType = "JOIN_ROOM"
-	MAKE_GUESS              EventType = "MAKE_GUESS"
-	LEAVE_MATCH             EventType = "LEAVE_MATCH"
-	ERROR                   EventType = "ERROR"
-	ROOM_CREATED            EventType = "ROOM_CREATED"
-	ROOM_JOINED             EventType = "ROOM_JOINED"
-	ROOM_JOIN_FAILED        EventType = "ROOM_JOIN_FAILED"
-	WAIT_OPPONENT_JOIN      EventType = "WAIT_OPPONENT_JOIN"
-	REQUEST_REMATCH         EventType = "REQUEST_REMATCH"
-	DENY_REMATCH            EventType = "DENY_REMATCH"
-	OPPONENT_DENIED_REMATCH EventType = "OPPONENT_DENIED_REMATCH"
-	OPPONENT_LEFT           EventType = "OPPONENT_LEFT"
+const ( // Client Events
+	CREATE_MATCH       EventType = "CREATE_MATCH"
+	JOIN_ROOM          EventType = "JOIN_ROOM"
+	MAKE_GUESS         EventType = "MAKE_GUESS"
+	LEAVE_MATCH        EventType = "LEAVE_MATCH"
+	ROOM_CREATED       EventType = "ROOM_CREATED"
+	ROOM_JOINED        EventType = "ROOM_JOINED"
+	ROOM_JOIN_FAILED   EventType = "ROOM_JOIN_FAILED"
+	WAIT_OPPONENT_JOIN EventType = "WAIT_OPPONENT_JOIN"
+	REQUEST_REMATCH    EventType = "REQUEST_REMATCH"
+	DENY_REMATCH       EventType = "DENY_REMATCH"
+	TYPING             EventType = "TYPING"
+	READY_FOR_TURN     EventType = "READY_FOR_TURN"
+)
+
+const ( // Server Events
 	MATCH_STARTED           EventType = "MATCH_STARTED"
 	ROUND_STARTED           EventType = "ROUND_STARTED"
 	WAIT_GUESS              EventType = "WAIT_GUESS"
@@ -23,8 +25,10 @@ const (
 	GUESS_RESULT            EventType = "GUESS_RESULT"
 	ROUND_FINISHED          EventType = "ROUND_FINISHED"
 	MATCH_FINISHED          EventType = "MATCH_FINISHED"
-	TYPING                  EventType = "TYPING"
 	OPPONENT_TYPING         EventType = "OPPONENT_TYPING"
+	OPPONENT_DENIED_REMATCH EventType = "OPPONENT_DENIED_REMATCH"
+	OPPONENT_LEFT           EventType = "OPPONENT_LEFT"
+	ERROR                   EventType = "ERROR"
 )
 
 type EnvelopeEvent struct {
@@ -125,6 +129,16 @@ func NewTypingEvent(value string) *TypingEvent {
 	return &TypingEvent{
 		Type:  TYPING,
 		Value: value,
+	}
+}
+
+type ReadyForTurnEvent struct {
+	Type EventType `json:"type"`
+}
+
+func NewReadyForTurnEvent() *ReadyForTurnEvent {
+	return &ReadyForTurnEvent{
+		Type: READY_FOR_TURN,
 	}
 }
 
