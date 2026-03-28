@@ -37,13 +37,13 @@ void print_timer_list(TimerList *tl);
 int main(void) {
   srand(time(NULL));
 
-  // test_evaluate_guess();
-  // test_hash_table();
-  // test_call_HT_delete_on_empty_hash_table();
-  // test_generate_random_string();
-  // test_timer();
-  // test_timer_list_examine();
-  // test_timer_rearm();
+  test_evaluate_guess();
+  test_hash_table();
+  test_call_HT_delete_on_empty_hash_table();
+  test_generate_random_string();
+  test_timer();
+  test_timer_list_examine();
+  test_timer_rearm();
   test_timer_arm_within_examine();
 
   printf("All tests passed!\n");
