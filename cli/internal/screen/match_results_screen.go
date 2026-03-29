@@ -44,7 +44,7 @@ func NewMatchResults(
 	}
 
 	var confirmInput *huh.Confirm
-	var summary string
+	var summary, rematchText string
 
 	results := lipgloss.JoinHorizontal(
 		lipgloss.Left,
@@ -82,8 +82,6 @@ func NewMatchResults(
 		opponentName,
 	)
 
-	rematchText := "Request rematch"
-
 	switch m.mode {
 	case protocol.MULTI_REMOTE:
 		if opponentLeft {
@@ -98,6 +96,7 @@ func NewMatchResults(
 				summary = "🤝 Draw"
 			}
 		}
+		rematchText = "Request rematch"
 	case protocol.MULTI_LOCAL:
 		switch m.matchOutcome {
 		case protocol.OUTCOME_PLAYER_WON:
@@ -107,6 +106,7 @@ func NewMatchResults(
 		case protocol.OUTCOME_NONE:
 			summary = "🤝 Draw"
 		}
+		rematchText = "Repeat match"
 	case protocol.SINGLE:
 		score = fmt.Sprintf("Score: %s / %d", playerPointsStr, totalPossiblePoints)
 		rematchText = "Repeat match"

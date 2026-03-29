@@ -121,7 +121,7 @@ func (m *gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyEnter:
 			logger.Debug("Game state: [%s]", m.state)
 			if m.state == game.StateRoundFinished {
-				return m, emit(game.ReadyForTurnIntent{})
+				return m, emit(game.ReadyNextRoundIntent{})
 			}
 			if m.state == game.StateWaitOpponentGuess && m.matchInfo.Mode != protocol.MULTI_LOCAL {
 				break
@@ -343,16 +343,17 @@ func (m *gameModel) statusBar() string {
 		case game.StateRoundFinished:
 			line2 = ui.GrayText.Render("Press Enter to continue")
 		case game.StateWaitOpponentReady:
-			line2 = ui.GrayText.Render("")
+			line2 = ui.GrayText.Render("Waiting for opponent to be ready")
 		}
 
 		if m.matchInfo.Mode == protocol.MULTI_REMOTE && m.postRoundTimer.Running() {
 			seconds := int(m.postRoundTimer.Timeout.Seconds())
-			countdown := fmt.Sprintf("%3d", seconds)
+			countdown := fmt.Sprintf("%2d", seconds)
 
 			line3 = lipgloss.JoinHorizontal(lipgloss.Center,
-				ui.GrayText.Render(""),
+				ui.GrayText.Render("Next round will begin in "),
 				ui.RoseText.Render(countdown),
+				ui.GrayText.Render(" seconds"),
 			)
 		}
 

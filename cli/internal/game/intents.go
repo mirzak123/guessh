@@ -7,12 +7,12 @@ import (
 type ContinueIntent struct{}
 
 type CreateMatchIntent struct {
-	Mode           protocol.GameMode
-	Format         protocol.GameFormat
-	WordLen        int
-	Rounds         int
+	Mode        protocol.GameMode
+	Format      protocol.GameFormat
+	WordLen     int
+	Rounds      int
 	TurnTimeout int
-	PlayerName     string
+	PlayerName  string
 }
 
 type MakeGuessIntent struct {
@@ -38,4 +38,4 @@ type RequestRematchIntent struct{}
 
 type DenyRematchIntent struct{}
 
-type ReadyForTurnIntent struct{}
+type ReadyNextRoundIntent struct{}

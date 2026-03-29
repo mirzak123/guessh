@@ -106,8 +106,8 @@ void GS_handle_request(GameServer *gs, Client *client) {
   case TYPING:
     GS_handle_typing(client, json_request);
     break;
-  case READY_FOR_TURN:
-    GS_handle_ready_for_turn(gs, client);
+  case READY_NEXT_ROUND:
+    GS_handle_ready_next_round(gs, client);
     break;
   case UNSUPPORTED_MESSAGE_TYPE:
   default:
@@ -342,10 +342,8 @@ void GS_cleanup_room(GameServer *gs, Room *room, Player *disconnected_player) {
   if (opponent != NULL) {
     send_only_type(opponent->client_fd, STR(OPPONENT_LEFT));
     opponent->room = NULL;
-    opponent->waiting_ready_for_turn = false;
   }
   disconnected_player->room = NULL;
-  disconnected_player->waiting_ready_for_turn = false;
 
   HT_delete(gs->rooms, KEY(room->id));
   delete_room(room);
@@ -404,8 +402,8 @@ MessageType parse_client_event(char *data, size_t size, cJSON **json_out) {
     mt = LEAVE_MATCH;
   } else if (!strcmp(STR(TYPING), type)) {
     mt = TYPING;
-  } else if (!strcmp(STR(READY_FOR_TURN), type)) {
-    mt = READY_FOR_TURN;
+  } else if (!strcmp(STR(READY_NEXT_ROUND), type)) {
+    mt = READY_NEXT_ROUND;
   } else {
     mt = UNSUPPORTED_MESSAGE_TYPE;
   }
@@ -784,12 +782,12 @@ void GS_handle_leave_match(GameServer *gs, Client *client) {
   client->player->match = NULL;
 }
 
-void GS_handle_ready_for_turn(GameServer *gs, Client *client) {
+void GS_handle_ready_next_round(GameServer *gs, Client *client) {
   (void)gs;
   Player *player = client->player, *opponent;
 
-  if (client->player == NULL || !client->player->waiting_ready_for_turn) {
-    send_error(client->fd, E_NOT_WAITING_FOR_READY_FOR_TURN);
+  if (client->player == NULL || client->player->ready_next_round) {
+    send_error(client->fd, E_NOT_WAITING_FOR_READY_NEXT_ROUND);
     return;
   }
 
@@ -800,18 +798,16 @@ void GS_handle_ready_for_turn(GameServer *gs, Client *client) {
   switch (match->mode) {
   case MULTI_REMOTE:
     opponent = get_opponent(match->player1, match->player2, player);
-    if (opponent->waiting_ready_for_turn) {
-      player->waiting_ready_for_turn = false;
-      opponent->waiting_ready_for_turn = false;
-      start_turn(match);
+    if (opponent->ready_next_round) {
       Timer_disarm(match->post_round_timer);
+      GS_start_round(gs, match);
     } else {
-      player->waiting_ready_for_turn = true;
+      player->ready_next_round = true;
     }
     break;
   case SINGLE:
   case MULTI_LOCAL:
-    start_turn(match);
+    GS_start_round(gs, match);
     break;
   }
 }
@@ -894,8 +890,8 @@ void GS_end_round(GameServer *gs, Match *match) {
     cJSON_Delete(round_finished_json);
 
     match->remote.round_starter = get_opponent(match->player1, match->player2, match->remote.round_starter);
-    match->player1->waiting_ready_for_turn = true;
-    match->player2->waiting_ready_for_turn = true;
+    match->player1->ready_next_round = false;
+    match->player2->ready_next_round = false;
 
     if (!should_end_match) {
       Timer_rearm(match->post_round_timer);
@@ -906,7 +902,7 @@ void GS_end_round(GameServer *gs, Match *match) {
     match->local.p1_start_round = !match->local.p1_start_round;
     /* fallthrough */
   case SINGLE:
-    match->player1->waiting_ready_for_turn = true;
+    match->player1->ready_next_round = false;
     round_finished_json = json_round_finished(round->points, words, round->wc_num, match->post_round_timer);
     send_json(match->player1->client_fd, round_finished_json);
     cJSON_Delete(round_finished_json);

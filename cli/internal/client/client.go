@@ -19,6 +19,8 @@ func NewClient(conn net.Conn) *Client {
 	}
 }
 
+// TODO: Wrap marshaling and sending logic into a generic called marshalAndSend
+
 func (c *Client) CreateMatch(mode protocol.GameMode, format protocol.GameFormat, wordLen, rounds, turnTimeout int, playerName string) {
 	var (
 		msg []byte
@@ -124,15 +126,15 @@ func (c *Client) DenyRematch() {
 	c.send(msg)
 }
 
-func (c *Client) ReadyForTurn() {
+func (c *Client) ReadyNextRound() {
 	var (
 		msg []byte
 		err error
 	)
 
-	readyForTurnEvent := protocol.NewReadyForTurnEvent()
-	if msg, err = json.Marshal(readyForTurnEvent); err != nil {
-		logger.Error("[client] Failed to marshal readyForTurnEvent: %v", err)
+	readyNextRoundEvent := protocol.NewReadyNextRoundEvent()
+	if msg, err = json.Marshal(readyNextRoundEvent); err != nil {
+		logger.Error("[client] Failed to marshal readyNextRoundEvent: %v", err)
 		os.Exit(1)
 	}
 

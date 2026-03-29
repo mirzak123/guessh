@@ -14,7 +14,7 @@ const ( // Client Events
 	REQUEST_REMATCH    EventType = "REQUEST_REMATCH"
 	DENY_REMATCH       EventType = "DENY_REMATCH"
 	TYPING             EventType = "TYPING"
-	READY_FOR_TURN     EventType = "READY_FOR_TURN"
+	READY_NEXT_ROUND   EventType = "READY_NEXT_ROUND"
 )
 
 const ( // Server Events
@@ -132,13 +132,13 @@ func NewTypingEvent(value string) *TypingEvent {
 	}
 }
 
-type ReadyForTurnEvent struct {
+type ReadyNextRoundEvent struct {
 	Type EventType `json:"type"`
 }
 
-func NewReadyForTurnEvent() *ReadyForTurnEvent {
-	return &ReadyForTurnEvent{
-		Type: READY_FOR_TURN,
+func NewReadyNextRoundEvent() *ReadyNextRoundEvent {
+	return &ReadyNextRoundEvent{
+		Type: READY_NEXT_ROUND,
 	}
 }
 

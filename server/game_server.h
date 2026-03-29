@@ -37,7 +37,7 @@
 #define E_INVALID_WORD_LEN "wordLength must be between " STR(MIN_WORD_LEN) " and " STR(MAX_WORD_LEN)
 #define E_INVALID_TURN_TIMEOUT "turnTimeout must be between " STR(MIN_TURN_TIMEOUT) " and " STR(MAX_TURN_TIMEOUT)
 #define E_NOT_ON_TURN "Opponent is currently on turn"
-#define E_NOT_WAITING_FOR_READY_FOR_TURN "Not currently waiting for ready for turn event"
+#define E_NOT_WAITING_FOR_READY_NEXT_ROUND "Not currently waiting for " STR(READY_NEXT_ROUND) " event"
 #define E_REPEATED_GUESS "Repeating guesses is not allowed"
 #define E_UNSUPPORTED_MODE "Unsupported mode"
 #define E_UNSUPPORTED_FORMAT "Unsupported format"
@@ -60,14 +60,13 @@ typedef enum {
   DENY_REMATCH,
   LEAVE_MATCH,
   TYPING,
-  READY_FOR_TURN,
+  READY_NEXT_ROUND,
 
   // Server
   ROOM_CREATED,
   ROOM_JOINED,
   ROOM_JOIN_FAILED,
   WAIT_OPPONENT_JOIN,
-  WAIT_READY_FOR_TURN,
   OPPONENT_DENIED_REMATCH,
   OPPONENT_LEFT,
   MATCH_STARTED,
@@ -104,7 +103,7 @@ void GS_handle_request_rematch(GameServer *gs, Client *client);
 void GS_handle_deny_rematch(GameServer *gs, Client *client);
 void GS_handle_typing(Client *client, cJSON *json_request);
 void GS_handle_leave_match(GameServer *gs, Client *client);
-void GS_handle_ready_for_turn(GameServer *gs, Client *client);
+void GS_handle_ready_next_round(GameServer *gs, Client *client);
 
 void GS_create_room(GameServer *gs, Match *match, Client *client);
 void GS_start_match(GameServer *gs, Match *match, bool is_rematch);

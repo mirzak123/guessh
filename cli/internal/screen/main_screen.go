@@ -215,8 +215,11 @@ func (m *mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.client.Typing(msg.Value)
 		}
 
-	case game.ReadyForTurnIntent:
-		m.client.ReadyForTurn()
+	case game.ReadyNextRoundIntent:
+		m.client.ReadyNextRound()
+		if m.matchInfo.Mode == protocol.MULTI_REMOTE {
+			m.game.state = game.StateWaitOpponentReady
+		}
 
 	case transport.ServerDisconnectedMsg:
 		m.screenID = ServerDownScreenID

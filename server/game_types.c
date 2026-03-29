@@ -135,7 +135,7 @@ Player *new_player(int client_fd, char *name) {
   player->client_fd = client_fd;
   player->match = NULL;
   player->wants_rematch = false;
-  player->waiting_ready_for_turn = false;
+  player->ready_next_round = false;
 
   if (name != NULL) {
     player->name = strdup(name);
