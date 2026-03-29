@@ -146,7 +146,7 @@ func NewGameConfigMenu(matchInfo *game.MatchInfo, hoveredPtr *protocol.GameMode)
 				if matchInfo.RoomValidationError != nil {
 					err := matchInfo.RoomValidationError
 					matchInfo.RoomValidationError = nil
-					logger.Debug("Error: %v", err)
+					logger.Debug("Room validation error: %v", err)
 					return err
 				}
 

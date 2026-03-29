@@ -180,10 +180,10 @@ type GuessResultEvent struct {
 }
 
 type RoundFinishedEvent struct {
-	Type            EventType `json:"type"`
-	Points          int       `json:"points"`
-	Words           []string  `json:"words"`
-	PostTurnTimeout int       `json:"turnTimeout",omitempty`
+	Type             EventType `json:"type"`
+	Points           int       `json:"points"`
+	Words            []string  `json:"words"`
+	PostRoundTimeout int       `json:"postRoundTimeout,omitempty"`
 }
 
 type MatchFinishedEvent struct {

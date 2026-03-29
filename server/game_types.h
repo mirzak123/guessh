@@ -51,7 +51,7 @@ typedef struct Round {
   size_t wc_num;
   size_t solved_num;
 
-  size_t attempt_count;
+  size_t attempt_idx;
   size_t max_attempts;
 
   char **guess_attempts;

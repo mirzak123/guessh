@@ -74,7 +74,7 @@ Round *new_round(WordChallenge **word_challenges, size_t wc_num, size_t max_atte
   round->wc_num = wc_num;
   round->solved_num = 0;
 
-  round->attempt_count = 0;
+  round->attempt_idx = 0;
   round->max_attempts = max_attempts;
   round->guess_attempts = calloc(max_attempts, sizeof(char *));
   if (round->guess_attempts == NULL) {
@@ -90,7 +90,7 @@ void delete_round(Round *round) {
     delete_word_challenge(round->wc_list[i]);
   }
 
-  for (int i = 0; i < (int)round->attempt_count; i++) {
+  for (int i = 0; i < (int)round->attempt_idx; i++) {
     free(round->guess_attempts[i]);
   }
 

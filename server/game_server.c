@@ -26,6 +26,7 @@ static WordStore *get_word_store(GameServer *gs, size_t word_len);
 static const char **get_round_words(Round *round);
 static bool already_guessed(char *word, char **guesses, size_t len);
 static bool is_round_finished(Round *round);
+static bool is_match_finished(Match *match);
 static void add_guess_attempt(Round *round, char *guess);
 
 static void swap_turn(Match *match);
@@ -702,9 +703,7 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
   round = match->rounds[match->round_idx];
   opponent = get_opponent(match->player1, match->player2, player);
 
-  printf("attempt_count: %lu\n", round->attempt_count);
-  printf("attempt_count: %lu\n", round->max_attempts);
-  assert(round->attempt_count < round->max_attempts);
+  assert(round->attempt_idx < round->max_attempts);
 
   if (match->mode == MULTI_REMOTE && player != match->remote.on_turn) {
     send_error(client->fd, E_NOT_ON_TURN);
@@ -728,7 +727,7 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
     return;
   }
 
-  if (already_guessed(guess, round->guess_attempts, round->attempt_count)) {
+  if (already_guessed(guess, round->guess_attempts, round->attempt_idx)) {
     send_error(client->fd, E_REPEATED_GUESS);
     if (opponent != NULL) {
       cJSON *opponent_typing_json = json_opponent_typing("");
@@ -881,6 +880,8 @@ void GS_end_round(GameServer *gs, Match *match) {
     return;
   }
 
+  bool should_end_match = is_match_finished(match);
+
   printf("[end_round] Ending round...\n");
   switch (match->mode) {
   case MULTI_REMOTE:
@@ -896,14 +897,16 @@ void GS_end_round(GameServer *gs, Match *match) {
     match->player1->waiting_ready_for_turn = true;
     match->player2->waiting_ready_for_turn = true;
 
-    Timer_rearm(match->post_round_timer);
+    if (!should_end_match) {
+      Timer_rearm(match->post_round_timer);
+    }
 
     break;
   case MULTI_LOCAL:
     match->local.p1_start_round = !match->local.p1_start_round;
-    match->player1->waiting_ready_for_turn = true;
     /* fallthrough */
   case SINGLE:
+    match->player1->waiting_ready_for_turn = true;
     round_finished_json = json_round_finished(round->points, words, round->wc_num, match->post_round_timer);
     send_json(match->player1->client_fd, round_finished_json);
     cJSON_Delete(round_finished_json);
@@ -911,12 +914,8 @@ void GS_end_round(GameServer *gs, Match *match) {
 
   free(words);
 
-  if (match->round_idx + 1 < (int)match->round_capacity) {
-    GS_start_round(gs, match);
-    return;
-  } else {
+  if (should_end_match) {
     GS_end_match(gs, match, NULL);
-    return;
   }
 }
 
@@ -965,9 +964,6 @@ void GS_start_match(GameServer *gs, Match *match, bool is_rematch) {
   }
 
   GS_start_round(gs, match);
-  if (match->turn_timer != NULL) {
-    Timer_arm(match->turn_timer);
-  }
 }
 
 void GS_start_round(GameServer *gs, Match *match) {
@@ -1127,6 +1123,7 @@ void send_guess_result(Match *match, char *guess) {
 
 void swap_turn(Match *match) {
   Player *player, *opponent;
+  printf("Swapping turn...\n");
 
   switch (match->mode) {
   case MULTI_REMOTE:
@@ -1144,6 +1141,7 @@ void swap_turn(Match *match) {
 
 void start_turn(Match *match) {
   Player *player, *opponent;
+  printf("Starting turn...\n");
 
   switch (match->mode) {
   case MULTI_REMOTE:
@@ -1180,6 +1178,7 @@ void expire_turn_timer(MatchTimerData *timer_data) {
   case MULTI_REMOTE:
   case MULTI_LOCAL:
     swap_turn(match);
+    start_turn(match);
     break;
   case SINGLE:
     round = match->rounds[match->round_idx];
@@ -1199,6 +1198,8 @@ void expire_turn_timer(MatchTimerData *timer_data) {
 
     if (is_round_finished(round)) {
       GS_end_round(gs, match);
+    } else {
+      start_turn(match);
     }
     break;
   }
@@ -1207,7 +1208,13 @@ void expire_turn_timer(MatchTimerData *timer_data) {
 void expire_post_round_timer(MatchTimerData *timer_data) { GS_start_round(timer_data->gs, timer_data->match); }
 
 bool is_round_finished(Round *round) {
-  return (round->solved_num == round->wc_num) || (round->attempt_count >= round->max_attempts);
+  return (round->solved_num == round->wc_num) || (round->attempt_idx >= round->max_attempts);
 }
 
-void add_guess_attempt(Round *round, char *guess) { round->guess_attempts[round->attempt_count++] = strdup(guess); }
+bool is_match_finished(Match *match) { return match->round_idx + 1 >= (int)match->round_capacity; }
+
+void add_guess_attempt(Round *round, char *guess) {
+  printf("attempt_count: %lu\n", round->attempt_idx);
+  printf("attempt_count: %lu\n", round->max_attempts);
+  round->guess_attempts[round->attempt_idx++] = strdup(guess);
+}

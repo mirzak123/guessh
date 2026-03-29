@@ -160,6 +160,7 @@ func (m *gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	m.input, inputCmd = m.input.Update(msg)
 	m.turnTimer, timerCmd = m.turnTimer.Update(msg)
+	m.postRoundTimer, postTurnTimerCmd = m.postRoundTimer.Update(msg)
 
 	cmds = append(cmds, inputCmd, timerCmd, postTurnTimerCmd)
 
@@ -353,8 +354,6 @@ func (m *gameModel) statusBar() string {
 				ui.GrayText.Render(""),
 				ui.RoseText.Render(countdown),
 			)
-		} else {
-			logger.Debug("Perhaps not running sire")
 		}
 
 		switch m.matchInfo.Format {

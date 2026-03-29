@@ -13,6 +13,7 @@ import (
 	"guessh/internal/transport"
 	"guessh/internal/ui"
 	"net"
+	"slices"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
@@ -30,6 +31,8 @@ const (
 	MatchResultsScreenID
 	ServerDownScreenID
 )
+
+var highPriorityEvents = []protocol.EventType{protocol.WAIT_GUESS, protocol.WAIT_OPPONENT_GUESS}
 
 type MatchFinishedMsg struct {
 	roundsPlayed int
@@ -221,7 +224,13 @@ func (m *mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case transport.EventMsg:
 		cmds = append(cmds, transport.WaitForEvent(m.event))
 
-		if m.eventsPaused {
+		isHightPriority := m.isHighPriority(msg)
+
+		if isHightPriority {
+			cmds = append(cmds, emit(game.ContinueIntent{}))
+		}
+
+		if m.eventsPaused && !isHightPriority {
 			logger.Debug("UI paused, buffering event")
 			m.eventBuffer = append(m.eventBuffer, msg)
 		} else {
@@ -417,7 +426,13 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Cmd {
 		m.game.input.Focus()
 		m.game.input.SetValue("")
 		m.game.err = nil
-		return m.game.setTurnTimer()
+
+		var cmds []tea.Cmd
+		cmds = append(cmds, m.game.setTurnTimer())
+		if m.game.postRoundTimer.ID() != 0 {
+			cmds = append(cmds, m.game.postRoundTimer.Stop())
+		}
+		return tea.Batch(cmds...)
 
 	case protocol.WAIT_OPPONENT_GUESS:
 		m.matchInfo.PlayerOnTurn = false
@@ -431,7 +446,12 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Cmd {
 			m.game.input.Blur()
 		}
 
-		return m.game.setTurnTimer()
+		var cmds []tea.Cmd
+		cmds = append(cmds, m.game.setTurnTimer())
+		if m.game.postRoundTimer.ID() != 0 {
+			cmds = append(cmds, m.game.postRoundTimer.Stop())
+		}
+		return tea.Batch(cmds...)
 
 	case protocol.WAIT_OPPONENT_JOIN:
 		m.game.state = game.StateWaitOpponentJoin
@@ -474,8 +494,7 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Cmd {
 		m.game.roundInfo.Points = roundFinishedEvent.Points
 		m.matchInfo.CorrectWords = roundFinishedEvent.Words
 		m.game.input.Blur()
-		m.game.turnTimer.Stop()
-		m.game.postRoundTimeout = roundFinishedEvent.PostTurnTimeout
+		m.game.postRoundTimeout = roundFinishedEvent.PostRoundTimeout
 
 		logger.Debug("Round points: %v", m.matchInfo.RoundPoints)
 		m.matchInfo.RoundPoints[m.matchInfo.CurrentRound-1] = roundFinishedEvent.Points
@@ -485,7 +504,7 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Cmd {
 		if !m.flushing {
 			m.eventsPaused = true
 		}
-		return emit(m.game.setPostRoundTimer())
+		return tea.Batch(m.game.turnTimer.Stop(), m.game.setPostRoundTimer())
 
 	case protocol.MATCH_FINISHED:
 		matchFinishedEvent := &protocol.MatchFinishedEvent{}
@@ -564,6 +583,18 @@ func (m *mainModel) SetSSHContext(ctx context.Context) {
 	if ctx != nil {
 		m.sshContext = ctx
 	}
+}
+
+func (m *mainModel) isHighPriority(eventMsg transport.EventMsg) bool {
+	msg := []byte(eventMsg)
+	event := &protocol.EnvelopeEvent{}
+
+	if err := json.Unmarshal(msg, event); err != nil {
+		logger.Error("[handleEvent] error unmarshaling EnvelopeEvent: %s", err)
+		return false
+	}
+
+	return slices.Contains(highPriorityEvents, event.Type)
 }
 
 // waitForContextDone is used to end the process immidiately
