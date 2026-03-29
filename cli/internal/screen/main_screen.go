@@ -224,13 +224,13 @@ func (m *mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case transport.EventMsg:
 		cmds = append(cmds, transport.WaitForEvent(m.event))
 
-		isHightPriority := m.isHighPriority(msg)
+		isHighPriority := m.isHighPriority(msg)
 
-		if isHightPriority {
+		if isHighPriority && m.eventsPaused {
 			cmds = append(cmds, emit(game.ContinueIntent{}))
 		}
 
-		if m.eventsPaused && !isHightPriority {
+		if m.eventsPaused && !isHighPriority {
 			logger.Debug("UI paused, buffering event")
 			m.eventBuffer = append(m.eventBuffer, msg)
 		} else {
@@ -504,7 +504,13 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Cmd {
 		if !m.flushing {
 			m.eventsPaused = true
 		}
-		return tea.Batch(m.game.turnTimer.Stop(), m.game.setPostRoundTimer())
+
+		var cmds []tea.Cmd
+		cmds = append(cmds, m.game.setPostRoundTimer())
+		if m.game.turnTimer.ID() != 0 {
+			cmds = append(cmds, m.game.turnTimer.Stop())
+		}
+		return tea.Batch(cmds...)
 
 	case protocol.MATCH_FINISHED:
 		matchFinishedEvent := &protocol.MatchFinishedEvent{}
