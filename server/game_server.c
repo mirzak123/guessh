@@ -786,12 +786,17 @@ void GS_handle_ready_next_round(GameServer *gs, Client *client) {
   (void)gs;
   Player *player = client->player, *opponent;
 
-  if (client->player == NULL || client->player->ready_next_round) {
-    send_error(client->fd, E_NOT_WAITING_FOR_READY_NEXT_ROUND);
+  if (player == NULL) {
+    send_error(client->fd, E_PLAYER_NOT_IN_MATCH);
     return;
   }
 
   Match *match = client->player->match;
+
+  if (is_match_finished(match) || player->ready_next_round) {
+    send_error(client->fd, E_NOT_WAITING_FOR_READY_NEXT_ROUND);
+    return;
+  }
 
   assert(match != NULL);
 
