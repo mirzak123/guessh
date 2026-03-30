@@ -121,7 +121,11 @@ func (m *gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyEnter:
 			logger.Debug("Game state: [%s]", m.state)
 			if m.state == game.StateRoundFinished {
-				return m, emit(game.ReadyNextRoundIntent{})
+				if !m.isLastRound() {
+					return m, emit(game.ReadyNextRoundIntent{})
+				} else {
+					return m, emit(game.ContinueIntent{})
+				}
 			}
 			if m.state == game.StateWaitOpponentGuess && m.matchInfo.Mode != protocol.MULTI_LOCAL {
 				break
@@ -444,6 +448,10 @@ func (m *gameModel) addGuess(word string) {
 	m.guesses[m.matchInfo.CurrentAttempt] = word
 }
 
+func (m *gameModel) isLastRound() bool {
+	return m.matchInfo.CurrentRound >= m.matchInfo.TotalRounds
+}
+
 func (m *gameModel) initChallenges() {
 	logger.Debug("initChallenges()")
 	var challengesLen int
@@ -472,7 +480,7 @@ func (m *gameModel) setTurnTimer() tea.Cmd {
 }
 
 func (m *gameModel) setPostRoundTimer() tea.Cmd {
-	if m.postRoundTimeout > 0 {
+	if m.postRoundTimeout > 0 && !m.isLastRound() {
 		m.postRoundTimer = timer.New(time.Second * time.Duration(m.postRoundTimeout))
 		return m.postRoundTimer.Init()
 	}
