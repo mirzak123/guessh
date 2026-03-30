@@ -232,9 +232,15 @@ func (m *gameModel) View() string {
 		seconds := int(m.turnTimer.Timeout.Seconds())
 		countdown = fmt.Sprintf("%3d", seconds)
 
+		var style lipgloss.Style
 		if seconds < 10 {
-			countdown = ui.RoseText.Render(countdown)
+			style = ui.RoseText
+		} else if seconds < 20 {
+			style = ui.YellowText
+		} else {
+			style = ui.GreenText
 		}
+		countdown = style.Render(countdown)
 	} else {
 		countdown = strings.Repeat(" ", 3)
 	}

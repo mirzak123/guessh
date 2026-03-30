@@ -53,6 +53,12 @@ var (
 	RoseText = lipgloss.NewStyle().
 			Foreground(Rose)
 
+	YellowText = lipgloss.NewStyle().
+			Foreground(Yellow)
+
+	GreenText = lipgloss.NewStyle().
+			Foreground(Green)
+
 	GrayText = lipgloss.NewStyle().
 			Foreground(Gray)
 
