@@ -344,7 +344,7 @@ void assert_feedback(LetterFeedback *feedback, LetterFeedback *expected) {
 }
 
 void print_timer_list(TimerList *tl) {
-  printf("[%s]: ", __FUNCTION__);
+  printf("[print_timer_list]: ");
 
   Timer *current = tl->head;
   while (current != NULL) {

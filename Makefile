@@ -40,17 +40,17 @@ build-all: build-server build-cli build-ssh
 
 # --- C Server Targets ---
 build-server:
-	$(CC) $(CFLAGS) $(LDFLAGS) $(SERVER_SRC) -o $(BUILD_DIR)/server
+	$(CC) $(SERVER_SRC) $(CFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/server
 
 run-server: build-server
 	$(BUILD_DIR)/server
 
 test-server:
-	$(CC) $(CFLAGS) $(LDFLAGS) $(TEST_SRC) -o $(BUILD_DIR)/server-test
+	$(CC) $(TEST_SRC) $(CFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/server-test
 	$(BUILD_DIR)/server-test
 
 debug-server:
-	$(CC) $(ASAN_FLAGS) $(CFLAGS) $(LDFLAGS) $(SERVER_SRC) -o $(BUILD_DIR)/server-debug
+	$(CC) $(SERVER_SRC) $(ASAN_FLAGS) $(CFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/server-debug
 	lldb -- $(BUILD_DIR)/server-debug
 
 # --- Go CLI Targets ---

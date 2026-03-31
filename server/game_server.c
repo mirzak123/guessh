@@ -7,6 +7,7 @@
 #include "room.h"
 #include "timer.h"
 #include <assert.h>
+#include <cjson/cJSON.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -79,7 +80,7 @@ void GS_handle_request(GameServer *gs, Client *client) {
 
   switch (mt) {
   case MALFORMED_MESSAGE:
-    printf("[%s] Malformed request received: \"%s\"\n", __FUNCTION__, data);
+    printf("[GS_handle_request] Malformed request received: \"%s\"\n", data);
     if (json_request) {
       cJSON_Delete(json_request);
     }
@@ -372,18 +373,18 @@ MessageType parse_client_event(char *data, size_t size, cJSON **json_out) {
 
   *json_out = cJSON_ParseWithLength(data, size);
   if (*json_out == NULL) {
-    printf("[%s] cJSON failed to parse message\n", __FUNCTION__);
+    printf("[parse_client_event] cJSON failed to parse message\n");
     return MALFORMED_MESSAGE;
   }
 
   json_type = cJSON_GetObjectItem(*json_out, "type");
   if (json_type == NULL) {
-    printf("[%s] message missing 'type' field\n", __FUNCTION__);
+    printf("[parse_client_event] message missing 'type' field\n");
     return MALFORMED_MESSAGE;
   }
 
   if (!cJSON_IsString(json_type)) {
-    printf("[%s] message 'type' field is not a string\n", __FUNCTION__);
+    printf("[parse_client_event] message 'type' field is not a string\n");
     return MALFORMED_MESSAGE;
   }
   type = cJSON_GetStringValue(json_type);
