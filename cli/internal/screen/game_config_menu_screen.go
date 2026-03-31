@@ -118,16 +118,15 @@ func NewGameConfigMenu(matchInfo *game.MatchInfo, hoveredPtr *protocol.GameMode)
 			Value(&matchInfo.RawTotalRounds)
 
 		timerInput = huh.NewSelect[int]().
-				Title("Turn timer?").
-				Description("How long does each turn last?").
+				Title("Time limit per turn?").
 				Options(
-				huh.NewOption("No time limit", -1),
-				huh.NewOption("5 seconds", 5),
-				huh.NewOption("10 seconds", 10),
-				huh.NewOption("30 seconds", 30),
-				huh.NewOption("1 minute", 60),
-				huh.NewOption("2 minutes", 120),
-				huh.NewOption("5 minutes", 300),
+				huh.NewOption("None", -1),
+				huh.NewOption(fmt.Sprintf(" 5%s", ui.GrayText.Render("s")), 5),
+				huh.NewOption(fmt.Sprintf("10%s", ui.GrayText.Render("s")), 10),
+				huh.NewOption(fmt.Sprintf("30%s", ui.GrayText.Render("s")), 30),
+				huh.NewOption(fmt.Sprintf(" 1%s", ui.GrayText.Render("m")), 60),
+				huh.NewOption(fmt.Sprintf(" 2%s", ui.GrayText.Render("m")), 120),
+				huh.NewOption(fmt.Sprintf(" 5%s", ui.GrayText.Render("m")), 300),
 			).
 			Value(&matchInfo.TurnTimeout)
 
