@@ -24,8 +24,7 @@ type MatchInfo struct {
 	CurrentRound        int
 	RawTotalRounds      string
 	TotalRounds         int
-	RawTurnTimeout   string
-	TurnTimeout      int
+	TurnTimeout         int
 	RoundsPlayed        int
 	MaxAttempts         int
 	CurrentAttempt      int

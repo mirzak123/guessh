@@ -57,7 +57,7 @@ func NewCreateMatchEvent(mode GameMode, format GameFormat, wordLen, rounds, turn
 		PlayerName: playerName,
 	}
 
-	if turnTimeout != 0 {
+	if turnTimeout != -1 {
 		event.TurnTimeout = turnTimeout
 	}
 
