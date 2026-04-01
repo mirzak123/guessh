@@ -542,6 +542,18 @@ void GS_handle_request_rematch(GameServer *gs, Client *client) {
     printf("[GS_handle_request_rematch] error: new_match() returned NULL\n");
     return;
   }
+
+  if (old_match->turn_timer != NULL) {
+    MatchTimerData *timer_data = malloc(sizeof(MatchTimerData));
+    if (timer_data == NULL) {
+      perror("timer_data malloc");
+      delete_match(match);
+    }
+    timer_data->gs = gs;
+    timer_data->match = match;
+    match->turn_timer =
+        new_timer(gs->timer_list, (TimerCallbackFunc)expire_turn_timer, timer_data, old_match->turn_timer->seconds);
+  }
   HT_set(gs->matches, KEY(match->id), match);
 
   GS_add_player_to_match(match, player);
@@ -759,7 +771,7 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
   send_guess_result(match, guess);
 
   if (is_round_finished(round)) {
-    GS_end_round(gs, match); // TODO: arm the ready for turn timer if match isn't over
+    GS_end_round(gs, match);
   } else {
     start_turn(match);
   }
