@@ -262,7 +262,7 @@ func validateName(name string) error {
 		return errors.New("name must not be empty")
 	}
 	if len(name) > maxNameLen {
-		return fmt.Errorf("name should be %d characters or less", maxNameLen)
+		return fmt.Errorf("name should have %d characters or less", maxNameLen)
 	}
 	return nil
 }
