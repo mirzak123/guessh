@@ -1137,15 +1137,16 @@ void send_guess_result(Match *match, char *guess) {
 
 void swap_turn(Match *match) {
   Player *player, *opponent;
-  printf("Swapping turn...\n");
 
   switch (match->mode) {
   case MULTI_REMOTE:
+    printf("Swapping turn...\n");
     opponent = match->remote.on_turn;
     player = get_opponent(match->player1, match->player2, opponent);
     match->remote.on_turn = player;
     break;
   case MULTI_LOCAL:
+    printf("Swapping turn...\n");
     match->local.p1_on_turn = !match->local.p1_on_turn;
     break;
   case SINGLE:
