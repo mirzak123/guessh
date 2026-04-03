@@ -33,5 +33,6 @@ void Timer_disarm(Timer *timer);
 void Timer_rearm(Timer *timer);
 
 void TimerList_examine(TimerList *tl);
+void TimerList_print(TimerList *tl);
 
 #endif // !TIMER_H

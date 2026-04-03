@@ -32,7 +32,6 @@ static void increment(int *data);
 static void increment_and_rearm(TimerTestData *data);
 
 static void assert_feedback(LetterFeedback *feedback, LetterFeedback *expected);
-void print_timer_list(TimerList *tl);
 
 int main(void) {
   srand(time(NULL));
@@ -200,7 +199,7 @@ void test_timer(void) {
   Timer_fire(t4);
   assert(counter == 3);
 
-  print_timer_list(&tl);
+  TimerList_print(&tl);
 
   t_cur = tl.head;
   assert(t_cur == t4);
@@ -311,17 +310,17 @@ static void test_timer_arm_within_examine(void) {
   Timer_arm(t4);
 
   printf("Pre-examine: ");
-  print_timer_list(&tl);
+  TimerList_print(&tl);
   sleep(sleep_seconds);
 
   TimerList_examine(&tl);
   printf("Examine 1: ");
-  print_timer_list(&tl);
+  TimerList_print(&tl);
   sleep(sleep_seconds);
 
   TimerList_examine(&tl);
   printf("Examine 2: ");
-  print_timer_list(&tl);
+  TimerList_print(&tl);
 
   assert(counter = 5);
   assert(tl.head == t1);
@@ -341,17 +340,4 @@ void assert_feedback(LetterFeedback *feedback, LetterFeedback *expected) {
   for (int i = 0; i < WORD_LEN; i++) {
     assert(feedback[i] == expected[i]);
   }
-}
-
-void print_timer_list(TimerList *tl) {
-  printf("[print_timer_list]: ");
-
-  Timer *current = tl->head;
-  while (current != NULL) {
-    printf("[%d]", current->id);
-    if (current->next != NULL)
-      printf(" -> ");
-    current = current->next;
-  }
-  printf("\n");
 }

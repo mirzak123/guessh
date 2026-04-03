@@ -122,3 +122,16 @@ void Timer_rearm(Timer *timer) {
   timer->next = NULL;
   Timer_arm(timer);
 }
+
+void TimerList_print(TimerList *tl) {
+  printf("[print_timer_list]: ");
+
+  Timer *current = tl->head;
+  while (current != NULL) {
+    printf("[%d]", current->id);
+    if (current->next != NULL)
+      printf(" -> ");
+    current = current->next;
+  }
+  printf("\n");
+}
