@@ -15,8 +15,9 @@ import (
 )
 
 const (
-	minRounds = 1
-	maxRounds = 5
+	minRounds  = 1
+	maxRounds  = 5
+	maxNameLen = 15
 )
 
 var GameModeLabels = map[protocol.GameMode]string{
@@ -49,22 +50,12 @@ func NewGameConfigMenu(matchInfo *game.MatchInfo, hoveredPtr *protocol.GameMode)
 				}
 			}, matchInfo.Mode).
 			Value(&matchInfo.PlayerName).
-			Validate(func(str string) error {
-				if matchInfo.PlayerName == "" {
-					return errors.New("name must not be empty")
-				}
-				return nil
-			})
+			Validate(validateName)
 
 		opponentNameInput = huh.NewInput().
 					Title("Player 2").
 					Value(&matchInfo.OpponentName).
-					Validate(func(str string) error {
-				if matchInfo.OpponentName == "" {
-					return errors.New("player name must not be empty")
-				}
-				return nil
-			})
+					Validate(validateName)
 
 		modeInput = huh.NewSelect[protocol.GameMode]().
 				Title("Are you lonely?").
@@ -264,4 +255,14 @@ func NewGameConfigMenu(matchInfo *game.MatchInfo, hoveredPtr *protocol.GameMode)
 	)
 
 	return form, &confirm
+}
+
+func validateName(name string) error {
+	if name == "" {
+		return errors.New("name must not be empty")
+	}
+	if len(name) > maxNameLen {
+		return fmt.Errorf("name should be %d characters or less", maxNameLen)
+	}
+	return nil
 }
