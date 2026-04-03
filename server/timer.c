@@ -44,7 +44,7 @@ void Timer_fire(Timer *timer) {
 }
 
 void TimerList_examine(TimerList *tl) {
-  Timer *current = tl->head, *next = NULL;
+  Timer *current = tl->head, *reschedule_list, *next = NULL;
   tl->head = NULL;
   while (current != NULL && current->timestamp <= time(NULL)) {
     next = current->next;
@@ -52,7 +52,11 @@ void TimerList_examine(TimerList *tl) {
     current = next;
   }
 
-  while (current != NULL) { // TODO: Reverse the two lists
+  reschedule_list = tl->head;
+  tl->head = current;
+  current = reschedule_list;
+
+  while (current != NULL) {
     next = current->next;
     Timer_arm(current);
     current = next;
