@@ -123,8 +123,33 @@ void Timer_rearm(Timer *timer) {
   }
 
   timer->timestamp = time(NULL) + timer->seconds;
-  timer->next = NULL;
-  Timer_arm(timer);
+
+  Timer *current = timer->tl->head, *prev = NULL;
+  while (current != timer) {
+    prev = current;
+    current = current->next;
+  }
+
+  // timer should stay in the same position
+  if (timer->next != NULL && timer->timestamp <= timer->next->timestamp) {
+    return;
+  }
+
+  // timer needs to shift
+  if (prev == NULL) { // timer was head of the list
+    timer->tl->head = timer->next;
+  } else {
+    prev->next = timer->next;
+  }
+
+  current = timer->next;
+  while (current != NULL && current->timestamp <= timer->timestamp) {
+    prev = current;
+    current = current->next;
+  }
+
+  prev->next = timer;
+  timer->next = current;
 }
 
 void TimerList_print(TimerList *tl) {
