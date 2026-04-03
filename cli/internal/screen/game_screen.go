@@ -309,24 +309,6 @@ func (m *gameModel) statusBar() string {
 	if m.state == game.StateRoundFinished || m.state == game.StateWaitOpponentReady {
 		var outcome string
 
-		points := m.matchInfo.RoundPoints[m.matchInfo.CurrentRound-1]
-		if points > 0 {
-			if m.matchInfo.Mode == protocol.MULTI_LOCAL {
-				outcome = fmt.Sprintf("%s Round won by %s",
-					ui.PlayerBlock(),
-					ui.PurpleText.Render(m.matchInfo.PlayerName))
-			} else {
-				outcome = fmt.Sprintf("%s Round won", ui.PlayerBlock())
-			}
-		} else if points < 0 {
-			if m.matchInfo.Mode == protocol.MULTI_LOCAL {
-				outcome = fmt.Sprintf("%s Round won by %s",
-					ui.OpponentBlock(),
-					ui.RoseText.Render(m.matchInfo.OpponentName))
-			} else {
-				outcome = fmt.Sprintf("%s Round lost", ui.OpponentBlock())
-			}
-		}
 		words := []string{}
 
 		for i, challenge := range m.challenges {
@@ -341,7 +323,37 @@ func (m *gameModel) statusBar() string {
 			}
 		}
 
-		line1 = outcome
+		points := m.matchInfo.RoundPoints[m.matchInfo.CurrentRound-1]
+
+		switch m.matchInfo.Mode {
+		case protocol.MULTI_REMOTE:
+			if points > 0 {
+				outcome = fmt.Sprintf("%s Round won", ui.PlayerBlock())
+			} else if points < 0 {
+				outcome = fmt.Sprintf("%s Round lost", ui.OpponentBlock())
+			} else {
+				outcome = fmt.Sprintf("%s Round draw", ui.DrawBlock())
+			}
+			line1 = lipgloss.JoinHorizontal(lipgloss.Center, outcome, " - ", strings.Join(words, " • "))
+		case protocol.MULTI_LOCAL:
+			if points > 0 {
+				outcome = fmt.Sprintf("%s Round won by %s", ui.PlayerBlock(), ui.PurpleText.Render(m.matchInfo.PlayerName))
+			} else if points < 0 {
+				outcome = fmt.Sprintf("%s Round won by %s", ui.OpponentBlock(), ui.RoseText.Render(m.matchInfo.OpponentName))
+			} else {
+				outcome = fmt.Sprintf("%s Round draw", ui.DrawBlock())
+			}
+			line1 = lipgloss.JoinHorizontal(lipgloss.Center, outcome, " - ", strings.Join(words, " • "))
+		case protocol.SINGLE:
+			if points == m.challengesLen {
+				outcome = fmt.Sprintf("%s Round won", ui.PlayerBlock())
+				line1 = outcome
+			} else {
+				outcome = fmt.Sprintf("%s Round lost", ui.OpponentBlock())
+				line1 = lipgloss.JoinHorizontal(lipgloss.Center, outcome, " - ", strings.Join(words, " • "))
+			}
+		}
+
 		switch m.state {
 		case game.StateRoundFinished:
 			line2 = ui.GrayText.Render("Press Enter to continue")
@@ -360,36 +372,6 @@ func (m *gameModel) statusBar() string {
 			)
 		}
 
-		switch m.matchInfo.Format {
-		case protocol.WORDLE:
-			if points == 0 {
-				outcome = fmt.Sprintf(
-					"%s Not guessed",
-					ui.DrawBlock(),
-				)
-
-				line1 = lipgloss.JoinHorizontal(lipgloss.Center,
-					outcome,
-					" - ",
-					strings.Join(words, " • "),
-				)
-			} else {
-				line1 = outcome
-			}
-		case protocol.QUORDLE:
-			if points == 0 {
-				outcome = fmt.Sprintf(
-					"%s Round draw",
-					ui.DrawBlock(),
-				)
-			}
-
-			line1 = lipgloss.JoinHorizontal(lipgloss.Center,
-				outcome,
-				" - ",
-				strings.Join(words, " • "),
-			)
-		}
 	} else {
 		line1 = ui.SmallLogo()
 		if m.err != nil {
