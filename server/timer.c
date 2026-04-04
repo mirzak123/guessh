@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <time.h>
 
+static void Timer_set(Timer *timer);
+
 Timer *new_timer(TimerList *tl, TimerCallbackFunc func, TimerCallbackData data, size_t seconds) {
   Timer *timer = malloc(sizeof(Timer));
   if (timer == NULL) {
@@ -21,6 +23,7 @@ Timer *new_timer(TimerList *tl, TimerCallbackFunc func, TimerCallbackData data, 
 
   timer->id = generate_unique_id();
   timer->seconds = seconds;
+  timer->is_armed = false;
   timer->callback.func = func;
   timer->callback.data = data;
   timer->next = NULL;
@@ -30,6 +33,9 @@ Timer *new_timer(TimerList *tl, TimerCallbackFunc func, TimerCallbackData data, 
 }
 
 void delete_timer(Timer *timer, bool free_data) {
+  if (timer->is_armed) {
+    Timer_disarm(timer);
+  }
   if (free_data) {
     free(timer->callback.data);
   }
@@ -38,13 +44,14 @@ void delete_timer(Timer *timer, bool free_data) {
 
 void Timer_fire(Timer *timer) {
   printf("Firing timer [%d]...\n", timer->id);
+  timer->is_armed = false;
   if (timer->callback.func != NULL) {
     timer->callback.func(timer->callback.data);
   }
 }
 
 void TimerList_examine(TimerList *tl) {
-  Timer *current = tl->head, *reschedule_list, *next = NULL;
+  Timer *current = tl->head, *reschedule_list = NULL, *next = NULL;
   tl->head = NULL;
   while (current != NULL && current->timestamp <= time(NULL)) {
     next = current->next;
@@ -65,8 +72,12 @@ void TimerList_examine(TimerList *tl) {
 
 void Timer_arm(Timer *timer) {
   TimerList *tl = timer->tl;
+
+  Timer_set(timer);
+
   if (tl->head == NULL) {
     tl->head = timer;
+    timer->next = NULL;
     return;
   }
 
@@ -74,7 +85,8 @@ void Timer_arm(Timer *timer) {
 
   while (current != NULL) {
     if (current == timer) {
-      return; // trying to add a timer that is already in the list
+      printf("[Timer_arm] Trying to add a timer that is already in the list\n");
+      return;
     }
 
     if (current->timestamp > timer->timestamp) {
@@ -100,6 +112,8 @@ void Timer_arm(Timer *timer) {
 void Timer_disarm(Timer *timer) {
   Timer *current = timer->tl->head, *prev = NULL;
 
+  timer->is_armed = false;
+
   while (current != NULL) {
     if (current != timer) {
       prev = current;
@@ -122,7 +136,7 @@ void Timer_rearm(Timer *timer) {
     return;
   }
 
-  timer->timestamp = time(NULL) + timer->seconds;
+  Timer_set(timer);
 
   Timer *current = timer->tl->head, *prev = NULL;
   while (current != timer) {
@@ -148,8 +162,17 @@ void Timer_rearm(Timer *timer) {
     current = current->next;
   }
 
-  prev->next = timer;
-  timer->next = current;
+  if (prev == NULL) { // only 1 timer in the list
+    timer->tl->head = timer;
+  } else {
+    prev->next = timer;
+    timer->next = current;
+  }
+}
+
+void Timer_set(Timer *timer) {
+  timer->is_armed = true;
+  timer->timestamp = time(NULL) + timer->seconds;
 }
 
 void TimerList_print(TimerList *tl) {

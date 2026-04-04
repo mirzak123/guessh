@@ -912,7 +912,7 @@ void GS_end_round(GameServer *gs, Match *match) {
     match->player2->ready_next_round = false;
 
     if (!should_end_match) {
-      Timer_rearm(match->post_round_timer);
+      Timer_arm(match->post_round_timer);
     }
 
     break;
@@ -1178,7 +1178,11 @@ void start_turn(Match *match) {
   }
 
   if (match->turn_timer != NULL) {
-    Timer_rearm(match->turn_timer);
+    if (match->turn_timer->is_armed) {
+      Timer_rearm(match->turn_timer);
+    } else {
+      Timer_arm(match->turn_timer);
+    }
   }
 }
 

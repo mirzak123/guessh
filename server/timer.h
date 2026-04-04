@@ -11,6 +11,7 @@ typedef struct Timer {
   int id;
   long timestamp;
   size_t seconds;
+  bool is_armed;
   struct {
     TimerCallbackFunc func;
     TimerCallbackData data;
