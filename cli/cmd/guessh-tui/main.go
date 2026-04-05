@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	logger.EnsureLoggerSetup("cli.log")
+	logger.EnsureLoggerSetup("tui.log")
 
 	p := tea.NewProgram(screen.InitialModel())
 	if _, err := p.Run(); err != nil {
