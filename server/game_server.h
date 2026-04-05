@@ -83,16 +83,38 @@ typedef enum {
 } MessageType;
 
 typedef struct ServerStats {
-  // match
-  size_t total_matches;
-  size_t active_matches;
-  size_t max_active_matches;
-  size_t matches_abandoned;
 
-  // client
-  size_t total_clients;
-  size_t active_clients;
-  size_t max_active_clients;
+  struct {
+    size_t total;
+    size_t active;
+    size_t max_active;
+    size_t abandoned;
+
+    struct {
+      size_t single;
+      size_t multi_local;
+      size_t multi_remote;
+    } mode;
+
+    struct {
+      size_t wordle;
+      size_t quordle;
+    } format;
+
+  } matches;
+
+  struct {
+    size_t total;
+    size_t active;
+    size_t max_active;
+  } clients;
+
+  struct {
+    size_t word_challenges;
+    size_t total_guesses;
+    size_t correct_guesses;
+  } gameplay;
+
 } ServerStats;
 
 typedef struct {

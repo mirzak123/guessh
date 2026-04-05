@@ -322,7 +322,7 @@ void GS_cleanup_after_client_disconnect(GameServer *gs, Client *client) {
 
     if (player->match != NULL) {
       if (player->match->is_active) {
-        gs->stats.matches_abandoned++;
+        gs->stats.matches.abandoned++;
         GS_end_match(gs, player->match, player);
       }
       GS_cleanup_match(gs, player->match);
@@ -780,8 +780,11 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
   }
 
   add_guess_attempt(round, guess);
+  gs->stats.gameplay.total_guesses++;
+
   size_t solved_num = evaluate_guess(guess, round->wc_list, round->wc_num, player1_on_turn);
   round->solved_num += solved_num;
+  gs->stats.gameplay.correct_guesses += solved_num;
 
   if (solved_num == 0) {
     swap_turn(match);
@@ -853,7 +856,7 @@ void GS_end_match(GameServer *gs, Match *match, Player *disconnected_player) {
   (void)gs;
 
   match->is_active = false;
-  gs->stats.active_matches--;
+  gs->stats.matches.active--;
 
   cJSON *match_finished_json = NULL;
 
@@ -961,10 +964,10 @@ void GS_start_match(GameServer *gs, Match *match, bool is_rematch) {
   printf("[start_match] Starting new match...\n");
 
   match->is_active = true;
-  gs->stats.active_matches++;
-  gs->stats.total_matches++;
-  if (gs->stats.active_matches > gs->stats.max_active_matches) {
-    gs->stats.max_active_matches = gs->stats.active_matches;
+  gs->stats.matches.active++;
+  gs->stats.matches.total++;
+  if (gs->stats.matches.active > gs->stats.matches.max_active) {
+    gs->stats.matches.max_active = gs->stats.matches.active;
   }
 
   switch (match->mode) {
@@ -1037,6 +1040,7 @@ void GS_start_round(GameServer *gs, Match *match) {
       return;
     }
     wc_list[i] = wc;
+    gs->stats.gameplay.word_challenges++;
   }
 
   Round *round = new_round(wc_list, wc_num, max_attempts);

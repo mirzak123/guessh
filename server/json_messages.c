@@ -121,18 +121,37 @@ cJSON *json_opponent_typing(const char *value) {
 }
 
 cJSON *json_stats(ServerStats *stats) {
-  cJSON *json = cJSON_CreateObject();
+  cJSON *json, *matches, *matches_format, *matches_mode, *clients, *gameplay;
 
-  // match
-  cJSON_AddNumberToObject(json, "total_matches", stats->total_matches);
-  cJSON_AddNumberToObject(json, "active_matches", stats->active_matches);
-  cJSON_AddNumberToObject(json, "max_active_matches", stats->max_active_matches);
-  cJSON_AddNumberToObject(json, "matches_abandoned", stats->matches_abandoned);
+  json = cJSON_CreateObject();
 
-  // client
-  cJSON_AddNumberToObject(json, "total_clients", stats->total_clients);
-  cJSON_AddNumberToObject(json, "active_clients", stats->active_clients);
-  cJSON_AddNumberToObject(json, "max_active_clients", stats->max_active_clients);
+  // matches
+  cJSON_AddItemToObject(json, "matches", matches = cJSON_CreateObject());
+  cJSON_AddNumberToObject(matches, "total", stats->matches.total);
+  cJSON_AddNumberToObject(matches, "active", stats->matches.active);
+  cJSON_AddNumberToObject(matches, "max_active", stats->matches.max_active);
+  cJSON_AddNumberToObject(matches, "abandoned", stats->matches.abandoned);
+
+  cJSON_AddItemToObject(matches, "format", matches_format = cJSON_CreateObject());
+  cJSON_AddNumberToObject(matches_format, "wordle", stats->matches.format.wordle);
+  cJSON_AddNumberToObject(matches_format, "quordle", stats->matches.format.quordle);
+
+  cJSON_AddItemToObject(matches, "mode", matches_mode = cJSON_CreateObject());
+  cJSON_AddNumberToObject(matches_mode, "single", stats->matches.mode.single);
+  cJSON_AddNumberToObject(matches_mode, "multi_local", stats->matches.mode.multi_local);
+  cJSON_AddNumberToObject(matches_mode, "multi_remote", stats->matches.mode.multi_remote);
+
+  // clients
+  cJSON_AddItemToObject(json, "clients", clients = cJSON_CreateObject());
+  cJSON_AddNumberToObject(clients, "total", stats->clients.total);
+  cJSON_AddNumberToObject(clients, "active", stats->clients.active);
+  cJSON_AddNumberToObject(clients, "max_active", stats->clients.max_active);
+
+  // gameplay
+  cJSON_AddItemToObject(json, "gameplay", gameplay = cJSON_CreateObject());
+  cJSON_AddNumberToObject(gameplay, "word_challenges", stats->gameplay.word_challenges);
+  cJSON_AddNumberToObject(gameplay, "total_guesses_made", stats->gameplay.total_guesses);
+  cJSON_AddNumberToObject(gameplay, "correct_guesses", stats->gameplay.correct_guesses);
 
   return json;
 }

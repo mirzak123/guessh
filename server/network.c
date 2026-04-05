@@ -129,10 +129,10 @@ void handle_new_connection(GameServer *gs, int listen_fd, int *fd_size, int *fd_
 
   HT_set(gs->clients, KEY(client_fd), new_client(client_fd));
 
-  gs->stats.active_clients++;
-  gs->stats.total_clients++;
-  if (gs->stats.active_clients > gs->stats.max_active_clients) {
-    gs->stats.max_active_clients = gs->stats.active_clients;
+  gs->stats.clients.active++;
+  gs->stats.clients.total++;
+  if (gs->stats.clients.active > gs->stats.clients.max_active) {
+    gs->stats.clients.max_active = gs->stats.clients.active;
   }
 }
 
@@ -220,7 +220,7 @@ void remove_client(GameServer *gs, Client *client, struct pollfd pfds[], int *pf
   // re-examine slot as it contains a new fd after deletion
   (*pfd_i)--;
 
-  gs->stats.active_clients--;
+  gs->stats.clients.active--;
 }
 
 void process_connections(GameServer *gs, int listen_fd, int *fd_size, int *fd_count, struct pollfd **pfds) {
