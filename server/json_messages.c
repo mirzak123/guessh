@@ -120,8 +120,10 @@ cJSON *json_opponent_typing(const char *value) {
   return json;
 }
 
-cJSON *json_stats(void) {
+cJSON *json_stats(ServerStats *stats) {
   cJSON *json = cJSON_CreateObject();
-  cJSON_AddNumberToObject(json, "matches", 43820);
+  cJSON_AddNumberToObject(json, "total_matches", stats->total_matches);
+  cJSON_AddNumberToObject(json, "active_matches", stats->active_matches);
+  cJSON_AddNumberToObject(json, "max_active_matches", stats->max_active_matches);
   return json;
 }

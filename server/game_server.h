@@ -82,6 +82,12 @@ typedef enum {
   ERROR,
 } MessageType;
 
+typedef struct ServerStats {
+  size_t total_matches;
+  size_t max_active_matches;
+  size_t active_matches;
+} ServerStats;
+
 typedef struct {
   HashTable *matches;
   HashTable *clients;
@@ -92,6 +98,7 @@ typedef struct {
     WordStore *six_secret;
     WordStore *seven_secret;
   } word_store;
+  ServerStats stats;
 } GameServer;
 
 GameServer *GS_create(void);

@@ -849,6 +849,8 @@ void GS_handle_ready_next_round(GameServer *gs, Client *client) {
 void GS_end_match(GameServer *gs, Match *match, Player *disconnected_player) {
   (void)gs;
 
+  gs->stats.active_matches--;
+
   cJSON *match_finished_json = NULL;
 
   switch (match->mode) {
@@ -953,6 +955,12 @@ void GS_start_match(GameServer *gs, Match *match, bool is_rematch) {
   cJSON *match_started_json = NULL;
 
   printf("[start_match] Starting new match...\n");
+
+  gs->stats.active_matches++;
+  gs->stats.total_matches++;
+  if (gs->stats.active_matches > gs->stats.max_active_matches) {
+    gs->stats.max_active_matches = gs->stats.active_matches;
+  }
 
   switch (match->mode) {
   case MULTI_REMOTE:
@@ -1065,7 +1073,7 @@ void GS_start_round(GameServer *gs, Match *match) {
 void GS_handle_show_stats(GameServer *gs, Client *client) {
   (void)gs;
 
-  cJSON *stats_json = json_stats();
+  cJSON *stats_json = json_stats(&gs->stats);
   send_json(client->fd, stats_json);
   cJSON_Delete(stats_json);
 }
