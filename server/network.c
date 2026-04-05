@@ -128,6 +128,12 @@ void handle_new_connection(GameServer *gs, int listen_fd, int *fd_size, int *fd_
   add_to_pfds(pfds, client_fd, fd_size, fd_count);
 
   HT_set(gs->clients, KEY(client_fd), new_client(client_fd));
+
+  gs->stats.active_clients++;
+  gs->stats.total_clients++;
+  if (gs->stats.active_clients > gs->stats.max_active_clients) {
+    gs->stats.max_active_clients = gs->stats.active_clients;
+  }
 }
 
 /*
@@ -148,12 +154,7 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
       perror("recv");
     }
 
-    GS_cleanup_after_client_disconnect(gs, client);
-    del_from_pfds(pfds, *pfd_i, fd_count);
-
-    // re-examine slot as it contains a new fd after deletion
-    (*pfd_i)--;
-
+    remove_client(gs, client, pfds, pfd_i, fd_count);
     return;
   }
 
@@ -161,10 +162,7 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
 
   if ((client->buf_len + nbytes) - (client->buf_start - client->buffer) > BUFSIZE) {
     printf("[handle_client_data] error: buffer overflow\n");
-
-    GS_cleanup_after_client_disconnect(gs, client);
-    del_from_pfds(pfds, *pfd_i, fd_count);
-    (*pfd_i)--;
+    remove_client(gs, client, pfds, pfd_i, fd_count);
     return;
   }
 
@@ -187,7 +185,7 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
       if (client->payload_size > BUFSIZE) {
         printf("[handle_client_data] error: payload size %d larger than allowed buffer limit %d\n", client->payload_size,
                BUFSIZE);
-        GS_cleanup_after_client_disconnect(gs, client);
+        remove_client(gs, client, pfds, pfd_i, fd_count);
         return;
       }
 
@@ -213,6 +211,16 @@ void handle_client_data(GameServer *gs, int *fd_count, struct pollfd pfds[], int
 
   memmove(client->buffer, client->buf_start, client->buf_len);
   client->buf_start = client->buffer;
+}
+
+void remove_client(GameServer *gs, Client *client, struct pollfd pfds[], int *pfd_i, int *fd_count) {
+  GS_cleanup_after_client_disconnect(gs, client);
+  del_from_pfds(pfds, *pfd_i, fd_count);
+
+  // re-examine slot as it contains a new fd after deletion
+  (*pfd_i)--;
+
+  gs->stats.active_clients--;
 }
 
 void process_connections(GameServer *gs, int listen_fd, int *fd_size, int *fd_count, struct pollfd **pfds) {

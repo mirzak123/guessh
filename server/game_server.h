@@ -83,9 +83,15 @@ typedef enum {
 } MessageType;
 
 typedef struct ServerStats {
+  // match
   size_t total_matches;
-  size_t max_active_matches;
   size_t active_matches;
+  size_t max_active_matches;
+
+  // client
+  size_t total_clients;
+  size_t active_clients;
+  size_t max_active_clients;
 } ServerStats;
 
 typedef struct {

@@ -122,8 +122,16 @@ cJSON *json_opponent_typing(const char *value) {
 
 cJSON *json_stats(ServerStats *stats) {
   cJSON *json = cJSON_CreateObject();
+
+  // match
   cJSON_AddNumberToObject(json, "total_matches", stats->total_matches);
   cJSON_AddNumberToObject(json, "active_matches", stats->active_matches);
   cJSON_AddNumberToObject(json, "max_active_matches", stats->max_active_matches);
+
+  // client
+  cJSON_AddNumberToObject(json, "total_clients", stats->total_clients);
+  cJSON_AddNumberToObject(json, "active_clients", stats->active_clients);
+  cJSON_AddNumberToObject(json, "max_active_clients", stats->max_active_clients);
+
   return json;
 }
