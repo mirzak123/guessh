@@ -970,6 +970,27 @@ void GS_start_match(GameServer *gs, Match *match, bool is_rematch) {
     gs->stats.matches.max_active = gs->stats.matches.active;
   }
 
+  switch (match->format) {
+  case WORDLE:
+    gs->stats.matches.format.wordle++;
+    break;
+  case QUORDLE:
+    gs->stats.matches.format.quordle++;
+    break;
+  }
+
+  switch (match->mode) {
+  case SINGLE:
+    gs->stats.matches.mode.single++;
+    break;
+  case MULTI_LOCAL:
+    gs->stats.matches.mode.multi_local++;
+    break;
+  case MULTI_REMOTE:
+    gs->stats.matches.mode.multi_remote++;
+    break;
+  }
+
   switch (match->mode) {
   case MULTI_REMOTE:
     assert(match->player2 != NULL);
