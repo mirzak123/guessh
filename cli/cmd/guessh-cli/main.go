@@ -24,7 +24,7 @@ func main() {
 	)
 
 	if conn, err = transport.Connect(); err != nil {
-		fmt.Printf("Could not connect to server: %v", err)
+		fmt.Printf("Could not connect to server: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -32,7 +32,7 @@ func main() {
 		for {
 			buf, err := transport.ReadServerEvent(conn)
 			if err != nil {
-				fmt.Printf("Server disconnected: %v\n", err)
+				fmt.Printf("\nServer disconnected: %v\n", err)
 				os.Exit(1)
 			}
 
@@ -43,6 +43,7 @@ func main() {
 	}()
 
 	scanner := bufio.NewScanner(os.Stdin)
+
 	for {
 		fmt.Print(PROMPT)
 		scanner.Scan()
