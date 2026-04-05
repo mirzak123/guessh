@@ -15,6 +15,7 @@ const ( // Client Events
 	DENY_REMATCH       EventType = "DENY_REMATCH"
 	TYPING             EventType = "TYPING"
 	READY_NEXT_ROUND   EventType = "READY_NEXT_ROUND"
+	SHOW_STATS         EventType = "SHOW_STATS"
 )
 
 const ( // Server Events
@@ -28,6 +29,7 @@ const ( // Server Events
 	OPPONENT_TYPING         EventType = "OPPONENT_TYPING"
 	OPPONENT_DENIED_REMATCH EventType = "OPPONENT_DENIED_REMATCH"
 	OPPONENT_LEFT           EventType = "OPPONENT_LEFT"
+	STATS                   EventType = "STATS"
 	ERROR                   EventType = "ERROR"
 )
 
@@ -139,6 +141,16 @@ type ReadyNextRoundEvent struct {
 func NewReadyNextRoundEvent() *ReadyNextRoundEvent {
 	return &ReadyNextRoundEvent{
 		Type: READY_NEXT_ROUND,
+	}
+}
+
+type ShowStatsEvent struct {
+	Type EventType `json:"type"`
+}
+
+func NewShowStatsEvent() *ShowStatsEvent {
+	return &ShowStatsEvent{
+		Type: SHOW_STATS,
 	}
 }
 

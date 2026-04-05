@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"guessh/internal/client"
 	"guessh/internal/logger"
 	"guessh/internal/transport"
 	"net"
@@ -13,7 +14,10 @@ import (
 
 const PROMPT = "> "
 
-var quit = []byte("quit")
+var (
+	quit  = []byte("quit")
+	stats = []byte("stats")
+)
 
 func main() {
 	logger.EnsureLoggerSetup("cli.log")
@@ -42,6 +46,7 @@ func main() {
 		}
 	}()
 
+	cl := client.NewClient(conn)
 	scanner := bufio.NewScanner(os.Stdin)
 
 	for {
@@ -56,6 +61,12 @@ func main() {
 		if bytes.Equal(quit, bs) {
 			os.Exit(0)
 		}
-		_, _ = transport.SendEvent(conn, bs)
+
+		if bytes.Equal(stats, bs) {
+			cl.ShowStats()
+			continue
+		}
+
+		cl.Send(bs)
 	}
 }
