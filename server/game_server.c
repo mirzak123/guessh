@@ -991,6 +991,18 @@ void GS_start_match(GameServer *gs, Match *match, bool is_rematch) {
     break;
   }
 
+  switch (match->word_len) {
+  case 5:
+    gs->stats.matches.word_len.five++;
+    break;
+  case 6:
+    gs->stats.matches.word_len.six++;
+    break;
+  case 7:
+    gs->stats.matches.word_len.seven++;
+    break;
+  }
+
   switch (match->mode) {
   case MULTI_REMOTE:
     assert(match->player2 != NULL);

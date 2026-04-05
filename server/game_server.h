@@ -101,6 +101,12 @@ typedef struct ServerStats {
       size_t quordle;
     } format;
 
+    struct {
+      size_t five;
+      size_t six;
+      size_t seven;
+    } word_len;
+
   } matches;
 
   struct {
