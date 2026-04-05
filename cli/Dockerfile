@@ -4,7 +4,7 @@ WORKDIR /app
 COPY cli/go.mod cli/go.sum ./
 RUN cd . && go mod download
 COPY cli/ ./
-RUN go build -o /guessh-ssh ./cmd/ssh/main.go
+RUN go build -o /guessh-ssh ./cmd/guessh-ssh/main.go
 
 # Stage 2: Runtime
 FROM alpine:3.19

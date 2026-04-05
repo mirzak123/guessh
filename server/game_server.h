@@ -61,6 +61,7 @@ typedef enum {
   LEAVE_MATCH,
   TYPING,
   READY_NEXT_ROUND,
+  SHOW_STATS,
 
   // Server
   ROOM_CREATED,
@@ -77,8 +78,50 @@ typedef enum {
   ROUND_FINISHED,
   MATCH_FINISHED,
   OPPONENT_TYPING,
+  STATS,
   ERROR,
 } MessageType;
+
+typedef struct ServerStats {
+
+  struct {
+    size_t total;
+    size_t active;
+    size_t max_active;
+    size_t abandoned;
+
+    struct {
+      size_t single;
+      size_t multi_local;
+      size_t multi_remote;
+    } mode;
+
+    struct {
+      size_t wordle;
+      size_t quordle;
+    } format;
+
+    struct {
+      size_t five;
+      size_t six;
+      size_t seven;
+    } word_len;
+
+  } matches;
+
+  struct {
+    size_t total;
+    size_t active;
+    size_t max_active;
+  } clients;
+
+  struct {
+    size_t word_challenges;
+    size_t total_guesses;
+    size_t correct_guesses;
+  } gameplay;
+
+} ServerStats;
 
 typedef struct {
   HashTable *matches;
@@ -90,6 +133,7 @@ typedef struct {
     WordStore *six_secret;
     WordStore *seven_secret;
   } word_store;
+  ServerStats stats;
 } GameServer;
 
 GameServer *GS_create(void);
@@ -104,6 +148,7 @@ void GS_handle_deny_rematch(GameServer *gs, Client *client);
 void GS_handle_typing(Client *client, cJSON *json_request);
 void GS_handle_leave_match(GameServer *gs, Client *client);
 void GS_handle_ready_next_round(GameServer *gs, Client *client);
+void GS_handle_show_stats(GameServer *gs, Client *client);
 
 void GS_create_room(GameServer *gs, Match *match, Client *client);
 void GS_start_match(GameServer *gs, Match *match, bool is_rematch);

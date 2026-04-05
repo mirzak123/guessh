@@ -63,6 +63,7 @@ void delete_round(Round *round);
 
 typedef struct Match {
   char *id;
+  bool is_active;
   int round_idx;
   size_t word_len;
   size_t round_capacity;

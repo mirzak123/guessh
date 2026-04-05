@@ -6,13 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"guessh/internal/client"
-	"guessh/internal/config"
 	"guessh/internal/game"
 	"guessh/internal/logger"
 	"guessh/internal/protocol"
 	"guessh/internal/transport"
 	"guessh/internal/ui"
-	"net"
 	"slices"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -82,11 +80,9 @@ func InitialModel() *mainModel {
 		requestRematchScreen: NewRequestRematchModel(),
 	}
 
-	serverAddr := config.GetEnv("GAME_SERVER_ADDR", "localhost:2480")
-
-	conn, err := net.Dial("tcp", serverAddr)
+	conn, err := transport.Connect()
 	if err != nil {
-		logger.Error("net.Dial error: %v", err)
+		logger.Error("Error while connecting to game server: %v", err)
 		m.screenID = ServerDownScreenID
 	} else {
 		m.connected = true

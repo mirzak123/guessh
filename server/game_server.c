@@ -110,6 +110,9 @@ void GS_handle_request(GameServer *gs, Client *client) {
   case READY_NEXT_ROUND:
     GS_handle_ready_next_round(gs, client);
     break;
+  case SHOW_STATS:
+    GS_handle_show_stats(gs, client);
+    break;
   case UNSUPPORTED_MESSAGE_TYPE:
   default:
     send_error(client->fd, E_UNSUPPORTED_MESSAGE_TYPE);
@@ -318,7 +321,10 @@ void GS_cleanup_after_client_disconnect(GameServer *gs, Client *client) {
     Player *player = client->player;
 
     if (player->match != NULL) {
-      GS_end_match(gs, player->match, player);
+      if (player->match->is_active) {
+        gs->stats.matches.abandoned++;
+        GS_end_match(gs, player->match, player);
+      }
       GS_cleanup_match(gs, player->match);
     }
 
@@ -405,6 +411,8 @@ MessageType parse_client_event(char *data, size_t size, cJSON **json_out) {
     mt = TYPING;
   } else if (!strcmp(STR(READY_NEXT_ROUND), type)) {
     mt = READY_NEXT_ROUND;
+  } else if (!strcmp(STR(SHOW_STATS), type)) {
+    mt = SHOW_STATS;
   } else {
     mt = UNSUPPORTED_MESSAGE_TYPE;
   }
@@ -772,8 +780,11 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
   }
 
   add_guess_attempt(round, guess);
+  gs->stats.gameplay.total_guesses++;
+
   size_t solved_num = evaluate_guess(guess, round->wc_list, round->wc_num, player1_on_turn);
   round->solved_num += solved_num;
+  gs->stats.gameplay.correct_guesses += solved_num;
 
   if (solved_num == 0) {
     swap_turn(match);
@@ -843,6 +854,9 @@ void GS_handle_ready_next_round(GameServer *gs, Client *client) {
 
 void GS_end_match(GameServer *gs, Match *match, Player *disconnected_player) {
   (void)gs;
+
+  match->is_active = false;
+  gs->stats.matches.active--;
 
   cJSON *match_finished_json = NULL;
 
@@ -949,6 +963,46 @@ void GS_start_match(GameServer *gs, Match *match, bool is_rematch) {
 
   printf("[start_match] Starting new match...\n");
 
+  match->is_active = true;
+  gs->stats.matches.active++;
+  gs->stats.matches.total++;
+  if (gs->stats.matches.active > gs->stats.matches.max_active) {
+    gs->stats.matches.max_active = gs->stats.matches.active;
+  }
+
+  switch (match->format) {
+  case WORDLE:
+    gs->stats.matches.format.wordle++;
+    break;
+  case QUORDLE:
+    gs->stats.matches.format.quordle++;
+    break;
+  }
+
+  switch (match->mode) {
+  case SINGLE:
+    gs->stats.matches.mode.single++;
+    break;
+  case MULTI_LOCAL:
+    gs->stats.matches.mode.multi_local++;
+    break;
+  case MULTI_REMOTE:
+    gs->stats.matches.mode.multi_remote++;
+    break;
+  }
+
+  switch (match->word_len) {
+  case 5:
+    gs->stats.matches.word_len.five++;
+    break;
+  case 6:
+    gs->stats.matches.word_len.six++;
+    break;
+  case 7:
+    gs->stats.matches.word_len.seven++;
+    break;
+  }
+
   switch (match->mode) {
   case MULTI_REMOTE:
     assert(match->player2 != NULL);
@@ -1019,6 +1073,7 @@ void GS_start_round(GameServer *gs, Match *match) {
       return;
     }
     wc_list[i] = wc;
+    gs->stats.gameplay.word_challenges++;
   }
 
   Round *round = new_round(wc_list, wc_num, max_attempts);
@@ -1055,6 +1110,14 @@ void GS_start_round(GameServer *gs, Match *match) {
   cJSON_Delete(round_started_json);
 
   start_turn(match);
+}
+
+void GS_handle_show_stats(GameServer *gs, Client *client) {
+  (void)gs;
+
+  cJSON *stats_json = json_stats(&gs->stats);
+  send_json(client->fd, stats_json);
+  cJSON_Delete(stats_json);
 }
 
 Player *get_opponent(Player *player1, Player *player2, Player *current) { return player1 == current ? player2 : player1; }

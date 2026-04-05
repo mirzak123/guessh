@@ -119,3 +119,44 @@ cJSON *json_opponent_typing(const char *value) {
   cJSON_AddStringToObject(json, "value", value);
   return json;
 }
+
+cJSON *json_stats(ServerStats *stats) {
+  cJSON *json, *matches, *matches_format, *matches_mode, *matches_word_len, *clients, *gameplay;
+
+  json = cJSON_CreateObject();
+
+  // matches
+  cJSON_AddItemToObject(json, "matches", matches = cJSON_CreateObject());
+  cJSON_AddNumberToObject(matches, "total", stats->matches.total);
+  cJSON_AddNumberToObject(matches, "active", stats->matches.active);
+  cJSON_AddNumberToObject(matches, "maxActive", stats->matches.max_active);
+  cJSON_AddNumberToObject(matches, "abandoned", stats->matches.abandoned);
+
+  cJSON_AddItemToObject(matches, "format", matches_format = cJSON_CreateObject());
+  cJSON_AddNumberToObject(matches_format, "wordle", stats->matches.format.wordle);
+  cJSON_AddNumberToObject(matches_format, "quordle", stats->matches.format.quordle);
+
+  cJSON_AddItemToObject(matches, "mode", matches_mode = cJSON_CreateObject());
+  cJSON_AddNumberToObject(matches_mode, "single", stats->matches.mode.single);
+  cJSON_AddNumberToObject(matches_mode, "multiLocal", stats->matches.mode.multi_local);
+  cJSON_AddNumberToObject(matches_mode, "multiRemote", stats->matches.mode.multi_remote);
+
+  cJSON_AddItemToObject(matches, "wordLength", matches_word_len = cJSON_CreateObject());
+  cJSON_AddNumberToObject(matches_word_len, "five", stats->matches.word_len.five);
+  cJSON_AddNumberToObject(matches_word_len, "six", stats->matches.word_len.six);
+  cJSON_AddNumberToObject(matches_word_len, "seven", stats->matches.word_len.seven);
+
+  // clients
+  cJSON_AddItemToObject(json, "clients", clients = cJSON_CreateObject());
+  cJSON_AddNumberToObject(clients, "total", stats->clients.total);
+  cJSON_AddNumberToObject(clients, "active", stats->clients.active);
+  cJSON_AddNumberToObject(clients, "maxActive", stats->clients.max_active);
+
+  // gameplay
+  cJSON_AddItemToObject(json, "gameplay", gameplay = cJSON_CreateObject());
+  cJSON_AddNumberToObject(gameplay, "wordChallenges", stats->gameplay.word_challenges);
+  cJSON_AddNumberToObject(gameplay, "totalGuesses", stats->gameplay.total_guesses);
+  cJSON_AddNumberToObject(gameplay, "correctGuesses", stats->gameplay.correct_guesses);
+
+  return json;
+}

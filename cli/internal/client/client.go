@@ -33,7 +33,7 @@ func (c *Client) CreateMatch(mode protocol.GameMode, format protocol.GameFormat,
 		os.Exit(1)
 	}
 
-	c.send(msg)
+	c.Send(msg)
 }
 
 func (c *Client) MakeGuess(guess string) {
@@ -48,7 +48,7 @@ func (c *Client) MakeGuess(guess string) {
 		os.Exit(1)
 	}
 
-	c.send(msg)
+	c.Send(msg)
 }
 
 func (c *Client) JoinRoom(roomID string, playerName string) {
@@ -63,7 +63,7 @@ func (c *Client) JoinRoom(roomID string, playerName string) {
 		os.Exit(1)
 	}
 
-	c.send(msg)
+	c.Send(msg)
 }
 
 func (c *Client) Typing(value string) {
@@ -78,7 +78,7 @@ func (c *Client) Typing(value string) {
 		os.Exit(1)
 	}
 
-	c.send(msg)
+	c.Send(msg)
 }
 
 func (c *Client) LeaveMatch() {
@@ -93,7 +93,7 @@ func (c *Client) LeaveMatch() {
 		os.Exit(1)
 	}
 
-	c.send(msg)
+	c.Send(msg)
 }
 
 func (c *Client) RequestRematch() {
@@ -108,7 +108,7 @@ func (c *Client) RequestRematch() {
 		os.Exit(1)
 	}
 
-	c.send(msg)
+	c.Send(msg)
 }
 
 func (c *Client) DenyRematch() {
@@ -123,7 +123,7 @@ func (c *Client) DenyRematch() {
 		os.Exit(1)
 	}
 
-	c.send(msg)
+	c.Send(msg)
 }
 
 func (c *Client) ReadyNextRound() {
@@ -138,10 +138,25 @@ func (c *Client) ReadyNextRound() {
 		os.Exit(1)
 	}
 
-	c.send(msg)
+	c.Send(msg)
 }
 
-func (c *Client) send(payload []byte) {
+func (c *Client) ShowStats() {
+	var (
+		msg []byte
+		err error
+	)
+
+	showStatsEvent := protocol.NewShowStatsEvent()
+	if msg, err = json.Marshal(showStatsEvent); err != nil {
+		logger.Error("[client] Failed to marshal showStatsEvent: %v", err)
+		os.Exit(1)
+	}
+
+	c.Send(msg)
+}
+
+func (c *Client) Send(payload []byte) {
 	logger.Info("[client] Sending event: %s", payload)
 	if _, err := transport.SendEvent(c.Conn, payload); err != nil {
 		logger.Error("[client] Failed to send event: %v", err)
