@@ -6,11 +6,17 @@
 #include "game_types.h"
 #include "hash_table.h"
 #include "room.h"
+#include "timer.h"
 #include <cjson/cJSON.h>
 #include <stddef.h>
 
 #define MAX_ROUNDS 5
 #define MAX_CLIENTS 100
+
+#define MIN_TURN_TIMEOUT 5
+#define MAX_TURN_TIMEOUT 300
+
+#define POST_ROUND_TIMEOUT 10
 
 // don't ask...
 #define STR_HELPER(x) #x
@@ -29,7 +35,9 @@
 #define E_INVALID_VALUE(field, reason) "Invalid value received for field '" field "': " reason
 #define E_INVALID_ROUNDS "Round number must be between 1 and " STR(MAX_ROUNDS)
 #define E_INVALID_WORD_LEN "wordLength must be between " STR(MIN_WORD_LEN) " and " STR(MAX_WORD_LEN)
+#define E_INVALID_TURN_TIMEOUT "turnTimeout must be between " STR(MIN_TURN_TIMEOUT) " and " STR(MAX_TURN_TIMEOUT)
 #define E_NOT_ON_TURN "Opponent is currently on turn"
+#define E_NOT_WAITING_FOR_READY_NEXT_ROUND "Not currently waiting for " STR(READY_NEXT_ROUND) " event"
 #define E_REPEATED_GUESS "Repeating guesses is not allowed"
 #define E_UNSUPPORTED_MODE "Unsupported mode"
 #define E_UNSUPPORTED_FORMAT "Unsupported format"
@@ -52,6 +60,7 @@ typedef enum {
   DENY_REMATCH,
   LEAVE_MATCH,
   TYPING,
+  READY_NEXT_ROUND,
 
   // Server
   ROOM_CREATED,
@@ -75,6 +84,7 @@ typedef struct {
   HashTable *matches;
   HashTable *clients;
   HashTable *rooms;
+  TimerList *timer_list;
   struct {
     WordStore *five_secret;
     WordStore *six_secret;
@@ -93,11 +103,12 @@ void GS_handle_request_rematch(GameServer *gs, Client *client);
 void GS_handle_deny_rematch(GameServer *gs, Client *client);
 void GS_handle_typing(Client *client, cJSON *json_request);
 void GS_handle_leave_match(GameServer *gs, Client *client);
+void GS_handle_ready_next_round(GameServer *gs, Client *client);
 
 void GS_create_room(GameServer *gs, Match *match, Client *client);
 void GS_start_match(GameServer *gs, Match *match, bool is_rematch);
 void GS_start_round(GameServer *gs, Match *match);
-void GS_end_match(Match *match, Player *disconnected_player);
+void GS_end_match(GameServer *gs, Match *match, Player *disconnected_player);
 void GS_end_round(GameServer *gs, Match *match);
 bool GS_add_player_to_match(Match *match, Player *player);
 

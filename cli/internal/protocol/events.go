@@ -2,20 +2,22 @@ package protocol
 
 type EventType string
 
-const (
-	CREATE_MATCH            EventType = "CREATE_MATCH"
-	JOIN_ROOM               EventType = "JOIN_ROOM"
-	MAKE_GUESS              EventType = "MAKE_GUESS"
-	LEAVE_MATCH             EventType = "LEAVE_MATCH"
-	ERROR                   EventType = "ERROR"
-	ROOM_CREATED            EventType = "ROOM_CREATED"
-	ROOM_JOINED             EventType = "ROOM_JOINED"
-	ROOM_JOIN_FAILED        EventType = "ROOM_JOIN_FAILED"
-	WAIT_OPPONENT_JOIN      EventType = "WAIT_OPPONENT_JOIN"
-	REQUEST_REMATCH         EventType = "REQUEST_REMATCH"
-	DENY_REMATCH            EventType = "DENY_REMATCH"
-	OPPONENT_DENIED_REMATCH EventType = "OPPONENT_DENIED_REMATCH"
-	OPPONENT_LEFT           EventType = "OPPONENT_LEFT"
+const ( // Client Events
+	CREATE_MATCH       EventType = "CREATE_MATCH"
+	JOIN_ROOM          EventType = "JOIN_ROOM"
+	MAKE_GUESS         EventType = "MAKE_GUESS"
+	LEAVE_MATCH        EventType = "LEAVE_MATCH"
+	ROOM_CREATED       EventType = "ROOM_CREATED"
+	ROOM_JOINED        EventType = "ROOM_JOINED"
+	ROOM_JOIN_FAILED   EventType = "ROOM_JOIN_FAILED"
+	WAIT_OPPONENT_JOIN EventType = "WAIT_OPPONENT_JOIN"
+	REQUEST_REMATCH    EventType = "REQUEST_REMATCH"
+	DENY_REMATCH       EventType = "DENY_REMATCH"
+	TYPING             EventType = "TYPING"
+	READY_NEXT_ROUND   EventType = "READY_NEXT_ROUND"
+)
+
+const ( // Server Events
 	MATCH_STARTED           EventType = "MATCH_STARTED"
 	ROUND_STARTED           EventType = "ROUND_STARTED"
 	WAIT_GUESS              EventType = "WAIT_GUESS"
@@ -23,27 +25,30 @@ const (
 	GUESS_RESULT            EventType = "GUESS_RESULT"
 	ROUND_FINISHED          EventType = "ROUND_FINISHED"
 	MATCH_FINISHED          EventType = "MATCH_FINISHED"
-	TYPING                  EventType = "TYPING"
 	OPPONENT_TYPING         EventType = "OPPONENT_TYPING"
+	OPPONENT_DENIED_REMATCH EventType = "OPPONENT_DENIED_REMATCH"
+	OPPONENT_LEFT           EventType = "OPPONENT_LEFT"
+	ERROR                   EventType = "ERROR"
 )
 
 type EnvelopeEvent struct {
 	Type EventType `json:"type"`
 }
 
-/* Client Types */
+/* Client Events */
 
 type CreateMatchEvent struct {
-	Type       EventType  `json:"type"`
-	Mode       GameMode   `json:"mode"`
-	Format     GameFormat `json:"format"`
-	WordLen    int        `json:"wordLength"`
-	Rounds     int        `json:"rounds"`
-	PlayerName string     `json:"playerName,omitempty"`
+	Type        EventType  `json:"type"`
+	Mode        GameMode   `json:"mode"`
+	Format      GameFormat `json:"format"`
+	WordLen     int        `json:"wordLength"`
+	Rounds      int        `json:"rounds"`
+	TurnTimeout int        `json:"turnTimeout,omitempty"`
+	PlayerName  string     `json:"playerName,omitempty"`
 }
 
-func NewCreateMatchEvent(mode GameMode, format GameFormat, wordLen int, rounds int, playerName string) *CreateMatchEvent {
-	return &CreateMatchEvent{
+func NewCreateMatchEvent(mode GameMode, format GameFormat, wordLen, rounds, turnTimeout int, playerName string) *CreateMatchEvent {
+	event := &CreateMatchEvent{
 		Type:       CREATE_MATCH,
 		Mode:       mode,
 		Format:     format,
@@ -51,6 +56,12 @@ func NewCreateMatchEvent(mode GameMode, format GameFormat, wordLen int, rounds i
 		Rounds:     rounds,
 		PlayerName: playerName,
 	}
+
+	if turnTimeout != -1 {
+		event.TurnTimeout = turnTimeout
+	}
+
+	return event
 }
 
 type MakeGuessEvent struct {
@@ -121,7 +132,17 @@ func NewTypingEvent(value string) *TypingEvent {
 	}
 }
 
-/* Server Types */
+type ReadyNextRoundEvent struct {
+	Type EventType `json:"type"`
+}
+
+func NewReadyNextRoundEvent() *ReadyNextRoundEvent {
+	return &ReadyNextRoundEvent{
+		Type: READY_NEXT_ROUND,
+	}
+}
+
+/* Server Events */
 
 type ErrorEvent struct {
 	Type   EventType `json:"type"`
@@ -134,6 +155,7 @@ type MatchStartedEvent struct {
 	Format       GameFormat `json:"format"`
 	Rounds       int        `json:"rounds"`
 	WordLength   int        `json:"wordLength"`
+	TurnTimeout  int        `json:"turnTimeout,omitempty"`
 	OpponentName string     `json:"opponentName,omitempty"`
 }
 
@@ -158,9 +180,10 @@ type GuessResultEvent struct {
 }
 
 type RoundFinishedEvent struct {
-	Type   EventType `json:"type"`
-	Points int       `json:"points"`
-	Words  []string  `json:"words"`
+	Type             EventType `json:"type"`
+	Points           int       `json:"points"`
+	Words            []string  `json:"words"`
+	PostRoundTimeout int       `json:"postRoundTimeout,omitempty"`
 }
 
 type MatchFinishedEvent struct {

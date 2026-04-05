@@ -4,6 +4,7 @@
 
 #include <arpa/inet.h>
 #include <assert.h>
+#include <cjson/cJSON.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -42,7 +43,7 @@ void send_json(int client_fd, cJSON *json) {
   char *message = cJSON_PrintUnformatted(json);
 
   if (message == NULL) {
-    printf("[send_json] cJSON_PrintUnformatted() failed");
+    printf("[send_json] cJSON_PrintUnformatted() failed\n");
     return;
   }
 

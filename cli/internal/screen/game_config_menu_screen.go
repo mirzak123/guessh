@@ -15,8 +15,9 @@ import (
 )
 
 const (
-	minRounds = 1
-	maxRounds = 5
+	minRounds  = 1
+	maxRounds  = 5
+	maxNameLen = 15
 )
 
 var GameModeLabels = map[protocol.GameMode]string{
@@ -49,22 +50,12 @@ func NewGameConfigMenu(matchInfo *game.MatchInfo, hoveredPtr *protocol.GameMode)
 				}
 			}, matchInfo.Mode).
 			Value(&matchInfo.PlayerName).
-			Validate(func(str string) error {
-				if matchInfo.PlayerName == "" {
-					return errors.New("name must not be empty")
-				}
-				return nil
-			})
+			Validate(validateName)
 
 		opponentNameInput = huh.NewInput().
 					Title("Player 2").
 					Value(&matchInfo.OpponentName).
-					Validate(func(str string) error {
-				if matchInfo.OpponentName == "" {
-					return errors.New("player name must not be empty")
-				}
-				return nil
-			})
+					Validate(validateName)
 
 		modeInput = huh.NewSelect[protocol.GameMode]().
 				Title("Are you lonely?").
@@ -117,6 +108,19 @@ func NewGameConfigMenu(matchInfo *game.MatchInfo, hoveredPtr *protocol.GameMode)
 			}).
 			Value(&matchInfo.RawTotalRounds)
 
+		timerInput = huh.NewSelect[int]().
+				Title("Time limit per turn?").
+				Options(
+				huh.NewOption("None", -1),
+				huh.NewOption(fmt.Sprintf(" 5%s", ui.GrayText.Render("s")), 5),
+				huh.NewOption(fmt.Sprintf("10%s", ui.GrayText.Render("s")), 10),
+				huh.NewOption(fmt.Sprintf("30%s", ui.GrayText.Render("s")), 30),
+				huh.NewOption(fmt.Sprintf(" 1%s", ui.GrayText.Render("m")), 60),
+				huh.NewOption(fmt.Sprintf(" 2%s", ui.GrayText.Render("m")), 120),
+				huh.NewOption(fmt.Sprintf(" 5%s", ui.GrayText.Render("m")), 300),
+			).
+			Value(&matchInfo.TurnTimeout)
+
 		roomIDInput = huh.NewInput().
 				Title("Room ID ").
 				Value(&matchInfo.RoomID).
@@ -125,7 +129,7 @@ func NewGameConfigMenu(matchInfo *game.MatchInfo, hoveredPtr *protocol.GameMode)
 				if matchInfo.RoomValidationError != nil {
 					err := matchInfo.RoomValidationError
 					matchInfo.RoomValidationError = nil
-					logger.Debug("Error: %v", err)
+					logger.Debug("Room validation error: %v", err)
 					return err
 				}
 
@@ -171,12 +175,20 @@ func NewGameConfigMenu(matchInfo *game.MatchInfo, hoveredPtr *protocol.GameMode)
 					lines = append(lines, line("Word length: ", fmt.Sprintf("%d", matchInfo.WordLen)))
 					lines = append(lines, line("Rounds: ", matchInfo.RawTotalRounds))
 
+					if matchInfo.TurnTimeout != -1 {
+						lines = append(lines, line("Seconds per turn: ", fmt.Sprintf("%d", matchInfo.TurnTimeout)))
+					}
+
 				case protocol.MULTI_LOCAL:
 					lines = append(lines, line("Player 1: ", matchInfo.PlayerName))
 					lines = append(lines, line("Player 2: ", matchInfo.OpponentName))
 					lines = append(lines, line("Game format: ", GameFormatLabels[matchInfo.Format]))
 					lines = append(lines, line("Word length: ", fmt.Sprintf("%d", matchInfo.WordLen)))
 					lines = append(lines, line("Rounds: ", matchInfo.RawTotalRounds))
+
+					if matchInfo.TurnTimeout != -1 {
+						lines = append(lines, line("Seconds per turn: ", fmt.Sprintf("%d", matchInfo.TurnTimeout)))
+					}
 
 				case protocol.MULTI_REMOTE:
 					lines = append(lines, line("Player name: ", matchInfo.PlayerName))
@@ -186,12 +198,16 @@ func NewGameConfigMenu(matchInfo *game.MatchInfo, hoveredPtr *protocol.GameMode)
 						lines = append(lines, line("Game format: ", GameFormatLabels[matchInfo.Format]))
 						lines = append(lines, line("Word length: ", fmt.Sprintf("%d", matchInfo.WordLen)))
 						lines = append(lines, line("Rounds: ", matchInfo.RawTotalRounds))
+
+						if matchInfo.TurnTimeout != -1 {
+							lines = append(lines, line("Seconds per turn: ", fmt.Sprintf("%d", matchInfo.TurnTimeout)))
+						}
 					}
 				}
 
 				return lipgloss.JoinVertical(lipgloss.Left, lines...)
 
-			}, &matchInfo).Height(10)
+			}, &matchInfo).Height(11)
 	)
 
 	form := huh.NewForm(
@@ -207,6 +223,7 @@ func NewGameConfigMenu(matchInfo *game.MatchInfo, hoveredPtr *protocol.GameMode)
 			formatInput,
 			wordLenInput,
 			roundNumInput,
+			timerInput,
 		).WithHideFunc(func() bool {
 			return matchInfo.JoinExisting
 		}),
@@ -238,4 +255,14 @@ func NewGameConfigMenu(matchInfo *game.MatchInfo, hoveredPtr *protocol.GameMode)
 	)
 
 	return form, &confirm
+}
+
+func validateName(name string) error {
+	if name == "" {
+		return errors.New("name must not be empty")
+	}
+	if len(name) > maxNameLen {
+		return fmt.Errorf("name should have %d characters or less", maxNameLen)
+	}
+	return nil
 }

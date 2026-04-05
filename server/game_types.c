@@ -1,6 +1,7 @@
 #include "game_types.h"
 #include "game_logic.h"
 #include "room.h"
+#include "timer.h"
 #include "util.h"
 
 #include <assert.h>
@@ -25,6 +26,7 @@ Match *new_match(GameMode mode, GameFormat format, size_t round_capacity, size_t
   match->format = format;
   match->word_len = word_len;
   match->round_idx = -1;
+  match->turn_timer = NULL;
 
   match->rounds = calloc(round_capacity, sizeof(Round *));
   if (match->rounds == NULL) {
@@ -49,6 +51,15 @@ void delete_match(Match *match) {
     delete_round(match->rounds[i]);
   }
   free(match->rounds);
+
+  if (match->turn_timer != NULL) {
+    delete_timer(match->turn_timer, true);
+  }
+
+  if (match->post_round_timer != NULL) {
+    delete_timer(match->post_round_timer, true);
+  }
+
   free(match);
 }
 
@@ -63,7 +74,7 @@ Round *new_round(WordChallenge **word_challenges, size_t wc_num, size_t max_atte
   round->wc_num = wc_num;
   round->solved_num = 0;
 
-  round->attempt_count = 0;
+  round->attempt_idx = 0;
   round->max_attempts = max_attempts;
   round->guess_attempts = calloc(max_attempts, sizeof(char *));
   if (round->guess_attempts == NULL) {
@@ -79,7 +90,7 @@ void delete_round(Round *round) {
     delete_word_challenge(round->wc_list[i]);
   }
 
-  for (int i = 0; i < (int)round->attempt_count; i++) {
+  for (int i = 0; i < (int)round->attempt_idx; i++) {
     free(round->guess_attempts[i]);
   }
 
@@ -124,6 +135,7 @@ Player *new_player(int client_fd, char *name) {
   player->client_fd = client_fd;
   player->match = NULL;
   player->wants_rematch = false;
+  player->ready_next_round = false;
 
   if (name != NULL) {
     player->name = strdup(name);

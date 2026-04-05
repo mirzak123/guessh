@@ -1,6 +1,7 @@
 #include "game_logic.c"
-#include "game_types.h"
+#include "game_logic.h"
 #include "hash_table.h"
+#include "timer.h"
 #include "util.h"
 #include <assert.h>
 #include <stdint.h>
@@ -8,22 +9,41 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 
 #define WORD_LEN 5
 
-void test_evaluate_guess(void);
-void test_hash_table(void);
+typedef struct TimerTestData {
+  Timer *timer;
+  int *counter;
+} TimerTestData;
 
-void assert_feedback(LetterFeedback *feedback, LetterFeedback *expected);
-void print_feedback(LetterFeedback *feedback);
-void test_generate_random_string(void);
-void test_call_HT_delete_on_empty_hash_table(void);
+static void test_evaluate_guess(void);
+static void test_hash_table(void);
+static void test_generate_random_string(void);
+static void test_call_HT_delete_on_empty_hash_table(void);
+static void test_timer(void);
+static void test_timer_list_examine(void);
+static void test_timer_rearm(void);
+static void test_timer_arm_within_examine(void);
+
+static void toggle(bool *data);
+static void increment(int *data);
+static void increment_and_rearm(TimerTestData *data);
+
+static void assert_feedback(LetterFeedback *feedback, LetterFeedback *expected);
 
 int main(void) {
   srand(time(NULL));
+
   test_evaluate_guess();
   test_hash_table();
   test_call_HT_delete_on_empty_hash_table();
+  test_generate_random_string();
+  test_timer();
+  test_timer_list_examine();
+  test_timer_rearm();
+  test_timer_arm_within_examine();
 
   printf("All tests passed!\n");
   return 0;
@@ -31,7 +51,7 @@ int main(void) {
 
 void test_generate_random_string(void) {
   char *s = generate_random_string(7);
-  printf("%lu: |%s|\n", strlen(s), s);
+  assert(strlen(s) == 7);
   free(s);
 }
 
@@ -152,16 +172,172 @@ void test_call_HT_delete_on_empty_hash_table(void) {
   HT_delete(ht, KEY(1));
 }
 
+void test_timer(void) {
+  TimerList tl = {NULL};
+  Timer *t1, *t2, *t3, *t4, *t_cur;
+  bool toggle_switch = false;
+  int counter = 0;
+
+  t1 = new_timer(&tl, (TimerCallbackFunc)toggle, &toggle_switch, 30);
+  t2 = new_timer(&tl, (TimerCallbackFunc)toggle, &toggle_switch, 10);
+  t3 = new_timer(&tl, (TimerCallbackFunc)increment, &counter, 40);
+  t4 = new_timer(&tl, (TimerCallbackFunc)increment, &counter, 5);
+
+  Timer_arm(t1);
+  Timer_arm(t2);
+  Timer_arm(t3);
+  Timer_arm(t4);
+
+  Timer_fire(t1);
+  assert(toggle_switch == true);
+  Timer_fire(t2);
+  assert(toggle_switch == false);
+  Timer_fire(t3);
+  assert(counter == 1);
+  Timer_fire(t4);
+  assert(counter == 2);
+  Timer_fire(t4);
+  assert(counter == 3);
+
+  TimerList_print(&tl);
+
+  t_cur = tl.head;
+  assert(t_cur == t4);
+  t_cur = t_cur->next;
+  assert(t_cur == t2);
+  t_cur = t_cur->next;
+  assert(t_cur == t1);
+  t_cur = t_cur->next;
+  assert(t_cur == t3);
+
+  Timer_disarm(t4);
+  assert(tl.head == t2);
+  Timer_disarm(t3);
+  assert(tl.head == t2);
+  Timer_disarm(t2);
+  assert(tl.head == t1);
+  Timer_disarm(t1);
+  assert(tl.head == NULL);
+
+  delete_timer(t1, false);
+  delete_timer(t2, false);
+  delete_timer(t3, false);
+  delete_timer(t4, false);
+}
+
+void test_timer_list_examine(void) {
+  TimerList tl = {NULL};
+  Timer *t1, *t2, *t3, *t4;
+  int counter = 0, sleep_seconds = 5;
+
+  t1 = new_timer(&tl, (TimerCallbackFunc)increment, &counter, 3);
+  t2 = new_timer(&tl, (TimerCallbackFunc)increment, &counter, 30);
+  t3 = new_timer(&tl, (TimerCallbackFunc)increment, &counter, 15);
+  t4 = new_timer(&tl, (TimerCallbackFunc)increment, &counter, 2);
+
+  Timer_arm(t2);
+  Timer_arm(t1);
+  Timer_arm(t3);
+  Timer_arm(t4);
+
+  printf("sleeping for %d seconds...\n", sleep_seconds);
+  sleep(sleep_seconds);
+
+  TimerList_examine(&tl);
+
+  assert(counter == 2);
+  assert(tl.head == t3);
+  assert(tl.head->next == t2);
+
+  TimerList_examine(&tl);
+
+  assert(counter == 2);
+  assert(tl.head == t3);
+  assert(tl.head->next == t2);
+}
+
+void test_timer_rearm(void) {
+  TimerList tl = {NULL};
+  Timer *t1, *t2, *t3;
+  int counter = 0, sleep_seconds = 3;
+
+  t1 = new_timer(&tl, (TimerCallbackFunc)increment, &counter, 5);
+  t2 = new_timer(&tl, (TimerCallbackFunc)increment, &counter, 1);
+  t3 = new_timer(&tl, (TimerCallbackFunc)increment, &counter, 15);
+
+  Timer_arm(t1);
+  Timer_arm(t2);
+  Timer_arm(t3);
+
+  assert(tl.head == t2);
+  TimerList_examine(&tl);
+  assert(counter == 0);
+
+  printf("sleeping for %d seconds...\n", sleep_seconds);
+  sleep(sleep_seconds);
+
+  TimerList_examine(&tl);
+  assert(counter == 1);
+
+  Timer_rearm(t2);
+  assert(tl.head == t2);
+
+  printf("sleeping for %d seconds...\n", sleep_seconds);
+  sleep(sleep_seconds);
+
+  TimerList_examine(&tl);
+  assert(counter == 3);
+}
+
+static void test_timer_arm_within_examine(void) {
+  TimerList tl = {NULL};
+  Timer *t1, *t2, *t3, *t4;
+  int counter = 0, sleep_seconds = 5;
+  TimerTestData d1 = {NULL, &counter}, d2 = {NULL, &counter}, d3 = {NULL, &counter}, d4 = {NULL, &counter};
+
+  t1 = new_timer(&tl, (TimerCallbackFunc)increment_and_rearm, &d1, 1);
+  d1.timer = t1;
+  t2 = new_timer(&tl, (TimerCallbackFunc)increment_and_rearm, &d2, 30);
+  d2.timer = t2;
+  t3 = new_timer(&tl, (TimerCallbackFunc)increment_and_rearm, &d3, 7);
+  d3.timer = t3;
+  t4 = new_timer(&tl, (TimerCallbackFunc)increment_and_rearm, &d4, 2);
+  d4.timer = t4;
+
+  Timer_arm(t2);
+  Timer_arm(t1);
+  Timer_arm(t3);
+  Timer_arm(t4);
+
+  printf("Pre-examine: ");
+  TimerList_print(&tl);
+  sleep(sleep_seconds);
+
+  TimerList_examine(&tl);
+  printf("Examine 1: ");
+  TimerList_print(&tl);
+  sleep(sleep_seconds);
+
+  TimerList_examine(&tl);
+  printf("Examine 2: ");
+  TimerList_print(&tl);
+
+  assert(counter = 5);
+  assert(tl.head == t1);
+  assert(tl.head->next == t4);
+}
+
+void increment_and_rearm(TimerTestData *data) {
+  Timer_disarm(data->timer);
+  data->counter++;
+  Timer_rearm(data->timer);
+}
+
+void toggle(bool *data) { *data = !*data; }
+void increment(int *data) { (*data)++; }
+
 void assert_feedback(LetterFeedback *feedback, LetterFeedback *expected) {
   for (int i = 0; i < WORD_LEN; i++) {
     assert(feedback[i] == expected[i]);
   }
-}
-
-void print_feedback(LetterFeedback *feedback) {
-  printf("{");
-  for (int i = 0; i < WORD_LEN; i++) {
-    printf("%d ", feedback[i]);
-  }
-  printf("}\n");
 }

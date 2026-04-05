@@ -34,7 +34,8 @@ cJSON *json_room_join_failed(const char *room_id, const char *reason) {
   return json;
 }
 
-cJSON *json_match_started(const char *match_id, GameFormat format, int rounds, size_t word_len, char *opponent_name) {
+cJSON *json_match_started(const char *match_id, GameFormat format, int rounds, size_t word_len, Timer *turn_timer,
+                          char *opponent_name) {
   cJSON *json = cJSON_CreateObject();
   char *format_str;
   switch (format) {
@@ -50,6 +51,11 @@ cJSON *json_match_started(const char *match_id, GameFormat format, int rounds, s
   cJSON_AddStringToObject(json, "format", format_str);
   cJSON_AddNumberToObject(json, "rounds", rounds);
   cJSON_AddNumberToObject(json, "wordLength", word_len);
+
+  if (turn_timer != NULL) {
+    cJSON_AddNumberToObject(json, "turnTimeout", turn_timer->seconds);
+  }
+
   if (opponent_name != NULL) {
     cJSON_AddStringToObject(json, "opponentName", opponent_name);
   }
@@ -85,13 +91,16 @@ cJSON *json_guess_result(const char *guess, Round *round, size_t word_len) {
   return json;
 }
 
-cJSON *json_round_finished(int points, const char **words, int len) {
+cJSON *json_round_finished(int points, const char **words, int len, Timer *post_round_timer) {
   cJSON *json = cJSON_CreateObject();
   cJSON_AddStringToObject(json, "type", STR(ROUND_FINISHED));
   cJSON_AddNumberToObject(json, "points", points);
   cJSON *words_json = cJSON_CreateStringArray(words, len);
   if (words_json) {
     cJSON_AddItemToObject(json, "words", words_json);
+  }
+  if (post_round_timer != NULL) {
+    cJSON_AddNumberToObject(json, "postRoundTimeout", post_round_timer->seconds);
   }
   return json;
 }

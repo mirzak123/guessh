@@ -17,16 +17,16 @@ $(shell mkdir -p $(BUILD_DIR))
 SERVER_DIR := server
 CC         := gcc
 CFLAGS     := -std=gnu17 -Wall -Wextra -pedantic
-LDFLAGS    := 
+LDFLAGS    := -g -O0
 
 CFLAGS  += $(shell pkg-config --cflags libcjson)
 LDFLAGS += $(shell pkg-config --libs libcjson)
 ASAN_FLAGS := -g -O0 -fsanitize=address -fno-omit-frame-pointer
 
-_SRCS := main.c network.c game_logic.c game_server.c game_types.c json_messages.c client.c util.c hash_table.c room.c
+_SRCS := main.c network.c game_logic.c game_server.c game_types.c json_messages.c client.c util.c hash_table.c room.c timer.c
 SERVER_SRC := $(addprefix $(SERVER_DIR)/,$(_SRCS))
 
-_TEST_SRCS := test.c hash_table.c util.c
+_TEST_SRCS := test.c hash_table.c util.c timer.c
 TEST_SRC := $(addprefix $(SERVER_DIR)/,$(_TEST_SRCS))
 
 # ==========================================
@@ -50,8 +50,8 @@ test-server:
 	$(BUILD_DIR)/server-test
 
 debug-server:
-	$(CC) $(ASAN_FLAGS) $(CFLAGS) $(LDFLAGS) $(SERVER_SRC) -o $(BUILD_DIR)/server_debug
-	lldb -- $(BUILD_DIR)/server_debug
+	$(CC) $(SERVER_SRC) $(ASAN_FLAGS) $(CFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/server-debug
+	lldb -- $(BUILD_DIR)/server-debug
 
 # --- Go CLI Targets ---
 build-cli:

@@ -10,22 +10,28 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/charmbracelet/bubbles/timer"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
 type gameModel struct {
-	width, height int
-	matchInfo     *game.MatchInfo
-	input         textinput.Model
-	state         game.GameState
-	roundInfo     *game.RoundInfo
-	guesses       []string
-	challenges    []*protocol.WordChallenge
-	challengesLen int
-	err           error
+	width, height    int
+	matchInfo        *game.MatchInfo
+	input            textinput.Model
+	state            game.GameState
+	roundInfo        *game.RoundInfo
+	guesses          []string
+	challenges       []*protocol.WordChallenge
+	challengesLen    int
+	turnTimer        timer.Model
+	postRoundTimer   timer.Model
+	turnTimeout      int
+	postRoundTimeout int
+	err              error
 }
 
 func NewGame(matchInfo *game.MatchInfo) *gameModel {
@@ -61,11 +67,12 @@ func (m *gameModel) Init() tea.Cmd {
 		})
 	} else {
 		cmd = emit(game.CreateMatchIntent{
-			Mode:       m.matchInfo.Mode,
-			Format:     m.matchInfo.Format,
-			WordLen:    m.matchInfo.WordLen,
-			Rounds:     m.matchInfo.TotalRounds,
-			PlayerName: m.matchInfo.PlayerName,
+			Mode:        m.matchInfo.Mode,
+			Format:      m.matchInfo.Format,
+			WordLen:     m.matchInfo.WordLen,
+			Rounds:      m.matchInfo.TotalRounds,
+			TurnTimeout: m.matchInfo.TurnTimeout,
+			PlayerName:  m.matchInfo.PlayerName,
 		})
 	}
 
@@ -107,9 +114,17 @@ func (m *gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyEnter:
 			logger.Debug("Game state: [%s]", m.state)
 			if m.state == game.StateRoundFinished {
-				return m, emit(game.ContinueIntent{})
+				if !m.isLastRound() {
+					return m, emit(game.ReadyNextRoundIntent{})
+				} else {
+					return m, emit(game.ContinueIntent{})
+				}
 			}
 			if m.state == game.StateWaitOpponentGuess && m.matchInfo.Mode != protocol.MULTI_LOCAL {
+				break
+			}
+			if m.state == game.StateRoundFinished && m.matchInfo.Mode == protocol.MULTI_REMOTE {
+				m.state = game.StateWaitOpponentReady
 				break
 			}
 			if m.state == game.StateWaitGuess || m.state == game.StateWaitOpponentGuess {
@@ -137,9 +152,16 @@ func (m *gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, tea.Batch(cmds...)
 	}
-	var cmd tea.Cmd
-	m.input, cmd = m.input.Update(msg)
-	return m, cmd
+
+	var inputCmd, timerCmd, postTurnTimerCmd tea.Cmd
+
+	m.input, inputCmd = m.input.Update(msg)
+	m.turnTimer, timerCmd = m.turnTimer.Update(msg)
+	m.postRoundTimer, postTurnTimerCmd = m.postRoundTimer.Update(msg)
+
+	cmds = append(cmds, inputCmd, timerCmd, postTurnTimerCmd)
+
+	return m, tea.Batch(cmds...)
 }
 
 func (m *gameModel) View() string {
@@ -173,10 +195,11 @@ func (m *gameModel) View() string {
 	gridWidth := lipgloss.Width(gridView)
 
 	var (
-		p1Symbol = ui.PlayerBlock()
-		p2Symbol string
-		p1Name   string
-		p2Name   string
+		p1Symbol  = ui.PlayerBlock()
+		p2Symbol  string
+		p1Name    string
+		p2Name    string
+		countdown string
 	)
 
 	if m.matchInfo.Mode == protocol.SINGLE {
@@ -198,8 +221,35 @@ func (m *gameModel) View() string {
 		p2Symbol,
 	)
 
+	if m.turnTimer.Running() {
+		seconds := int(m.turnTimer.Timeout.Seconds())
+		countdown = fmt.Sprintf("%3d", seconds)
+
+		var style lipgloss.Style
+		if seconds < 10 {
+			style = ui.RoseText
+		} else if seconds < 20 {
+			style = ui.YellowText
+		} else {
+			style = ui.GreenText
+		}
+		countdown = style.Render(countdown)
+	} else {
+		countdown = strings.Repeat(" ", 3)
+	}
+
+	cdW := lipgloss.Width(countdown)
+	if m.matchInfo.PlayerOnTurn {
+		player1 = fmt.Sprintf("%s %s", player1, countdown)
+		player2 = fmt.Sprintf("%s %s", strings.Repeat(" ", cdW), player2)
+	} else {
+		player1 = fmt.Sprintf("%s %s", player1, strings.Repeat(" ", cdW))
+		player2 = fmt.Sprintf("%s %s", countdown, player2)
+	}
+
 	p1w := lipgloss.Width(player1)
 	p2w := lipgloss.Width(player2)
+
 	maxPlayerWidth := max(p1w, p2w)
 
 	if p1w < maxPlayerWidth {
@@ -213,14 +263,12 @@ func (m *gameModel) View() string {
 
 	gameAreaWidth := gridWidth + maxPlayerWidth*2 // TODO: verify this is correct
 
-	totalComponentsWidth :=
-		maxPlayerWidth +
-			lipgloss.Width(outcomes) +
-			maxPlayerWidth
+	totalComponentsWidth := maxPlayerWidth + lipgloss.Width(outcomes) + maxPlayerWidth
 
 	totalSpace := max(0, gameAreaWidth-totalComponentsWidth)
 
 	gapWidth := totalSpace / 2
+
 	leftSpacer := strings.Repeat(" ", gapWidth)
 	rightSpacer := strings.Repeat(" ", totalSpace-gapWidth)
 
@@ -256,29 +304,11 @@ func (m *gameModel) View() string {
 
 func (m *gameModel) statusBar() string {
 	var content string
-	var line1, line2 string
+	var line1, line2, line3 string
 
-	if m.state == game.StateRoundFinished {
+	if m.state == game.StateRoundFinished || m.state == game.StateWaitOpponentReady {
 		var outcome string
 
-		points := m.matchInfo.RoundPoints[m.matchInfo.CurrentRound-1]
-		if points > 0 {
-			if m.matchInfo.Mode == protocol.MULTI_LOCAL {
-				outcome = fmt.Sprintf("%s Round won by %s",
-					ui.PlayerBlock(),
-					ui.PurpleText.Render(m.matchInfo.PlayerName))
-			} else {
-				outcome = fmt.Sprintf("%s Round won", ui.PlayerBlock())
-			}
-		} else if points < 0 {
-			if m.matchInfo.Mode == protocol.MULTI_LOCAL {
-				outcome = fmt.Sprintf("%s Round won by %s",
-					ui.OpponentBlock(),
-					ui.RoseText.Render(m.matchInfo.OpponentName))
-			} else {
-				outcome = fmt.Sprintf("%s Round lost", ui.OpponentBlock())
-			}
-		}
 		words := []string{}
 
 		for i, challenge := range m.challenges {
@@ -293,39 +323,55 @@ func (m *gameModel) statusBar() string {
 			}
 		}
 
-		line1 = outcome
-		line2 = ui.GrayText.Render("Press Enter to continue")
+		points := m.matchInfo.RoundPoints[m.matchInfo.CurrentRound-1]
 
-		switch m.matchInfo.Format {
-		case protocol.WORDLE:
-			if points == 0 {
-				outcome = fmt.Sprintf(
-					"%s Not guessed",
-					ui.DrawBlock(),
-				)
-
-				line1 = lipgloss.JoinHorizontal(lipgloss.Center,
-					outcome,
-					" - ",
-					strings.Join(words, " • "),
-				)
+		switch m.matchInfo.Mode {
+		case protocol.MULTI_REMOTE:
+			if points > 0 {
+				outcome = fmt.Sprintf("%s Round won", ui.PlayerBlock())
+			} else if points < 0 {
+				outcome = fmt.Sprintf("%s Round lost", ui.OpponentBlock())
 			} else {
+				outcome = fmt.Sprintf("%s Round draw", ui.DrawBlock())
+			}
+			line1 = lipgloss.JoinHorizontal(lipgloss.Center, outcome, " - ", strings.Join(words, " • "))
+		case protocol.MULTI_LOCAL:
+			if points > 0 {
+				outcome = fmt.Sprintf("%s Round won by %s", ui.PlayerBlock(), ui.PurpleText.Render(m.matchInfo.PlayerName))
+			} else if points < 0 {
+				outcome = fmt.Sprintf("%s Round won by %s", ui.OpponentBlock(), ui.RoseText.Render(m.matchInfo.OpponentName))
+			} else {
+				outcome = fmt.Sprintf("%s Round draw", ui.DrawBlock())
+			}
+			line1 = lipgloss.JoinHorizontal(lipgloss.Center, outcome, " - ", strings.Join(words, " • "))
+		case protocol.SINGLE:
+			if points == m.challengesLen {
+				outcome = fmt.Sprintf("%s Round won", ui.PlayerBlock())
 				line1 = outcome
+			} else {
+				outcome = fmt.Sprintf("%s Round lost", ui.OpponentBlock())
+				line1 = lipgloss.JoinHorizontal(lipgloss.Center, outcome, " - ", strings.Join(words, " • "))
 			}
-		case protocol.QUORDLE:
-			if points == 0 {
-				outcome = fmt.Sprintf(
-					"%s Round draw",
-					ui.DrawBlock(),
-				)
-			}
+		}
 
-			line1 = lipgloss.JoinHorizontal(lipgloss.Center,
-				outcome,
-				" - ",
-				strings.Join(words, " • "),
+		switch m.state {
+		case game.StateRoundFinished:
+			line2 = ui.GrayText.Render("Press Enter to continue")
+		case game.StateWaitOpponentReady:
+			line2 = ui.GrayText.Render("Waiting for opponent to be ready")
+		}
+
+		if m.matchInfo.Mode == protocol.MULTI_REMOTE && m.postRoundTimer.Running() {
+			seconds := int(m.postRoundTimer.Timeout.Seconds())
+			countdown := fmt.Sprintf("%2d", seconds)
+
+			line3 = lipgloss.JoinHorizontal(lipgloss.Center,
+				ui.GrayText.Render("Next round will begin in "),
+				ui.RoseText.Render(countdown),
+				ui.GrayText.Render(" seconds"),
 			)
 		}
+
 	} else {
 		line1 = ui.SmallLogo()
 		if m.err != nil {
@@ -337,6 +383,7 @@ func (m *gameModel) statusBar() string {
 		lipgloss.Center,
 		line1,
 		line2,
+		line3,
 	)
 
 	return lipgloss.NewStyle().
@@ -349,7 +396,7 @@ func (m *gameModel) statusBar() string {
 
 func (m *gameModel) validateGuess(guess string) (bool, error) {
 	repeatedGuessErr := fmt.Errorf("'%s' was already guessed", guess)
-	invalidGuessErr := fmt.Errorf("'%s' is not a valid word", guess)
+	invalidGuessErr := fmt.Errorf("'%s' is not a valid guess", guess)
 
 	if m.alreadyGuessed(guess) {
 		return false, repeatedGuessErr
@@ -382,6 +429,10 @@ func (m *gameModel) addGuess(word string) {
 	m.guesses[m.matchInfo.CurrentAttempt] = word
 }
 
+func (m *gameModel) isLastRound() bool {
+	return m.matchInfo.CurrentRound >= m.matchInfo.TotalRounds
+}
+
 func (m *gameModel) initChallenges() {
 	logger.Debug("initChallenges()")
 	var challengesLen int
@@ -399,4 +450,20 @@ func (m *gameModel) initChallenges() {
 	for i := range challengesLen {
 		m.challenges[i] = protocol.NewWordChallenge(m.matchInfo.MaxAttempts)
 	}
+}
+
+func (m *gameModel) setTurnTimer() tea.Cmd {
+	if m.turnTimeout > 0 {
+		m.turnTimer = timer.New(time.Second * time.Duration(m.turnTimeout))
+		return m.turnTimer.Init()
+	}
+	return nil
+}
+
+func (m *gameModel) setPostRoundTimer() tea.Cmd {
+	if m.postRoundTimeout > 0 && !m.isLastRound() {
+		m.postRoundTimer = timer.New(time.Second * time.Duration(m.postRoundTimeout))
+		return m.postRoundTimer.Init()
+	}
+	return nil
 }

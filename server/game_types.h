@@ -2,6 +2,7 @@
 #define GAME_TYPES_H
 
 #include "game_logic.h"
+#include "timer.h"
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -28,6 +29,7 @@ typedef struct Player {
   char *name;
   struct Match *match;
   struct Room *room;
+  bool ready_next_round;
   bool wants_rematch;
 } Player;
 
@@ -49,7 +51,7 @@ typedef struct Round {
   size_t wc_num;
   size_t solved_num;
 
-  size_t attempt_count;
+  size_t attempt_idx;
   size_t max_attempts;
 
   char **guess_attempts;
@@ -71,6 +73,8 @@ typedef struct Match {
   Outcome outcome;
   Player *player1;
   Player *player2;
+  Timer *turn_timer;
+  Timer *post_round_timer;
   union {
     struct {
       bool p1_on_turn;
