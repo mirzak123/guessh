@@ -32,11 +32,11 @@ TEST_SRC := $(addprefix $(SERVER_DIR)/,$(_TEST_SRCS))
 # ==========================================
 # 3. BUILD TARGETS
 # ==========================================
-.PHONY: all build-all clean build-server build-cli build-ssh run-server run-cli run-ssh test-server debug-server
+.PHONY: all build-all clean build-server build-tui build-ssh run-server run-cli run-ssh test-server debug-server
 
 all: build-all
 
-build-all: build-server build-cli build-ssh
+build-all: build-server build-tui build-ssh
 
 # --- C Server Targets ---
 build-server:
@@ -53,12 +53,12 @@ debug-server:
 	$(CC) $(SERVER_SRC) $(ASAN_FLAGS) $(CFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/server-debug
 	lldb -- $(BUILD_DIR)/server-debug
 
-# --- Go CLI Targets ---
-build-cli:
-	cd cli && go build -o ../$(BUILD_DIR)/guessh-cli ./cmd/guessh-cli/main.go
+# --- Go TUI Targets ---
+build-tui:
+	cd cli && go build -o ../$(BUILD_DIR)/guessh-tui ./cmd/guessh-tui/main.go
 
-run-cli: build-cli
-	./$(BUILD_DIR)/guessh-cli
+run-tui: build-tui
+	./$(BUILD_DIR)/guessh-tui
 
 # --- Go SSH Targets ---
 build-ssh:

@@ -65,14 +65,14 @@ With `make` you can run 3 different components (and tests, if you're into that):
 ```bash
 make run-server     # C server that handles all of the game logic
 
-make run-cli        # Run the TUI that connects to the game server
+make run-tui        # Run the TUI that connects to the game server
 
 make run-ssh        # Run the SSH server, which serves the TUI
 
 make run-tests      # Run game server tests
 ```
 
-If using this method, you don't need to spin up the SSH server at all, as `make run-cli` will give you the
+If using this method, you don't need to spin up the SSH server at all, as `make run-tui` will give you the
 TUI and connect to the game server without needing to go through the SSH server. You do, however, need to
 run `make run-server`, before trying to connect to the game server (obviously).
 
