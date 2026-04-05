@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"guessh/internal/logger"
 	"guessh/internal/transport"
@@ -11,6 +12,8 @@ import (
 )
 
 const PROMPT = "> "
+
+var quit = []byte("quit")
 
 func main() {
 	logger.EnsureLoggerSetup("cli.log")
@@ -29,7 +32,7 @@ func main() {
 		for {
 			buf, err := transport.ReadServerEvent(conn)
 			if err != nil {
-				fmt.Printf("Server disconnected: %v", err)
+				fmt.Printf("Server disconnected: %v\n", err)
 				os.Exit(1)
 			}
 
@@ -44,11 +47,14 @@ func main() {
 		fmt.Print(PROMPT)
 		scanner.Scan()
 
-		bytes := scanner.Bytes()
-		if len(bytes) == 0 {
+		bs := scanner.Bytes()
+		if len(bs) == 0 {
 			continue
 		}
 
-		_, _ = transport.SendEvent(conn, bytes)
+		if bytes.Equal(quit, bs) {
+			os.Exit(0)
+		}
+		_, _ = transport.SendEvent(conn, bs)
 	}
 }
