@@ -139,15 +139,17 @@ Find a better way to represent flow below 🙏🙏🙏
 
 ### Client Message Types
 
-| Type            | Content                                                                                                                                          | Additional Info                              |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
-| CREATE_MATCH    | {"type": "CREATE_MATCH", "mode": single, "format": string, "rounds": number, "wordLength": number, "turnTimeout": number, "playerName"?: string} | playerName required only in multiplayer mode |
-| JOIN_ROOM       | {"type": "JOIN_ROOM", "roomId": string, "playerName": string}                                                                                    |                                              |
-| MAKE_GUESS      | {"type": "MAKE_GUESS", "guess": string}                                                                                                          |                                              |
-| REQUEST_REMATCH | {"type": "REQUEST_REMATCH"}                                                                                                                      |                                              |
-| DENY_REMATCH    | {"type": "DENY_REMATCH"}                                                                                                                         |                                              |
-| TYPING          | {"type": "TYPING", "value": string}                                                                                                              |                                              |
-| LEAVE_MATCH     | {"type": "LEAVE_MATCH"}                                                                                                                          |                                              |
+| Type             | Content                                                                                                                                          | Additional Info                              |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
+| CREATE_MATCH     | {"type": "CREATE_MATCH", "mode": single, "format": string, "rounds": number, "wordLength": number, "turnTimeout": number, "playerName"?: string} | playerName required only in multiplayer mode |
+| JOIN_ROOM        | {"type": "JOIN_ROOM", "roomId": string, "playerName": string}                                                                                    |                                              |
+| MAKE_GUESS       | {"type": "MAKE_GUESS", "guess": string}                                                                                                          |                                              |
+| REQUEST_REMATCH  | {"type": "REQUEST_REMATCH"}                                                                                                                      |                                              |
+| DENY_REMATCH     | {"type": "DENY_REMATCH"}                                                                                                                         |                                              |
+| TYPING           | {"type": "TYPING", "value": string}                                                                                                              |                                              |
+| LEAVE_MATCH      | {"type": "LEAVE_MATCH"}                                                                                                                          |                                              |
+| READY_NEXT_ROUND | {"type": "READY_NEXT_ROUND"}                                                                                                                     |                                              |
+| SHOW_STATS       | {"type": "SHOW_STATS"}                                                                                                                           |                                              |
 
 ### Server Message Types
 
@@ -167,4 +169,5 @@ Find a better way to represent flow below 🙏🙏🙏
 | GUESS_RESULT            | {"type": "GUESS_RESULT", "guess": string, "feedback": number[]\[]}                                                                                     |                                                    |
 | ROUND_FINISHED          | {"type": "ROUND_FINISHED", "points": number, "word": string, "postRoundTimeout": number}                                                               |                                                    |
 | MATCH_FINISHED          | {"type": "MATCH_FINISHED", outcome: number , "opponentLeft": boolean}                                                                                  | outcome only relevant for multiplayer games        |
-| OPPONENT_TYPING         | {"type": "OPPONENT_TYPING", "value": string}                                                                                                           |
+| OPPONENT_TYPING         | {"type": "OPPONENT_TYPING", "value": string}                                                                                                           |                                                    |
+| STATS                   | {...}                                                                                                                                                  | Game server statistics                             |
