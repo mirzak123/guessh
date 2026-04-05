@@ -110,6 +110,9 @@ void GS_handle_request(GameServer *gs, Client *client) {
   case READY_NEXT_ROUND:
     GS_handle_ready_next_round(gs, client);
     break;
+  case SHOW_STATS:
+    GS_handle_show_stats(gs, client);
+    break;
   case UNSUPPORTED_MESSAGE_TYPE:
   default:
     send_error(client->fd, E_UNSUPPORTED_MESSAGE_TYPE);
@@ -405,6 +408,8 @@ MessageType parse_client_event(char *data, size_t size, cJSON **json_out) {
     mt = TYPING;
   } else if (!strcmp(STR(READY_NEXT_ROUND), type)) {
     mt = READY_NEXT_ROUND;
+  } else if (!strcmp(STR(SHOW_STATS), type)) {
+    mt = SHOW_STATS;
   } else {
     mt = UNSUPPORTED_MESSAGE_TYPE;
   }
@@ -1055,6 +1060,14 @@ void GS_start_round(GameServer *gs, Match *match) {
   cJSON_Delete(round_started_json);
 
   start_turn(match);
+}
+
+void GS_handle_show_stats(GameServer *gs, Client *client) {
+  (void)gs;
+
+  cJSON *stats_json = json_stats();
+  send_json(client->fd, stats_json);
+  cJSON_Delete(stats_json);
 }
 
 Player *get_opponent(Player *player1, Player *player2, Player *current) { return player1 == current ? player2 : player1; }

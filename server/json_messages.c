@@ -119,3 +119,9 @@ cJSON *json_opponent_typing(const char *value) {
   cJSON_AddStringToObject(json, "value", value);
   return json;
 }
+
+cJSON *json_stats(void) {
+  cJSON *json = cJSON_CreateObject();
+  cJSON_AddNumberToObject(json, "matches", 43820);
+  return json;
+}

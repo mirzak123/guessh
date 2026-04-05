@@ -61,6 +61,7 @@ typedef enum {
   LEAVE_MATCH,
   TYPING,
   READY_NEXT_ROUND,
+  SHOW_STATS,
 
   // Server
   ROOM_CREATED,
@@ -77,6 +78,7 @@ typedef enum {
   ROUND_FINISHED,
   MATCH_FINISHED,
   OPPONENT_TYPING,
+  STATS,
   ERROR,
 } MessageType;
 
@@ -104,6 +106,7 @@ void GS_handle_deny_rematch(GameServer *gs, Client *client);
 void GS_handle_typing(Client *client, cJSON *json_request);
 void GS_handle_leave_match(GameServer *gs, Client *client);
 void GS_handle_ready_next_round(GameServer *gs, Client *client);
+void GS_handle_show_stats(GameServer *gs, Client *client);
 
 void GS_create_room(GameServer *gs, Match *match, Client *client);
 void GS_start_match(GameServer *gs, Match *match, bool is_rematch);
