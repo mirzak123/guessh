@@ -560,8 +560,19 @@ void GS_handle_request_rematch(GameServer *gs, Client *client) {
   switch (match->mode) {
   case MULTI_REMOTE:
     GS_add_player_to_match(match, opponent);
+
+    MatchTimerData *timer_data = malloc(sizeof(MatchTimerData));
+    if (timer_data == NULL) {
+      perror("timer_data malloc");
+      delete_match(match);
+    }
+    timer_data->gs = gs;
+    timer_data->match = match;
     match->remote.match_starter = get_opponent(player, opponent, old_match->remote.match_starter);
+    match->post_round_timer =
+        new_timer(gs->timer_list, (TimerCallbackFunc)expire_post_round_timer, timer_data, POST_ROUND_TIMEOUT);
     break;
+
   case MULTI_LOCAL:
     match->local.p1_start_match = !old_match->local.p1_start_match;
     break;
