@@ -73,11 +73,11 @@ void TimerList_examine(TimerList *tl) {
 void Timer_arm(Timer *timer) {
   TimerList *tl = timer->tl;
 
+  timer->next = NULL;
   Timer_set(timer);
 
   if (tl->head == NULL) {
     tl->head = timer;
-    timer->next = NULL;
     return;
   }
 
