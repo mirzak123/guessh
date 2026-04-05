@@ -207,7 +207,7 @@ func NewGameConfigMenu(matchInfo *game.MatchInfo, hoveredPtr *protocol.GameMode)
 
 				return lipgloss.JoinVertical(lipgloss.Left, lines...)
 
-			}, &matchInfo).Height(10)
+			}, &matchInfo).Height(11)
 	)
 
 	form := huh.NewForm(
