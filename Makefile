@@ -62,7 +62,7 @@ run-tui: build-tui
 
 # --- Go SSH Targets ---
 build-ssh:
-	cd cli && go build -o ../$(BUILD_DIR)/guessh-ssh ./cmd/ssh/main.go
+	cd cli && go build -o ../$(BUILD_DIR)/guessh-ssh ./cmd/guessh-ssh/main.go
 
 run-ssh: build-ssh
 	./$(BUILD_DIR)/guessh-ssh
