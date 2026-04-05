@@ -87,6 +87,7 @@ typedef struct ServerStats {
   size_t total_matches;
   size_t active_matches;
   size_t max_active_matches;
+  size_t matches_abandoned;
 
   // client
   size_t total_clients;

@@ -322,6 +322,7 @@ void GS_cleanup_after_client_disconnect(GameServer *gs, Client *client) {
 
     if (player->match != NULL) {
       if (player->match->is_active) {
+        gs->stats.matches_abandoned++;
         GS_end_match(gs, player->match, player);
       }
       GS_cleanup_match(gs, player->match);

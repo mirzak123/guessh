@@ -127,6 +127,7 @@ cJSON *json_stats(ServerStats *stats) {
   cJSON_AddNumberToObject(json, "total_matches", stats->total_matches);
   cJSON_AddNumberToObject(json, "active_matches", stats->active_matches);
   cJSON_AddNumberToObject(json, "max_active_matches", stats->max_active_matches);
+  cJSON_AddNumberToObject(json, "matches_abandoned", stats->matches_abandoned);
 
   // client
   cJSON_AddNumberToObject(json, "total_clients", stats->total_clients);
