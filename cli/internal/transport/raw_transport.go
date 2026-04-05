@@ -2,6 +2,7 @@ package transport
 
 import (
 	"encoding/binary"
+	"guessh/internal/config"
 	"io"
 	"net"
 )
@@ -9,6 +10,11 @@ import (
 const EVENT_LEN_BYTES = 4
 
 var byteOrder = binary.BigEndian
+
+func Connect() (net.Conn, error) {
+	serverAddr := config.GetEnv("GAME_SERVER_ADDR", "localhost:2480")
+	return net.Dial("tcp", serverAddr)
+}
 
 func ReadServerEvent(conn net.Conn) ([]byte, error) {
 	var eventLen uint32
