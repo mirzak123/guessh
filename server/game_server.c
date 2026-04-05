@@ -321,7 +321,9 @@ void GS_cleanup_after_client_disconnect(GameServer *gs, Client *client) {
     Player *player = client->player;
 
     if (player->match != NULL) {
-      GS_end_match(gs, player->match, player);
+      if (player->match->is_active) {
+        GS_end_match(gs, player->match, player);
+      }
       GS_cleanup_match(gs, player->match);
     }
 
@@ -849,6 +851,7 @@ void GS_handle_ready_next_round(GameServer *gs, Client *client) {
 void GS_end_match(GameServer *gs, Match *match, Player *disconnected_player) {
   (void)gs;
 
+  match->is_active = false;
   gs->stats.active_matches--;
 
   cJSON *match_finished_json = NULL;
@@ -956,6 +959,7 @@ void GS_start_match(GameServer *gs, Match *match, bool is_rematch) {
 
   printf("[start_match] Starting new match...\n");
 
+  match->is_active = true;
   gs->stats.active_matches++;
   gs->stats.total_matches++;
   if (gs->stats.active_matches > gs->stats.max_active_matches) {
