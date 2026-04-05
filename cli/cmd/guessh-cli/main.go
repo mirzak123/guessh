@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"guessh/internal/client"
 	"guessh/internal/logger"
@@ -17,6 +18,8 @@ const PROMPT = "> "
 var (
 	quit  = []byte("quit")
 	stats = []byte("stats")
+
+	indent = strings.Repeat(" ", len(PROMPT))
 )
 
 func main() {
@@ -40,8 +43,16 @@ func main() {
 				os.Exit(1)
 			}
 
-			event := string(buf)
-			fmt.Printf("\r%s%s\n", strings.Repeat(" ", len(PROMPT)), event)
+			var prettyJSON bytes.Buffer
+
+			err = json.Indent(&prettyJSON, buf, indent, "  ")
+			var event string
+			if err != nil {
+				event = string(buf)
+			} else {
+				event = prettyJSON.String()
+			}
+			fmt.Printf("\r%s%s\n", indent, event)
 			fmt.Print(PROMPT)
 		}
 	}()
