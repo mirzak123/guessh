@@ -19,7 +19,6 @@ var (
 
 func EnsureDictionariesLoaded() {
 	loadOnce.Do(func() {
-		// This executes exactly once even if CLI is served through SSH and multiple clients connect
 		basePath := config.GetEnv("WORDS_PATH", "./words")
 
 		FiveLetterWords = ExtractWordsFromFile(filepath.Join(basePath, "five-letter-valid.txt"))

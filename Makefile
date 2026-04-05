@@ -32,7 +32,7 @@ TEST_SRC := $(addprefix $(SERVER_DIR)/,$(_TEST_SRCS))
 # ==========================================
 # 3. BUILD TARGETS
 # ==========================================
-.PHONY: all build-all clean build-server build-tui build-ssh run-server run-cli run-ssh test-server debug-server
+.PHONY: all build-all clean build-server build-tui build-ssh run-server run-tui run-ssh test-server debug-server
 
 all: build-all
 
