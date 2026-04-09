@@ -2,6 +2,8 @@
 
 Welcome to GueSSH, a head-to-head multiplayer game inspired by Wordle, available over SSH.
 
+![demo](./assets/demo.gif)
+
 ## How to Play?
 
 ### Connect with SSH
