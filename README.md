@@ -33,9 +33,8 @@ docker compose up --build
 docker-compose up --build
 ```
 
-<!-- TODO: Link this to the game implementation section -->
-
 This will spin up two containers, one for the game server, and another for the SSH server.
+For a more detailed explanation on the project components, check out the section on [implementation details](#implementation-details).
 
 > **_NOTE_:** The SSH server will try to bind to port 22 on your machine, which is most likely taken.
 > In that case, update the `ports` section in `docker-compose.yaml` to bind to a different port (e.g. `2222:2222`).
@@ -67,9 +66,11 @@ With `make` you can run 3 different components (and tests, if you're into that):
 ```bash
 make run-server     # C server that handles all of the game logic
 
+make run-ssh        # Run the SSH server, which serves the TUI
+
 make run-tui        # Run the TUI that connects to the game server
 
-make run-ssh        # Run the SSH server, which serves the TUI
+make run-cli        # Run the CLI that connects to the game server
 
 make run-tests      # Run game server tests
 ```
@@ -78,14 +79,49 @@ If using this method, you don't need to spin up the SSH server at all, as `make 
 TUI and connect to the game server without needing to go through the SSH server. You do, however, need to
 run `make run-server`, before trying to connect to the game server (obviously).
 
-<!-- TODO: Link the env vars section -->
-
-In case of any port issues, you can check out the environment variables section to check port defaults, and
+In case of any port issues, you can check out the [environment variables](#environment-variables) section to check port defaults, and
 adjust the ports, if the defaults are occupied on your machine.
 
-## Game Details
+## Implementation Details
+
+The project is composed of 4 components:
+
+### game server
+
+TCP server written in C that handles all game logic. It communicated with clients (guessh-ssh, guessh-tui, or guessh-cli) via a JSON messages
+encoded over binary, using cJSON, over a raw TCP stream. No predefined application level protocol is used.
+Messages are prepended with a 4 byte length prefix to separate TCP segments in case of sticking.
+The communication between the game server and clients is explained in more detail in the [Client-Server Protocol](#client-server-protocol) section.
+
+### guessh-ssh
+
+SSH server that serves the TUI over SSH, and connects to the game server via TCP.
+It's written in Go, using ([charmbracelet/wish](https://github.com/charmbracelet/wish)) to serve the TUI.
+
+### guessh-tui
+
+Terminal User Interface (TUI) that connects directly to the game server, without going through SSH.
+It's written in Go, using ([charmbracelet/bubbletea](https://github.com/charmbracelet/bubbletea)).
+This is a simple component that just wraps the bubbletea model, and opens a TCP connection directly to the game server.
+This same model is served by the SSH server when a client connects to is over an SSH connection.
+`guessh-tui` is made to simplify development, so that I don't have to spin up the SSH server all the time.
+
+In the future, I could expose the game server port to the public internet, so that `guessh-tui` could
+be used to connect to the game server by anyone, without going through SSH. That would require users to
+install the `guessh-tui` binary on their machine. Not saying it's getting done, but it's an interesting idea.
+
+### guessh-cli
+
+This is a simple TCP client that connects to the game server. Like other client components, it's written in Go.
+It's basically just netcat with the addition of prepending each message with the corresponding length prefix,
+so that the server doesn't interpret it as junk, and drop the connection. It ofcourse reads the length prefix from
+server-side messages (events), and displays them correctly.
+
+It's used for debugging, and checking the server statistics while it's running.
 
 ## Environment Variables
+
+The following environment variables are used by one or multiple project components (Game server, SSH server, TUI, CLI):
 
 | Variable           | Default         | Description                                          |
 | ------------------ | --------------- | ---------------------------------------------------- |
@@ -104,38 +140,6 @@ adjust the ports, if the defaults are occupied on your machine.
 - game.c - game logic
 - room.c - creating, joining and deleting rooms
 - network.c - socket setup for communication with client
-
-### Game Logic
-
-...
-
-## CLI
-
-First checks if server is up and running on localhost:port. If not, display message that the server is not running.
-
-### Prompts
-
----
-
-**TODO**
-
-Find a better way to represent flow below 🙏🙏🙏
-
----
-
-1.  Are you lonely?
-    - Single player
-      1. How many rounds? (number input)
-      2. How many letters? (number input)
-    - Two player remote
-      1. Session:
-         - Join existing room
-           1. Name (string input)
-           2. Room key (string input)
-         - Create new room
-           1. Name (string input)
-           2. How many rounds? (number input)
-           3. How many letters? (number input)
 
 ## Client-Server Protocol
 
