@@ -94,6 +94,8 @@ Messages are prepended with a 4 byte length prefix to separate TCP segments in c
 The communication between the game server and clients is explained in more detail in the [Client-Server Protocol](#client-server-protocol) section.
 
 It's single threaded and used poll(2) for handling client file descriptors.
+
+It has supports timers for limiting turn time limits.
 It doesn't use POSIX timers, but instead handles a linked list of sorted timers and a timeout on the poll(2) call to check them periodically.
 
 ### guessh-sshd
@@ -121,18 +123,41 @@ It's used for debugging, and checking the server statistics while it's running.
 
 The following environment variables are used by one or multiple project components:
 
-| Variable           | Default         | Description                                               |
-| ------------------ | --------------- | --------------------------------------------------------- |
-| GUESSH_SERVER_PORT | 2480            | Port that guessh-gamed listens on.                        |
-| GAME_SERVER_ADDR   | localhost:2480  | Address the client components dial to reach gusssh-gamed. |
-| WORDS_PATH         | ./words         | Directory containing the .txt word lists.                 |
-| GUESSH_SSH_ADDR    | :2222           | Address that guessh-sshd listens on.                      |
-| HOST_KEY_PATH      | .ssh/id_ed25519 | Path to the SSH Server's persistent identity key.         |
-| LOG_LEVEL          | INFO            | Logging verbosity (DEBUG \| INFO \| ERROR).               |
+| Variable           | Default         | Description                                                 |
+| ------------------ | --------------- | ----------------------------------------------------------- |
+| GUESSH_SERVER_PORT | 2480            | Port that `guessh-gamed` listens on.                        |
+| GAME_SERVER_ADDR   | localhost:2480  | Address the client components dial to reach `gusssh-gamed`. |
+| WORDS_PATH         | ./words         | Directory containing the .txt word lists.                   |
+| GUESSH_SSH_ADDR    | :2222           | Address that `guessh-sshd` listens on.                      |
+| HOST_KEY_PATH      | .ssh/id_ed25519 | Path to the SSH Server's persistent identity key.           |
+| LOG_LEVEL          | INFO            | Logging verbosity (DEBUG \| INFO \| ERROR).                 |
 
 ## Client-Server Protocol
 
-### Client Message Types
+The game server (`guessh-gamed`) communicates with clients over a TCP connection, without a common application level protocol,
+like HTTP or WebSocket, to handle semantics. Instead, it uses the TCP connection as a bidirectional stream, with
+no concepts of a request-response cycle.
+
+Both the client and server communicate events encoded as JSON messages. Each message contains a `type` field.
+Each event sent by the client has a corresponding handler on the server, and vice-versa.
+
+### TCP Stream Fragmentation
+
+While TCP guarantees that segments, will arrive in order, it does not guarantee that one read(2) call
+on the reader's side of the socket, will consume exactly the same number of bytes sent by a single
+write(2) call on the writer's side. This means that without a way to fragment the TCP stream, two JSON
+events can arrive stuck together, or a single JSON event could be split into two read(2) calls.
+
+To tackle this, a length prefix of 4 bytes is used before each message. Before sending an event,
+the sender will calculate the lenght of the payload, and send it in a 4-byte long, big endian encoded message.
+The listener first reads exactly 4 bytes to understand how big of a payload to read afterwards, and then it
+reads bytes from the TCP stream until all of the payload is consumed, which is always a single JSON event.
+
+### Events
+
+Events are split into client and server events, depending on the sender.
+
+#### Client Events
 
 | Type             | Content                                                                                                                                          | Additional Info                              |
 | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
@@ -146,7 +171,7 @@ The following environment variables are used by one or multiple project componen
 | READY_NEXT_ROUND | {"type": "READY_NEXT_ROUND"}                                                                                                                     |                                              |
 | SHOW_STATS       | {"type": "SHOW_STATS"}                                                                                                                           |                                              |
 
-### Server Message Types
+#### Server Events
 
 | Type                    | Content                                                                                                                                                | Additional Info                                    |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------- |
@@ -163,6 +188,6 @@ The following environment variables are used by one or multiple project componen
 | WAIT_OPPONENT_GUESS     | {"type": "WAIT_OPPONENT_GUESS"}                                                                                                                        |                                                    |
 | GUESS_RESULT            | {"type": "GUESS_RESULT", "guess": string, "feedback": number[]\[]}                                                                                     |                                                    |
 | ROUND_FINISHED          | {"type": "ROUND_FINISHED", "points": number, "word": string, "postRoundTimeout": number}                                                               |                                                    |
-| MATCH_FINISHED          | {"type": "MATCH_FINISHED", outcome: number , "opponentLeft": boolean}                                                                                  | outcome only relevant for multiplayer games        |
+| MATCH_FINISHED          | {"type": "MATCH_FINISHED", outcome: number , "opponentLeft": boolean}                                                                                  |                                                    |
 | OPPONENT_TYPING         | {"type": "OPPONENT_TYPING", "value": string}                                                                                                           |                                                    |
 | STATS                   | {...}                                                                                                                                                  | Game server statistics                             |
