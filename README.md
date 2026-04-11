@@ -1,12 +1,12 @@
 # GueSSH
 
-Welcome to GueSSH, a head-to-head multiplayer game inspired by Wordle, available over SSH.
+GueSSH is a head-to-head multiplayer game inspired by Wordle, available over SSH.
 
 ![demo](./assets/demo.gif)
 
 ## How to Play?
 
-### Connect with SSH
+### Connect via SSH
 
 Open a terminal and run the command below to play the game instantly (assuming you have an SSH client installed):
 
@@ -88,7 +88,7 @@ The project is composed of 4 components:
 
 ### guessh-gamed
 
-TCP server written in C that handles all game logic. It communicated with clients (guessh-ssh, guessh-tui, or guessh-cli) via a JSON messages
+TCP server written in C that handles all game logic. It communicated with clients (`guessh-sshd`, `guessh-tuid`, or `guessh-cli`) via a JSON messages
 encoded over binary, using cJSON, over a raw TCP stream. No predefined application level protocol is used.
 Messages are prepended with a 4 byte length prefix to separate TCP segments in case of sticking.
 The communication between the game server and clients is explained in more detail in the [Client-Server Protocol](#client-server-protocol) section.
@@ -105,11 +105,11 @@ It's written in Go, using [charmbracelet/wish](https://github.com/charmbracelet/
 
 ### guessh-tui
 
-Terminal User Interface (TUI) that connects directly to the game server, without going through SSH.
+Terminal User Interface (TUI) that connects directly to the game server, without going through an SSH connection.
 It's written in Go, using [charmbracelet/bubbletea](https://github.com/charmbracelet/bubbletea).
 This is a simple component that just wraps the bubbletea model, and opens a TCP connection directly to the game server.
 The same bubbletea model is served by the SSH server.
-`guessh-tui` is made to simplify development, so that I don't have to spin up the SSH server all the time.
+`guessh-tui` is made to simplify development, so that you don't have to spin up the SSH server all the time.
 
 ### guessh-cli
 
@@ -149,7 +149,7 @@ write(2) call on the writer's side. This means that without a way to fragment th
 events can arrive stuck together, or a single JSON event could be split into two read(2) calls.
 
 To tackle this, a length prefix of 4 bytes is used before each message. Before sending an event,
-the sender will calculate the lenght of the payload, and send it in a 4-byte long, big endian encoded message.
+the sender will calculate the length of the payload, and send it in a 4-byte long, Big-Endian encoded message.
 The listener first reads exactly 4 bytes to understand how big of a payload to read afterwards, and then it
 reads bytes from the TCP stream until all of the payload is consumed, which is always a single JSON event.
 
@@ -159,35 +159,35 @@ Events are split into client and server events, depending on the sender.
 
 #### Client Events
 
-| Type             | Content                                                                                                                                          | Additional Info                              |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
-| CREATE_MATCH     | {"type": "CREATE_MATCH", "mode": single, "format": string, "rounds": number, "wordLength": number, "turnTimeout": number, "playerName"?: string} | playerName required only in multiplayer mode |
-| JOIN_ROOM        | {"type": "JOIN_ROOM", "roomId": string, "playerName": string}                                                                                    |                                              |
-| MAKE_GUESS       | {"type": "MAKE_GUESS", "guess": string}                                                                                                          |                                              |
-| REQUEST_REMATCH  | {"type": "REQUEST_REMATCH"}                                                                                                                      |                                              |
-| DENY_REMATCH     | {"type": "DENY_REMATCH"}                                                                                                                         |                                              |
-| TYPING           | {"type": "TYPING", "value": string}                                                                                                              |                                              |
-| LEAVE_MATCH      | {"type": "LEAVE_MATCH"}                                                                                                                          |                                              |
-| READY_NEXT_ROUND | {"type": "READY_NEXT_ROUND"}                                                                                                                     |                                              |
-| SHOW_STATS       | {"type": "SHOW_STATS"}                                                                                                                           |                                              |
+| Type             | Content                                                                                                                                          | Additional Info                                |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------- |
+| CREATE_MATCH     | {"type": "CREATE_MATCH", "mode": single, "format": string, "rounds": number, "wordLength": number, "turnTimeout": number, "playerName"?: string} | `playerName` required only in multiplayer mode |
+| JOIN_ROOM        | {"type": "JOIN_ROOM", "roomId": string, "playerName": string}                                                                                    |                                                |
+| MAKE_GUESS       | {"type": "MAKE_GUESS", "guess": string}                                                                                                          |                                                |
+| REQUEST_REMATCH  | {"type": "REQUEST_REMATCH"}                                                                                                                      |                                                |
+| DENY_REMATCH     | {"type": "DENY_REMATCH"}                                                                                                                         |                                                |
+| TYPING           | {"type": "TYPING", "value": string}                                                                                                              |                                                |
+| LEAVE_MATCH      | {"type": "LEAVE_MATCH"}                                                                                                                          |                                                |
+| READY_NEXT_ROUND | {"type": "READY_NEXT_ROUND"}                                                                                                                     |                                                |
+| SHOW_STATS       | {"type": "SHOW_STATS"}                                                                                                                           |                                                |
 
 #### Server Events
 
-| Type                    | Content                                                                                                                                                | Additional Info                                    |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------- |
-| ERROR                   | {"type": "ERROR", "reason": string}                                                                                                                    |                                                    |
-| ROOM_CREATED            | {"type": "ROOM_CREATED", "roomId": string}                                                                                                             |                                                    |
-| ROOM_JOINED             | {"type": "ROOM_JOINED", "roomId": string}                                                                                                              |                                                    |
-| ROOM_JOIN_FAILED        | {"type": "ROOM_JOIN_FAILED", "roomId": string, "reason": string}                                                                                       | Room full or invalid room ID                       |
-| WAIT_OPPONENT_JOIN      | {"type": "WAIT_OPPONENT_JOIN"}                                                                                                                         |                                                    |
-| OPPONENT_DENIED_REMATCH | {"type": "OPPONENT_DENIED_REMATCH"}                                                                                                                    |                                                    |
-| OPPONENT_LEFT           | {"type": "OPPONENT_LEFT"}                                                                                                                              |                                                    |
-| MATCH_STARTED           | {"type": "MATCH_STARTED", "matchId": string, "format": string, "rounds": number, "wordLength": number, "turnTimeout": number, "opponentName"?: string} | opponentName is only included in MULTI_REMOTE mode |
-| ROUND_STARTED           | {"type": "ROUND_STARTED", "roundNumber": number, "maxAttempts": number}                                                                                |                                                    |
-| WAIT_GUESS              | {"type": "WAIT_GUESS"}                                                                                                                                 |                                                    |
-| WAIT_OPPONENT_GUESS     | {"type": "WAIT_OPPONENT_GUESS"}                                                                                                                        |                                                    |
-| GUESS_RESULT            | {"type": "GUESS_RESULT", "guess": string, "feedback": number[]\[]}                                                                                     |                                                    |
-| ROUND_FINISHED          | {"type": "ROUND_FINISHED", "points": number, "word": string, "postRoundTimeout": number}                                                               |                                                    |
-| MATCH_FINISHED          | {"type": "MATCH_FINISHED", outcome: number , "opponentLeft": boolean}                                                                                  |                                                    |
-| OPPONENT_TYPING         | {"type": "OPPONENT_TYPING", "value": string}                                                                                                           |                                                    |
-| STATS                   | {...}                                                                                                                                                  | Game server statistics                             |
+| Type                    | Content                                                                                                                                                | Additional Info                                      |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------- |
+| ERROR                   | {"type": "ERROR", "reason": string}                                                                                                                    |                                                      |
+| ROOM_CREATED            | {"type": "ROOM_CREATED", "roomId": string}                                                                                                             |                                                      |
+| ROOM_JOINED             | {"type": "ROOM_JOINED", "roomId": string}                                                                                                              |                                                      |
+| ROOM_JOIN_FAILED        | {"type": "ROOM_JOIN_FAILED", "roomId": string, "reason": string}                                                                                       | Room full or invalid room ID                         |
+| WAIT_OPPONENT_JOIN      | {"type": "WAIT_OPPONENT_JOIN"}                                                                                                                         |                                                      |
+| OPPONENT_DENIED_REMATCH | {"type": "OPPONENT_DENIED_REMATCH"}                                                                                                                    |                                                      |
+| OPPONENT_LEFT           | {"type": "OPPONENT_LEFT"}                                                                                                                              |                                                      |
+| MATCH_STARTED           | {"type": "MATCH_STARTED", "matchId": string, "format": string, "rounds": number, "wordLength": number, "turnTimeout": number, "opponentName"?: string} | `opponentName` is only included in MULTI_REMOTE mode |
+| ROUND_STARTED           | {"type": "ROUND_STARTED", "roundNumber": number, "maxAttempts": number}                                                                                |                                                      |
+| WAIT_GUESS              | {"type": "WAIT_GUESS"}                                                                                                                                 |                                                      |
+| WAIT_OPPONENT_GUESS     | {"type": "WAIT_OPPONENT_GUESS"}                                                                                                                        |                                                      |
+| GUESS_RESULT            | {"type": "GUESS_RESULT", "guess": string, "feedback": number[]\[]}                                                                                     |                                                      |
+| ROUND_FINISHED          | {"type": "ROUND_FINISHED", "points": number, "word": string, "postRoundTimeout": number}                                                               |                                                      |
+| MATCH_FINISHED          | {"type": "MATCH_FINISHED", outcome: number , "opponentLeft": boolean}                                                                                  |                                                      |
+| OPPONENT_TYPING         | {"type": "OPPONENT_TYPING", "value": string}                                                                                                           |                                                      |
+| STATS                   | {...}                                                                                                                                                  | Game server statistics                               |
