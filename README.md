@@ -64,15 +64,15 @@ You can alternatively build and run the source using `make`.
 With `make` you can run 3 different components (and tests, if you're into that):
 
 ```bash
-make run-server     # C server that handles all of the game logic
+make run-gamed      # C server that handles all of the game logic
 
-make run-ssh        # Run the SSH server, which serves the TUI
+make run-sshd       # Run the SSH server, which serves the TUI
 
 make run-tui        # Run the TUI that connects to the game server
 
 make run-cli        # Run the CLI that connects to the game server
 
-make run-tests      # Run game server tests
+make test-gamed     # Run game server tests
 ```
 
 If using this method, you don't need to spin up the SSH server at all, as `make run-tui` will give you the
@@ -93,53 +93,42 @@ encoded over binary, using cJSON, over a raw TCP stream. No predefined applicati
 Messages are prepended with a 4 byte length prefix to separate TCP segments in case of sticking.
 The communication between the game server and clients is explained in more detail in the [Client-Server Protocol](#client-server-protocol) section.
 
+It's single threaded and used poll(2) for handling client file descriptors.
+It doesn't use POSIX timers, but instead handles a linked list of sorted timers and a timeout on the poll(2) call to check them periodically.
+
 ### guessh-sshd
 
 SSH server that serves the TUI over SSH, and connects to the game server via TCP.
-It's written in Go, using ([charmbracelet/wish](https://github.com/charmbracelet/wish)) to serve the TUI.
+It's written in Go, using [charmbracelet/wish](https://github.com/charmbracelet/wish) to serve the TUI over an SSH connection.
 
 ### guessh-tui
 
 Terminal User Interface (TUI) that connects directly to the game server, without going through SSH.
-It's written in Go, using ([charmbracelet/bubbletea](https://github.com/charmbracelet/bubbletea)).
+It's written in Go, using [charmbracelet/bubbletea](https://github.com/charmbracelet/bubbletea).
 This is a simple component that just wraps the bubbletea model, and opens a TCP connection directly to the game server.
-This same model is served by the SSH server when a client connects to is over an SSH connection.
+The same bubbletea model is served by the SSH server.
 `guessh-tui` is made to simplify development, so that I don't have to spin up the SSH server all the time.
-
-In the future, I could expose the game server port to the public internet, so that `guessh-tui` could
-be used to connect to the game server by anyone, without going through SSH. That would require users to
-install the `guessh-tui` binary on their machine. Not saying it's getting done, but it's an interesting idea.
 
 ### guessh-cli
 
 This is a simple TCP client that connects to the game server. Like other client components, it's written in Go.
-It's basically just netcat with the addition of prepending each message with the corresponding length prefix,
-so that the server doesn't interpret it as junk, and drop the connection. It ofcourse reads the length prefix from
-server-side messages (events), and displays them correctly.
+It's basically just netcat with the addition of handling length prefixes,
+so that the server doesn't interpret messages as junk, and drop the connection.
 
 It's used for debugging, and checking the server statistics while it's running.
 
 ## Environment Variables
 
-The following environment variables are used by one or multiple project components (Game server, SSH server, TUI, CLI):
+The following environment variables are used by one or multiple project components:
 
-| Variable           | Default         | Description                                          |
-| ------------------ | --------------- | ---------------------------------------------------- |
-| GUESSH_SERVER_PORT | 2480            | Port the C Game Server listens on.                   |
-| GAME_SERVER_ADDR   | localhost:2480  | Address the Go Frontend dials to reach the C Server. |
-| WORDS_PATH         | ./words         | Directory containing the .txt word lists.            |
-| GUESSH_SSH_ADDR    | :2222           | Address the Go SSH Server listens on.                |
-| HOST_KEY_PATH      | .ssh/id_ed25519 | Path to the SSH Server's persistent identity key.    |
-| LOG_LEVEL          | INFO            | Logging verbosity (DEBUG \| INFO \| ERROR).          |
-
-## Server
-
-### File structure
-
-- main.c - main loop
-- game.c - game logic
-- room.c - creating, joining and deleting rooms
-- network.c - socket setup for communication with client
+| Variable           | Default         | Description                                               |
+| ------------------ | --------------- | --------------------------------------------------------- |
+| GUESSH_SERVER_PORT | 2480            | Port that guessh-gamed listens on.                        |
+| GAME_SERVER_ADDR   | localhost:2480  | Address the client components dial to reach gusssh-gamed. |
+| WORDS_PATH         | ./words         | Directory containing the .txt word lists.                 |
+| GUESSH_SSH_ADDR    | :2222           | Address that guessh-sshd listens on.                      |
+| HOST_KEY_PATH      | .ssh/id_ed25519 | Path to the SSH Server's persistent identity key.         |
+| LOG_LEVEL          | INFO            | Logging verbosity (DEBUG \| INFO \| ERROR).               |
 
 ## Client-Server Protocol
 
