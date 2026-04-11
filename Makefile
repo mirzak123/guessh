@@ -1,18 +1,16 @@
 # ==========================================
 # 1. ENVIRONMENT & CONFIGURATION
 # ==========================================
-# Load .env variables if the file exists
 ifneq (,$(wildcard ./.env))
     include .env
     export
 endif
 
-# Shared Variables
 BUILD_DIR := bin
 $(shell mkdir -p $(BUILD_DIR))
 
 # ==========================================
-# 2. C SERVER CONFIGURATION
+# 2. GUESSH-GAMED CONFIGURATION
 # ==========================================
 SERVER_DIR := server
 CC         := gcc
@@ -40,10 +38,10 @@ build-all: build-gamed build-tui build-cli build-sshd
 
 # --- guessh-gamed ---
 build-gamed:
-	$(CC) $(SERVER_SRC) $(CFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/server
+	$(CC) $(SERVER_SRC) $(CFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/guessh-gamed
 
 run-gamed: build-gamed
-	$(BUILD_DIR)/server
+	$(BUILD_DIR)/guessh-gamed
 
 test-gamed:
 	$(CC) $(TEST_SRC) $(CFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/guessh-gamed-test

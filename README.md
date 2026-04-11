@@ -86,14 +86,14 @@ adjust the ports, if the defaults are occupied on your machine.
 
 The project is composed of 4 components:
 
-### game server
+### guessh-gamed
 
 TCP server written in C that handles all game logic. It communicated with clients (guessh-ssh, guessh-tui, or guessh-cli) via a JSON messages
 encoded over binary, using cJSON, over a raw TCP stream. No predefined application level protocol is used.
 Messages are prepended with a 4 byte length prefix to separate TCP segments in case of sticking.
 The communication between the game server and clients is explained in more detail in the [Client-Server Protocol](#client-server-protocol) section.
 
-### guessh-ssh
+### guessh-sshd
 
 SSH server that serves the TUI over SSH, and connects to the game server via TCP.
 It's written in Go, using ([charmbracelet/wish](https://github.com/charmbracelet/wish)) to serve the TUI.
