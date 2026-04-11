@@ -1,9 +1,10 @@
 services:
-  guessh-server:
+  guessh-gamed:
     build:
       context: .
       dockerfile: server/Dockerfile
-    container_name: guessh-server
+    image: guessh-gamed
+    container_name: guessh-gamed
     ports:
       - "127.0.0.1:2480:2480"
     environment:
@@ -11,22 +12,23 @@ services:
       - WORDS_PATH=./words
     restart: always
 
-  guessh-ssh:
+  guessh-sshd:
     build:
       context: .
       dockerfile: cli/Dockerfile
-    container_name: guessh-ssh
+    image: guessh-sshd
+    container_name: guessh-sshd
     ports:
       - "22:2222"
     environment:
-      - GAME_SERVER_ADDR=guessh-server:2480
+      - GAME_SERVER_ADDR=guessh-gamed:2480
       - GUESSH_SSH_ADDR=0.0.0.0:2222
       - WORDS_PATH=./words
       - HOST_KEY_PATH=/app/.ssh/id_ed25519
     volumes:
       - guessh_ssh_keys:/app/.ssh
     depends_on:
-      - guessh-server
+      - guessh-gamed
     restart: always
 
 volumes:

@@ -1,18 +1,16 @@
 # ==========================================
 # 1. ENVIRONMENT & CONFIGURATION
 # ==========================================
-# Load .env variables if the file exists
 ifneq (,$(wildcard ./.env))
     include .env
     export
 endif
 
-# Shared Variables
 BUILD_DIR := bin
 $(shell mkdir -p $(BUILD_DIR))
 
 # ==========================================
-# 2. C SERVER CONFIGURATION
+# 2. GUESSH-GAMED CONFIGURATION
 # ==========================================
 SERVER_DIR := server
 CC         := gcc
@@ -32,47 +30,47 @@ TEST_SRC := $(addprefix $(SERVER_DIR)/,$(_TEST_SRCS))
 # ==========================================
 # 3. BUILD TARGETS
 # ==========================================
-.PHONY: all build-all clean build-server build-tui build-cli build-ssh run-server run-tui run-cli run-ssh test-server debug-server
+.PHONY: all build-all clean build-gamed build-tui build-cli build-sshd run-gamed run-tui run-cli run-sshd test-gamed debug-gamed
 
 all: build-all
 
-build-all: build-server build-tui build-cli build-ssh
+build-all: build-gamed build-tui build-cli build-sshd
 
-# --- C Server Targets ---
-build-server:
-	$(CC) $(SERVER_SRC) $(CFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/server
+# --- guessh-gamed ---
+build-gamed:
+	$(CC) $(SERVER_SRC) $(CFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/guessh-gamed
 
-run-server: build-server
-	$(BUILD_DIR)/server
+run-gamed: build-gamed
+	$(BUILD_DIR)/guessh-gamed
 
-test-server:
-	$(CC) $(TEST_SRC) $(CFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/server-test
-	$(BUILD_DIR)/server-test
+test-gamed:
+	$(CC) $(TEST_SRC) $(CFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/guessh-gamed-test
+	$(BUILD_DIR)/guessh-gamed-test
 
-debug-server:
-	$(CC) $(SERVER_SRC) $(ASAN_FLAGS) $(CFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/server-debug
-	lldb -- $(BUILD_DIR)/server-debug
+debug-gamed:
+	$(CC) $(SERVER_SRC) $(ASAN_FLAGS) $(CFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/guessh-gamed-dbg
+	lldb -- $(BUILD_DIR)/guessh-gamed-dbg
 
-# --- Go TUI Targets ---
+# --- guessh-sshd ---
+build-sshd:
+	cd cli && go build -o ../$(BUILD_DIR)/guessh-sshd ./cmd/guessh-ssh/main.go
+
+run-sshd: build-sshd
+	./$(BUILD_DIR)/guessh-ssh
+
+# --- guessh-tui ---
 build-tui:
 	cd cli && go build -o ../$(BUILD_DIR)/guessh-tui ./cmd/guessh-tui/main.go
 
 run-tui: build-tui
 	./$(BUILD_DIR)/guessh-tui
 
-# --- Go CLI Targets ---
+# --- guessh-cli ---
 build-cli:
 	cd cli && go build -o ../$(BUILD_DIR)/guessh-cli ./cmd/guessh-cli/main.go
 
 run-cli: build-cli
 	./$(BUILD_DIR)/guessh-cli
-
-# --- Go SSH Targets ---
-build-ssh:
-	cd cli && go build -o ../$(BUILD_DIR)/guessh-ssh ./cmd/guessh-ssh/main.go
-
-run-ssh: build-ssh
-	./$(BUILD_DIR)/guessh-ssh
 
 # ==========================================
 # 4. UTILITIES
