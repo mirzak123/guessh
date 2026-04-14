@@ -169,8 +169,6 @@ func (m *gameModel) View() string {
 		return ""
 	}
 
-	gridStyle := lipgloss.NewStyle().MarginRight(6)
-
 	var guessGrids []string
 	for i := range m.challengesLen {
 		grid := ui.ViewGuessGrid(
@@ -183,17 +181,37 @@ func (m *gameModel) View() string {
 			m.state,
 		)
 
-		// Apply the margin to all but the last element
 		if i < m.challengesLen-1 {
-			grid = gridStyle.Render(grid)
+			grid = lipgloss.NewStyle().MarginRight(6).Render(grid)
 		}
 
 		guessGrids = append(guessGrids, grid)
 	}
 
 	gridView := lipgloss.JoinHorizontal(lipgloss.Center, guessGrids...)
-	gridWidth := lipgloss.Width(gridView)
 
+	emptyLine := lipgloss.NewStyle().
+		Height(1).
+		Render("")
+
+	content := lipgloss.JoinVertical(
+		lipgloss.Center,
+		m.header(lipgloss.Width(gridView)),
+		emptyLine,
+		emptyLine,
+		gridView,
+		emptyLine,
+		m.statusBar(),
+	)
+
+	return lipgloss.NewStyle().
+		Width(m.width).
+		Height(m.height).
+		Align(lipgloss.Center, lipgloss.Center).
+		Render(content)
+}
+
+func (m *gameModel) header(minWidth int) string {
 	var (
 		p1Symbol  = ui.PlayerBlock()
 		p2Symbol  string
@@ -258,21 +276,16 @@ func (m *gameModel) View() string {
 	if p2w < maxPlayerWidth {
 		player2 = strings.Repeat(" ", maxPlayerWidth-p2w) + player2
 	}
-
 	outcomes := ui.ViewRoundOutcomes(m.matchInfo.RoundPoints, m.matchInfo.Format, m.matchInfo.RoundsPlayed)
-
-	gameAreaWidth := gridWidth + maxPlayerWidth*2 // TODO: verify this is correct
-
+	gameAreaWidth := minWidth + maxPlayerWidth*2 // TODO: verify this is correct
 	totalComponentsWidth := maxPlayerWidth + lipgloss.Width(outcomes) + maxPlayerWidth
-
 	totalSpace := max(0, gameAreaWidth-totalComponentsWidth)
-
 	gapWidth := totalSpace / 2
 
 	leftSpacer := strings.Repeat(" ", gapWidth)
 	rightSpacer := strings.Repeat(" ", totalSpace-gapWidth)
 
-	headerRow := lipgloss.JoinHorizontal(
+	return lipgloss.JoinHorizontal(
 		lipgloss.Center,
 		player1,
 		leftSpacer,
@@ -281,25 +294,6 @@ func (m *gameModel) View() string {
 		player2,
 	)
 
-	emptyLine := lipgloss.NewStyle().
-		Height(1).
-		Render("")
-
-	content := lipgloss.JoinVertical(
-		lipgloss.Center,
-		headerRow,
-		emptyLine,
-		emptyLine,
-		gridView,
-		emptyLine,
-		m.statusBar(),
-	)
-
-	return lipgloss.NewStyle().
-		Width(m.width).
-		Height(m.height).
-		Align(lipgloss.Center, lipgloss.Center).
-		Render(content)
 }
 
 func (m *gameModel) statusBar() string {
