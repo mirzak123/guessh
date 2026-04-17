@@ -179,7 +179,7 @@ func (m *gameModel) View() string {
 		)
 
 		if i < m.challengesLen-1 {
-			grid = lipgloss.NewStyle().MarginRight(6).Render(grid)
+			grid = lipgloss.NewStyle().MarginRight(5).Render(grid)
 		}
 
 		guessGrids = append(guessGrids, grid)
