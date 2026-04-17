@@ -19,7 +19,6 @@ import (
 )
 
 type gameModel struct {
-	width, height    int
 	matchInfo        *game.MatchInfo
 	input            textinput.Model
 	state            game.GameState
@@ -91,8 +90,6 @@ func (m *gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.WindowSizeMsg:
 		logger.Debug("[Update] Window resizing...")
-		m.width = msg.Width
-		m.height = msg.Height
 		return m, nil
 
 	case tea.KeyMsg:
@@ -205,8 +202,6 @@ func (m *gameModel) View() string {
 	)
 
 	return lipgloss.NewStyle().
-		Width(m.width).
-		Height(m.height).
 		Align(lipgloss.Center, lipgloss.Center).
 		Render(content)
 }
@@ -380,8 +375,12 @@ func (m *gameModel) statusBar() string {
 		line3,
 	)
 
+	w := lipgloss.Width(content)
+	if w%2 == 1 { // HACK: Fixes an offset-by-1 bug in the header and status bar
+		content = lipgloss.NewStyle().Width(w + 1).Render(content)
+	}
+
 	return lipgloss.NewStyle().
-		Width(m.width).
 		Height(2).
 		AlignHorizontal(lipgloss.Center).
 		AlignVertical(lipgloss.Top).
