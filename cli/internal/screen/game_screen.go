@@ -375,10 +375,10 @@ func (m *gameModel) statusBar() string {
 		line3,
 	)
 
-	w := lipgloss.Width(content)
-	if w%2 == 1 { // HACK: Fixes an offset-by-1 bug in the header and status bar
-		content = lipgloss.NewStyle().Width(w + 1).Render(content)
-	}
+	// w := lipgloss.Width(content)
+	// if w%2 == 1 { // HACK: Fixes an offset-by-1 bug in the header and status bar
+	// 	content = lipgloss.NewStyle().Width(w + 1).Render(content)
+	// }
 
 	return lipgloss.NewStyle().
 		Height(2).
