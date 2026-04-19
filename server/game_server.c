@@ -80,7 +80,7 @@ void GS_handle_request(GameServer *gs, Client *client) {
 
   switch (mt) {
   case MALFORMED_MESSAGE:
-    printf("[GS_handle_request] Malformed request received: \"%s\"\n", data);
+    printf("[GS_handle_request] Malformed request received: \"%.*s\"\n", (int)size, data);
     if (json_request) {
       cJSON_Delete(json_request);
     }
