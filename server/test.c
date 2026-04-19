@@ -1,351 +1,44 @@
-#include "game_logic.c"
-#include "game_logic.h"
-#include "hash_table.h"
-#include "timer.h"
-#include "util.h"
-#include <assert.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <time.h>
-#include <unistd.h>
 
-#define WORD_LEN 5
+#include "game_logic_test.c"
+#include "hash_table_test.c"
+#include "timer_test.c"
+#include "util_test.c"
 
-typedef struct TimerTestData {
-  Timer *timer;
-  int *counter;
-} TimerTestData;
-
-static void test_evaluate_guess(void);
-static void test_hash_table(void);
-static void test_generate_random_string(void);
-static void test_call_HT_delete_on_empty_hash_table(void);
-static void test_timer(void);
-static void test_timer_list_examine(void);
-static void test_timer_rearm(void);
-static void test_timer_arm_within_examine(void);
-
-static void toggle(bool *data);
-static void increment(int *data);
-static void increment_and_arm(TimerTestData *data);
-static void sleep_with_log(unsigned int seconds);
-
-static void assert_feedback(LetterFeedback *feedback, LetterFeedback *expected);
+static void timer_test(void);
+static void hash_table_test(void);
+static void game_logic_test(void);
+static void util_test(void);
 
 int main(void) {
   srand(time(NULL));
 
-  test_evaluate_guess();
-  test_hash_table();
-  test_call_HT_delete_on_empty_hash_table();
-  test_generate_random_string();
-  test_timer();
-  test_timer_list_examine();
-  test_timer_rearm();
-  test_timer_arm_within_examine();
+  Test tests[] = {timer_test, hash_table_test, game_logic_test, util_test};
+  int n = sizeof(tests) / sizeof(tests[0]);
 
+  printf("Starting tests...\n");
+  for (int i = 0; i < n; i++) {
+    tests[i]();
+  }
   printf("All tests passed!\n");
+
   return 0;
 }
 
-void test_generate_random_string(void) {
-  char *s = generate_random_string(7);
-  assert(strlen(s) == 7);
-  free(s);
+void timer_test(void) {
+  test_timer_lifecycle();
+  test_timer_list_examine();
+  test_timer_rearm();
+  test_timer_arm_within_examine();
 }
 
-void test_evaluate_guess(void) {
-  LetterFeedback feedback[WORD_LEN];
-  int r;
-
-  WordChallenge *wc = &(WordChallenge){
-      NULL,
-      WORD_LEN,
-      OUTCOME_NONE,
-      feedback,
-  };
-
-  wc->word = "ocean";
-  r = evaluate_word_challenge_guess("ocean", wc);
-  assert_feedback(feedback, (LetterFeedback[]){2, 2, 2, 2, 2});
-  assert(r == 1);
-
-  wc->word = "cubic";
-  r = evaluate_word_challenge_guess("cubic", wc);
-  assert_feedback(feedback, (LetterFeedback[]){2, 2, 2, 2, 2});
-  assert(r == 1);
-
-  wc->word = "piles";
-  r = evaluate_word_challenge_guess("pulls", wc);
-  assert_feedback(feedback, (LetterFeedback[]){2, 0, 2, 0, 2});
-  assert(r == 0);
-
-  wc->word = "leaky";
-  evaluate_word_challenge_guess("pulls", wc);
-  assert_feedback(feedback, (LetterFeedback[]){0, 0, 1, 0, 0});
-  assert(r == 0);
-
-  wc->word = "whose";
-  r = evaluate_word_challenge_guess("echos", wc);
-  assert_feedback(feedback, (LetterFeedback[]){1, 0, 1, 1, 1});
-  assert(r == 0);
-
-  wc->word = "whose";
-  r = evaluate_word_challenge_guess("shoes", wc);
-  assert_feedback(feedback, (LetterFeedback[]){1, 2, 2, 1, 0});
-  assert(r == 0);
-
-  wc->word = "cubic";
-  r = evaluate_word_challenge_guess("lucid", wc);
-  assert_feedback(feedback, (LetterFeedback[]){0, 2, 1, 2, 0});
-  assert(r == 0);
-
-  wc->word = "lucid";
-  r = evaluate_word_challenge_guess("cubic", wc);
-  assert_feedback(feedback, (LetterFeedback[]){1, 2, 0, 2, 0});
-  assert(r == 0);
-
-  wc->word = "lilac";
-  r = evaluate_word_challenge_guess("spill", wc);
-  assert_feedback(feedback, (LetterFeedback[]){0, 0, 1, 1, 1});
-  assert(r == 0);
-
-  wc->word = "spill";
-  r = evaluate_word_challenge_guess("lilac", wc);
-  assert_feedback(feedback, (LetterFeedback[]){1, 1, 1, 0, 0});
-  assert(r == 0);
-
-  wc->word = "tutti";
-  r = evaluate_word_challenge_guess("totem", wc);
-  assert_feedback(feedback, (LetterFeedback[]){2, 0, 2, 0, 0});
-  assert(r == 0);
-
-  wc->word = "totem";
-  r = evaluate_word_challenge_guess("tutti", wc);
-  assert_feedback(feedback, (LetterFeedback[]){2, 0, 2, 0, 0});
-  assert(r == 0);
+void hash_table_test(void) {
+  test_hash_table();
+  test_call_HT_delete_on_empty_hash_table();
 }
 
-void test_hash_table(void) {
-  Value value;
-  char *value_str = "Hello world";
-  int value_int = 1000, count = 0;
+void game_logic_test(void) { test_evaluate_word_challenge_guess(); }
 
-  HashTable *table = HT_create();
-  assert(table != NULL);
-
-  HT_set(table, KEY("key"), &value_int);
-  count++;
-  value = HT_get((table), KEY("key"));
-  assert(*(int *)value == value_int);
-  assert(table->capacity == 8);
-
-  for (int i = count + 1; i < 10; i++) {
-    HT_set(table, KEY(i), value_str);
-    count++;
-    value = HT_get(table, KEY(i));
-    assert(!strcmp((char *)value, value_str));
-
-    if (i <= 6)
-      assert(table->capacity == 8);
-    else
-      assert(table->capacity == 16);
-  }
-
-  int x = 7;
-  HT_set(table, KEY(x), value_str);
-  assert(value_str == HT_get(table, KEY(x)));
-  HT_delete(table, KEY(x));
-  assert(NULL == HT_get(table, KEY(x)));
-
-  // Find nonexistent
-  value = HT_get(table, KEY("nonexistent"));
-  assert(value == NULL);
-  assert(table->capacity == 16);
-
-  HT_destroy(table, NULL);
-}
-
-void test_call_HT_delete_on_empty_hash_table(void) {
-  HashTable *ht = HT_create();
-  HT_delete(ht, KEY(1));
-}
-
-void test_timer(void) {
-  TimerList tl = {NULL};
-  Timer *t1, *t2, *t3, *t4, *t_cur;
-  bool toggle_switch = false;
-  int counter = 0;
-
-  t1 = new_timer(&tl, (TimerCallbackFunc)toggle, &toggle_switch, 30);
-  t2 = new_timer(&tl, (TimerCallbackFunc)toggle, &toggle_switch, 10);
-  t3 = new_timer(&tl, (TimerCallbackFunc)increment, &counter, 40);
-  t4 = new_timer(&tl, (TimerCallbackFunc)increment, &counter, 5);
-
-  Timer_arm(t1);
-  Timer_arm(t2);
-  Timer_arm(t3);
-  Timer_arm(t4);
-
-  Timer_fire(t1);
-  assert(toggle_switch == true);
-  Timer_fire(t2);
-  assert(toggle_switch == false);
-  Timer_fire(t3);
-  assert(counter == 1);
-  Timer_fire(t4);
-  assert(counter == 2);
-  Timer_fire(t4);
-  assert(counter == 3);
-
-  TimerList_print(&tl);
-
-  t_cur = tl.head;
-  assert(t_cur == t4);
-  t_cur = t_cur->next;
-  assert(t_cur == t2);
-  t_cur = t_cur->next;
-  assert(t_cur == t1);
-  t_cur = t_cur->next;
-  assert(t_cur == t3);
-
-  Timer_disarm(t4);
-  assert(tl.head == t2);
-  Timer_disarm(t3);
-  assert(tl.head == t2);
-  Timer_disarm(t2);
-  assert(tl.head == t1);
-  Timer_disarm(t1);
-  assert(tl.head == NULL);
-
-  delete_timer(t1, false);
-  delete_timer(t2, false);
-  delete_timer(t3, false);
-  delete_timer(t4, false);
-}
-
-void test_timer_list_examine(void) {
-  TimerList tl = {NULL};
-  Timer *t1, *t2, *t3, *t4;
-  int counter = 0, sleep_seconds = 5;
-
-  t1 = new_timer(&tl, (TimerCallbackFunc)increment, &counter, 3);
-  t2 = new_timer(&tl, (TimerCallbackFunc)increment, &counter, 30);
-  t3 = new_timer(&tl, (TimerCallbackFunc)increment, &counter, 15);
-  t4 = new_timer(&tl, (TimerCallbackFunc)increment, &counter, 2);
-
-  Timer_arm(t2);
-  Timer_arm(t1);
-  Timer_arm(t3);
-  Timer_arm(t4);
-
-  sleep(sleep_seconds);
-
-  TimerList_examine(&tl);
-
-  assert(counter == 2);
-  assert(tl.head == t3);
-  assert(tl.head->next == t2);
-
-  TimerList_examine(&tl);
-
-  assert(counter == 2);
-  assert(tl.head == t3);
-  assert(tl.head->next == t2);
-}
-
-void test_timer_rearm(void) {
-  TimerList tl = {NULL};
-  Timer *t1, *t2, *t3;
-  int counter = 0, sleep_seconds = 3;
-
-  t1 = new_timer(&tl, (TimerCallbackFunc)increment, &counter, 4);
-  t2 = new_timer(&tl, (TimerCallbackFunc)increment, &counter, 2);
-  t3 = new_timer(&tl, (TimerCallbackFunc)increment, &counter, 15);
-
-  Timer_arm(t1);
-  Timer_arm(t2);
-  Timer_arm(t3);
-
-  assert(tl.head == t2);
-  TimerList_examine(&tl);
-  assert(counter == 0);
-
-  sleep_with_log(sleep_seconds);
-
-  TimerList_examine(&tl);
-  assert(counter == 1);
-
-  Timer_arm(t2);
-  assert(tl.head == t1);
-
-  sleep_with_log(sleep_seconds);
-  Timer_rearm(t2);
-
-  TimerList_examine(&tl);
-  assert(counter == 2);
-
-  sleep_with_log(sleep_seconds);
-  TimerList_examine(&tl);
-  assert(counter == 3);
-}
-
-static void test_timer_arm_within_examine(void) {
-  TimerList tl = {NULL};
-  Timer *t1, *t2, *t3, *t4;
-  int counter = 0, sleep_seconds = 5;
-  TimerTestData d1 = {NULL, &counter}, d2 = {NULL, &counter}, d3 = {NULL, &counter}, d4 = {NULL, &counter};
-
-  t1 = new_timer(&tl, (TimerCallbackFunc)increment_and_arm, &d1, 1);
-  d1.timer = t1;
-  t2 = new_timer(&tl, (TimerCallbackFunc)increment_and_arm, &d2, 30);
-  d2.timer = t2;
-  t3 = new_timer(&tl, (TimerCallbackFunc)increment_and_arm, &d3, 7);
-  d3.timer = t3;
-  t4 = new_timer(&tl, (TimerCallbackFunc)increment_and_arm, &d4, 2);
-  d4.timer = t4;
-
-  Timer_arm(t2);
-  Timer_arm(t1);
-  Timer_arm(t3);
-  Timer_arm(t4);
-
-  printf("Pre-examine: ");
-  TimerList_print(&tl);
-  sleep(sleep_seconds);
-
-  TimerList_examine(&tl);
-  printf("Examine 1: ");
-  TimerList_print(&tl);
-  sleep(sleep_seconds);
-
-  TimerList_examine(&tl);
-  printf("Examine 2: ");
-  TimerList_print(&tl);
-
-  assert(counter = 5);
-  assert(tl.head == t1);
-  assert(tl.head->next == t4);
-}
-
-void increment_and_arm(TimerTestData *data) {
-  Timer_disarm(data->timer);
-  data->counter++;
-  Timer_arm(data->timer);
-}
-
-void toggle(bool *data) { *data = !*data; }
-void increment(int *data) { (*data)++; }
-
-void assert_feedback(LetterFeedback *feedback, LetterFeedback *expected) {
-  for (int i = 0; i < WORD_LEN; i++) {
-    assert(feedback[i] == expected[i]);
-  }
-}
-
-static void sleep_with_log(unsigned int seconds) {
-  printf("sleeping for %d seconds...\n", seconds);
-  sleep(seconds);
-}
+void util_test(void) { test_generate_random_string(); }
