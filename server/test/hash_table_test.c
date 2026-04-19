@@ -1,4 +1,6 @@
-#include "hash_table.h"
+#include "hash_table_test.h"
+#include "../src/hash_table.h"
+
 #include <assert.h>
 #include <string.h>
 

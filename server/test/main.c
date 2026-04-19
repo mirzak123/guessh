@@ -2,10 +2,11 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "game_logic_test.c"
-#include "hash_table_test.c"
-#include "timer_test.c"
-#include "util_test.c"
+#include "game_logic_test.h"
+#include "hash_table_test.h"
+#include "test_util.h"
+#include "timer_test.h"
+#include "util_test.h"
 
 static void timer_test(void);
 static void hash_table_test(void);

@@ -7,7 +7,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-static bool evaluate_word_challenge_guess(const char *guess, WordChallenge *wc);
 static char **read_fixed_lines(FILE *file, size_t line_len, size_t *out_count);
 
 size_t evaluate_guess(const char *guess, WordChallenge **wc_list, size_t wc_num, bool player1_on_turn) {

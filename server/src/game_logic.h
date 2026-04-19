@@ -32,6 +32,7 @@ WordStore *new_word_store(char *filename, size_t word_len);
 void delete_word_store(WordStore *store);
 
 size_t evaluate_guess(const char *guess, struct WordChallenge **wc_list, size_t wc_num, bool player1_on_turn);
+bool evaluate_word_challenge_guess(const char *guess, struct WordChallenge *wc);
 char *get_random_word(WordStore *store);
 
 #endif // !GAME_LOGIC_H

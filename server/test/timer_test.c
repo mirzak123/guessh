@@ -1,19 +1,15 @@
-#include "timer.h"
+#include "timer_test.h"
+#include "../src/timer.h"
+#include "test_util.h"
+
 #include <assert.h>
 #include <stdio.h>
 #include <unistd.h>
-
-#include "test_util.h"
 
 typedef struct TimerTestData {
   Timer *timer;
   int *counter;
 } TimerTestData;
-
-void test_timer_lifecycle(void);
-void test_timer_list_examine(void);
-void test_timer_rearm(void);
-void test_timer_arm_within_examine(void);
 
 static void toggle(bool *data);
 static void increment(int *data);

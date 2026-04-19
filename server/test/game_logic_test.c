@@ -1,10 +1,11 @@
-#include "game_logic.c"
-#include "game_types.h"
+#include "game_logic_test.h"
+#include "../src/game_logic.h"
+#include "../src/game_types.h"
+
 #include <assert.h>
 
 #define WORD_LEN 5
 
-static void test_evaluate_word_challenge_guess(void);
 static void assert_feedback(LetterFeedback *feedback, LetterFeedback *expected);
 
 void test_evaluate_word_challenge_guess(void) {
