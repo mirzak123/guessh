@@ -410,8 +410,6 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Cmd {
 			return nil
 		}
 
-		m.game.roundInfo = game.NewRoundInfo()
-
 		m.matchInfo.CurrentAttempt = 0
 		m.matchInfo.MaxAttempts = roundStartedEvent.MaxAttempts
 		m.matchInfo.CurrentRound = roundStartedEvent.RoundNumber
@@ -490,7 +488,6 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Cmd {
 		}
 
 		m.game.state = game.StateRoundFinished
-		m.game.roundInfo.Points = roundFinishedEvent.Points
 		m.matchInfo.CorrectWords = roundFinishedEvent.Words
 		m.game.input.Blur()
 		m.game.postRoundTimeout = roundFinishedEvent.PostRoundTimeout

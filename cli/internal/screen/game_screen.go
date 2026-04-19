@@ -22,7 +22,6 @@ type gameModel struct {
 	matchInfo        *game.MatchInfo
 	input            textinput.Model
 	state            game.GameState
-	roundInfo        *game.RoundInfo
 	guesses          []string
 	challenges       []*protocol.WordChallenge
 	challengesLen    int
@@ -42,7 +41,6 @@ func NewGame(matchInfo *game.MatchInfo) *gameModel {
 		matchInfo: matchInfo,
 		input:     ti,
 		state:     game.StateInit,
-		roundInfo: game.NewRoundInfo(),
 	}
 }
 

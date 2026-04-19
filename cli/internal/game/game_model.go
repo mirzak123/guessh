@@ -43,15 +43,6 @@ func NewMatchInfo() *MatchInfo {
 	return &MatchInfo{}
 }
 
-type RoundInfo struct { // TODO: Remove this (unused)
-	Word   string
-	Points int
-}
-
-func NewRoundInfo() *RoundInfo {
-	return &RoundInfo{}
-}
-
 func (s GameState) String() string {
 	var str string
 	switch s {
