@@ -272,7 +272,7 @@ func (m *gameModel) header(minWidth int) string {
 		player2 = strings.Repeat(" ", maxPlayerWidth-p2w) + player2
 	}
 	outcomes := ui.ViewRoundOutcomes(m.matchInfo.RoundPoints, m.matchInfo.Format, m.matchInfo.RoundsPlayed)
-	gameAreaWidth := minWidth + maxPlayerWidth*2 // TODO: verify this is correct
+	gameAreaWidth := minWidth + maxPlayerWidth*2
 	totalComponentsWidth := maxPlayerWidth + lipgloss.Width(outcomes) + maxPlayerWidth
 	totalSpace := max(0, gameAreaWidth-totalComponentsWidth)
 	gapWidth := totalSpace / 2
@@ -374,11 +374,6 @@ func (m *gameModel) statusBar() string {
 		line2,
 		line3,
 	)
-
-	// w := lipgloss.Width(content)
-	// if w%2 == 1 { // HACK: Fixes an offset-by-1 bug in the header and status bar
-	// 	content = lipgloss.NewStyle().Width(w + 1).Render(content)
-	// }
 
 	return lipgloss.NewStyle().
 		Height(2).
