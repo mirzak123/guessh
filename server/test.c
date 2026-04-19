@@ -30,6 +30,7 @@ static void test_timer_arm_within_examine(void);
 static void toggle(bool *data);
 static void increment(int *data);
 static void increment_and_arm(TimerTestData *data);
+static void sleep_with_log(unsigned int seconds);
 
 static void assert_feedback(LetterFeedback *feedback, LetterFeedback *expected);
 
@@ -240,7 +241,6 @@ void test_timer_list_examine(void) {
   Timer_arm(t3);
   Timer_arm(t4);
 
-  printf("sleeping for %d seconds...\n", sleep_seconds);
   sleep(sleep_seconds);
 
   TimerList_examine(&tl);
@@ -261,8 +261,8 @@ void test_timer_rearm(void) {
   Timer *t1, *t2, *t3;
   int counter = 0, sleep_seconds = 3;
 
-  t1 = new_timer(&tl, (TimerCallbackFunc)increment, &counter, 5);
-  t2 = new_timer(&tl, (TimerCallbackFunc)increment, &counter, 1);
+  t1 = new_timer(&tl, (TimerCallbackFunc)increment, &counter, 4);
+  t2 = new_timer(&tl, (TimerCallbackFunc)increment, &counter, 2);
   t3 = new_timer(&tl, (TimerCallbackFunc)increment, &counter, 15);
 
   Timer_arm(t1);
@@ -273,18 +273,21 @@ void test_timer_rearm(void) {
   TimerList_examine(&tl);
   assert(counter == 0);
 
-  printf("sleeping for %d seconds...\n", sleep_seconds);
-  sleep(sleep_seconds);
+  sleep_with_log(sleep_seconds);
 
   TimerList_examine(&tl);
   assert(counter == 1);
 
+  Timer_arm(t2);
+  assert(tl.head == t1);
+
+  sleep_with_log(sleep_seconds);
   Timer_rearm(t2);
-  assert(tl.head == t2);
 
-  printf("sleeping for %d seconds...\n", sleep_seconds);
-  sleep(sleep_seconds);
+  TimerList_examine(&tl);
+  assert(counter == 2);
 
+  sleep_with_log(sleep_seconds);
   TimerList_examine(&tl);
   assert(counter == 3);
 }
@@ -340,4 +343,9 @@ void assert_feedback(LetterFeedback *feedback, LetterFeedback *expected) {
   for (int i = 0; i < WORD_LEN; i++) {
     assert(feedback[i] == expected[i]);
   }
+}
+
+static void sleep_with_log(unsigned int seconds) {
+  printf("sleeping for %d seconds...\n", seconds);
+  sleep(seconds);
 }
