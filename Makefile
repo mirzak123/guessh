@@ -12,7 +12,6 @@ $(shell mkdir -p $(BUILD_DIR))
 # ==========================================
 # 2. GUESSH-GAMED CONFIGURATION
 # ==========================================
-SERVER_DIR := server
 CC         := gcc
 CFLAGS     := -std=gnu17 -Wall -Wextra -pedantic
 LDFLAGS    := -g -O0
@@ -21,11 +20,13 @@ CFLAGS  += $(shell pkg-config --cflags libcjson)
 LDFLAGS += $(shell pkg-config --libs libcjson)
 ASAN_FLAGS := -g -O0 -fsanitize=address -fno-omit-frame-pointer
 
-_SRCS := main.c network.c game_logic.c game_server.c game_types.c json_messages.c client.c util.c hash_table.c room.c timer.c
-SERVER_SRC := $(addprefix $(SERVER_DIR)/,$(_SRCS))
+SRC_DIR := server/src
+TEST_DIR := server/test
 
-_TEST_SRCS := test.c hash_table.c util.c timer.c
-TEST_SRC := $(addprefix $(SERVER_DIR)/,$(_TEST_SRCS))
+ALL_SRC := $(wildcard $(SRC_DIR)/*.c)
+CORE_SRC := $(filter-out $(SRC_DIR)/main.c, $(ALL_SRC))
+TEST_SRC := $(wildcard $(TEST_DIR)/*.c)
+TEST_BUILD_SRC := $(CORE_SRC) $(TEST_SRC)
 
 # ==========================================
 # 3. BUILD TARGETS
@@ -38,17 +39,17 @@ build-all: build-gamed build-tui build-cli build-sshd
 
 # --- guessh-gamed ---
 build-gamed:
-	$(CC) $(SERVER_SRC) $(CFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/guessh-gamed
+	$(CC) $(ALL_SRC) $(CFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/guessh-gamed
 
 run-gamed: build-gamed
 	$(BUILD_DIR)/guessh-gamed
 
 test-gamed:
-	$(CC) $(TEST_SRC) $(CFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/guessh-gamed-test
+	$(CC) $(TEST_BUILD_SRC) $(CFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/guessh-gamed-test
 	$(BUILD_DIR)/guessh-gamed-test
 
 debug-gamed:
-	$(CC) $(SERVER_SRC) $(ASAN_FLAGS) $(CFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/guessh-gamed-dbg
+	$(CC) $(ALL_SRC) $(ASAN_FLAGS) $(CFLAGS) $(LDFLAGS) -o $(BUILD_DIR)/guessh-gamed-dbg
 	lldb -- $(BUILD_DIR)/guessh-gamed-dbg
 
 # --- guessh-sshd ---
