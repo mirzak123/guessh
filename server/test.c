@@ -29,7 +29,7 @@ static void test_timer_arm_within_examine(void);
 
 static void toggle(bool *data);
 static void increment(int *data);
-static void increment_and_rearm(TimerTestData *data);
+static void increment_and_arm(TimerTestData *data);
 
 static void assert_feedback(LetterFeedback *feedback, LetterFeedback *expected);
 
@@ -295,13 +295,13 @@ static void test_timer_arm_within_examine(void) {
   int counter = 0, sleep_seconds = 5;
   TimerTestData d1 = {NULL, &counter}, d2 = {NULL, &counter}, d3 = {NULL, &counter}, d4 = {NULL, &counter};
 
-  t1 = new_timer(&tl, (TimerCallbackFunc)increment_and_rearm, &d1, 1);
+  t1 = new_timer(&tl, (TimerCallbackFunc)increment_and_arm, &d1, 1);
   d1.timer = t1;
-  t2 = new_timer(&tl, (TimerCallbackFunc)increment_and_rearm, &d2, 30);
+  t2 = new_timer(&tl, (TimerCallbackFunc)increment_and_arm, &d2, 30);
   d2.timer = t2;
-  t3 = new_timer(&tl, (TimerCallbackFunc)increment_and_rearm, &d3, 7);
+  t3 = new_timer(&tl, (TimerCallbackFunc)increment_and_arm, &d3, 7);
   d3.timer = t3;
-  t4 = new_timer(&tl, (TimerCallbackFunc)increment_and_rearm, &d4, 2);
+  t4 = new_timer(&tl, (TimerCallbackFunc)increment_and_arm, &d4, 2);
   d4.timer = t4;
 
   Timer_arm(t2);
@@ -327,10 +327,10 @@ static void test_timer_arm_within_examine(void) {
   assert(tl.head->next == t4);
 }
 
-void increment_and_rearm(TimerTestData *data) {
+void increment_and_arm(TimerTestData *data) {
   Timer_disarm(data->timer);
   data->counter++;
-  Timer_rearm(data->timer);
+  Timer_arm(data->timer);
 }
 
 void toggle(bool *data) { *data = !*data; }
