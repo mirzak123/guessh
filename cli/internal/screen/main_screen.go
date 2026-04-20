@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"guessh/internal/client"
 	"guessh/internal/game"
 	"guessh/internal/logger"
@@ -389,7 +388,6 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Cmd {
 			m.matchInfo.OpponentName = matchStartedEvent.OpponentName
 		}
 
-		m.matchInfo.RawTotalRounds = fmt.Sprintf("%d", matchStartedEvent.Rounds)
 		m.matchInfo.RoundPoints = make([]int, matchStartedEvent.Rounds)
 
 		m.game.input.CharLimit = m.matchInfo.WordLen
