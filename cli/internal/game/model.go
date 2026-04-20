@@ -18,6 +18,29 @@ const (
 	StateMatchFinished
 )
 
+func (s GameState) String() string {
+	var str string
+	switch s {
+	case StateInit:
+		str = "StateInit"
+	case StateMatchFinished:
+		str = "StateMatchFinished"
+	case StateMatchStarted:
+		str = "StateMatchStarted"
+	case StateRoundFinished:
+		str = "StateRoundFinished"
+	case StateWaitGuess:
+		str = "StateWaitGuess"
+	case StateWaitOpponentGuess:
+		str = "StateWaitOpponentGuess"
+	case StateWaitOpponentJoin:
+		str = "StateWaitOpponentJoin"
+	case StateWaitOpponentReady:
+		str = "StateWaitOpponentReady"
+	}
+	return str
+}
+
 type MatchInfo struct {
 	Mode                protocol.GameMode
 	Format              protocol.GameFormat
@@ -55,27 +78,4 @@ func (m *MatchInfo) AddGuess(word string) {
 
 func (m *MatchInfo) IsLastRound() bool {
 	return m.CurrentRound >= m.TotalRounds
-}
-
-func (s GameState) String() string {
-	var str string
-	switch s {
-	case StateInit:
-		str = "StateInit"
-	case StateMatchFinished:
-		str = "StateMatchFinished"
-	case StateMatchStarted:
-		str = "StateMatchStarted"
-	case StateRoundFinished:
-		str = "StateRoundFinished"
-	case StateWaitGuess:
-		str = "StateWaitGuess"
-	case StateWaitOpponentGuess:
-		str = "StateWaitOpponentGuess"
-	case StateWaitOpponentJoin:
-		str = "StateWaitOpponentJoin"
-	case StateWaitOpponentReady:
-		str = "StateWaitOpponentReady"
-	}
-	return str
 }
