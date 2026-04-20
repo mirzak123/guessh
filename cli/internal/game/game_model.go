@@ -37,6 +37,7 @@ type MatchInfo struct {
 	JoinExisting        bool
 	RoomValidationError error
 	DeniedRematch       bool
+	Guesses             []string
 }
 
 func NewMatchInfo() *MatchInfo {

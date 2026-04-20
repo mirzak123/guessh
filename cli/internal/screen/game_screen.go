@@ -22,7 +22,6 @@ type gameModel struct {
 	matchInfo        *game.MatchInfo
 	input            textinput.Model
 	state            game.GameState
-	guesses          []string
 	challenges       []*protocol.WordChallenge
 	challengesLen    int
 	turnTimer        timer.Model
@@ -167,7 +166,7 @@ func (m *gameModel) View() string {
 	var guessGrids []string
 	for i := range m.challengesLen {
 		grid := ui.ViewGuessGrid(
-			m.guesses,
+			m.matchInfo.Guesses,
 			m.challenges[i],
 			m.input.Value(),
 			m.matchInfo.CurrentAttempt,
@@ -407,15 +406,15 @@ func emit(msg tea.Msg) tea.Cmd {
 	}
 }
 
-func (m *gameModel) alreadyGuessed(guess string) bool {
-	return slices.Contains(m.guesses, guess)
+func (m *gameModel) alreadyGuessed(guess string) bool { // TODO: move to match info
+	return slices.Contains(m.matchInfo.Guesses, guess)
 }
 
-func (m *gameModel) addGuess(word string) {
-	m.guesses[m.matchInfo.CurrentAttempt] = word
+func (m *gameModel) addGuess(word string) { // TODO: move to match info
+	m.matchInfo.Guesses[m.matchInfo.CurrentAttempt] = word
 }
 
-func (m *gameModel) isLastRound() bool {
+func (m *gameModel) isLastRound() bool { // TODO: move to match info
 	return m.matchInfo.CurrentRound >= m.matchInfo.TotalRounds
 }
 
@@ -430,7 +429,7 @@ func (m *gameModel) initChallenges() {
 	}
 
 	m.challengesLen = challengesLen
-	m.guesses = make([]string, m.matchInfo.MaxAttempts)
+	m.matchInfo.Guesses = make([]string, m.matchInfo.MaxAttempts)
 	m.challenges = make([]*protocol.WordChallenge, challengesLen)
 
 	for i := range challengesLen {
