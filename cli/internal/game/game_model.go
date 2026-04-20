@@ -2,6 +2,7 @@ package game
 
 import (
 	"guessh/internal/protocol"
+	"slices"
 )
 
 type GameState int
@@ -42,6 +43,18 @@ type MatchInfo struct {
 
 func NewMatchInfo() *MatchInfo {
 	return &MatchInfo{}
+}
+
+func (m *MatchInfo) AlreadyGuessed(guess string) bool {
+	return slices.Contains(m.Guesses, guess)
+}
+
+func (m *MatchInfo) AddGuess(word string) {
+	m.Guesses[m.CurrentAttempt] = word
+}
+
+func (m *MatchInfo) IsLastRound() bool {
+	return m.CurrentRound >= m.TotalRounds
 }
 
 func (s GameState) String() string {

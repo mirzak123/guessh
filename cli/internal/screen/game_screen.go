@@ -108,7 +108,7 @@ func (m *gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyEnter:
 			logger.Debug("Game state: [%s]", m.state)
 			if m.state == game.StateRoundFinished {
-				if !m.isLastRound() {
+				if !m.matchInfo.IsLastRound() {
 					return m, emit(game.ReadyNextRoundIntent{})
 				} else {
 					return m, emit(game.ContinueIntent{})
@@ -383,7 +383,7 @@ func (m *gameModel) validateGuess(guess string) (bool, error) {
 	repeatedGuessErr := fmt.Errorf("'%s' was already guessed", guess)
 	invalidGuessErr := fmt.Errorf("'%s' is not a valid guess", guess)
 
-	if m.alreadyGuessed(guess) {
+	if m.matchInfo.AlreadyGuessed(guess) {
 		return false, repeatedGuessErr
 	}
 
@@ -404,18 +404,6 @@ func emit(msg tea.Msg) tea.Cmd {
 	return func() tea.Msg {
 		return msg
 	}
-}
-
-func (m *gameModel) alreadyGuessed(guess string) bool { // TODO: move to match info
-	return slices.Contains(m.matchInfo.Guesses, guess)
-}
-
-func (m *gameModel) addGuess(word string) { // TODO: move to match info
-	m.matchInfo.Guesses[m.matchInfo.CurrentAttempt] = word
-}
-
-func (m *gameModel) isLastRound() bool { // TODO: move to match info
-	return m.matchInfo.CurrentRound >= m.matchInfo.TotalRounds
 }
 
 func (m *gameModel) initChallenges() {
@@ -446,7 +434,7 @@ func (m *gameModel) setTurnTimer() tea.Cmd {
 }
 
 func (m *gameModel) setPostRoundTimer() tea.Cmd {
-	if m.postRoundTimeout > 0 && !m.isLastRound() {
+	if m.postRoundTimeout > 0 && !m.matchInfo.IsLastRound() {
 		m.postRoundTimer = timer.New(time.Second * time.Duration(m.postRoundTimeout))
 		return m.postRoundTimer.Init()
 	}
