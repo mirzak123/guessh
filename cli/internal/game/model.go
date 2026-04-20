@@ -62,6 +62,7 @@ type MatchInfo struct {
 	RoomValidationError error
 	DeniedRematch       bool
 	Guesses             []string
+	Challenges          []*protocol.WordChallenge
 }
 
 func NewMatchInfo() *MatchInfo {

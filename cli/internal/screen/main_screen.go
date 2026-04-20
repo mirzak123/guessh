@@ -460,7 +460,7 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Cmd {
 
 		m.game.matchInfo.AddGuess(guessResultEvent.Guess)
 		for i, feedback := range guessResultEvent.Feedback {
-			challenge := m.game.challenges[i]
+			challenge := m.game.matchInfo.Challenges[i]
 			if challenge.SolvedBy != protocol.OUTCOME_NONE {
 				continue
 			}

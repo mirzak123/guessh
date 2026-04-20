@@ -22,7 +22,6 @@ type gameModel struct {
 	matchInfo        *game.MatchInfo
 	input            textinput.Model
 	state            game.GameState
-	challenges       []*protocol.WordChallenge
 	challengesLen    int
 	turnTimer        timer.Model
 	postRoundTimer   timer.Model
@@ -167,7 +166,7 @@ func (m *gameModel) View() string {
 	for i := range m.challengesLen {
 		grid := ui.ViewGuessGrid(
 			m.matchInfo.Guesses,
-			m.challenges[i],
+			m.matchInfo.Challenges[i],
 			m.input.Value(),
 			m.matchInfo.CurrentAttempt,
 			m.matchInfo.MaxAttempts,
@@ -297,7 +296,7 @@ func (m *gameModel) statusBar() string {
 
 		words := []string{}
 
-		for i, challenge := range m.challenges {
+		for i, challenge := range m.matchInfo.Challenges {
 			word := m.matchInfo.CorrectWords[i]
 			switch challenge.SolvedBy {
 			case protocol.OUTCOME_NONE:
@@ -418,10 +417,10 @@ func (m *gameModel) initChallenges() {
 
 	m.challengesLen = challengesLen
 	m.matchInfo.Guesses = make([]string, m.matchInfo.MaxAttempts)
-	m.challenges = make([]*protocol.WordChallenge, challengesLen)
+	m.matchInfo.Challenges = make([]*protocol.WordChallenge, challengesLen)
 
 	for i := range challengesLen {
-		m.challenges[i] = protocol.NewWordChallenge(m.matchInfo.MaxAttempts)
+		m.matchInfo.Challenges[i] = protocol.NewWordChallenge(m.matchInfo.MaxAttempts)
 	}
 }
 
