@@ -6,7 +6,6 @@ import (
 	"guessh/internal/logger"
 	"guessh/internal/protocol"
 	"guessh/internal/ui"
-	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -48,8 +47,7 @@ func (m *gameModel) Init() tea.Cmd {
 
 	if !m.matchInfo.JoinExisting {
 		if m.matchInfo.TotalRounds, err = strconv.Atoi(m.matchInfo.RawTotalRounds); err != nil {
-			logger.Error("[Client.CreateMatch] Failed to convert matchInfo.RawTotalRounds after it passed validation: %v", err)
-			os.Exit(1)
+			panic(fmt.Sprintf("[Client.CreateMatch] invariant violated: failed to convert matchInfo.RawTotalRounds after it passed validation: %v", err))
 		}
 	}
 
