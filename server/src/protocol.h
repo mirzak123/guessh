@@ -1,5 +1,5 @@
-#ifndef JSON_MESSAGES_H
-#define JSON_MESSAGES_H
+#ifndef PROTOCOL_H
+#define PROTOCOL_H
 
 #include "game_server.h"
 #include "game_types.h"

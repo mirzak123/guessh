@@ -3,7 +3,7 @@
 #include "game_logic.h"
 #include "game_types.h"
 #include "hash_table.h"
-#include "json_messages.h"
+#include "protocol.h"
 #include "room.h"
 #include "timer.h"
 #include <assert.h>
