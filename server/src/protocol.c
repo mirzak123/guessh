@@ -1,4 +1,4 @@
-#include "json_messages.h"
+#include "protocol.h"
 #include "game_logic.h"
 #include "game_server.h"
 #include "game_types.h"

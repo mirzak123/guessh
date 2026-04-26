@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 static char **read_fixed_lines(FILE *file, size_t line_len, size_t *out_count);
@@ -59,6 +60,14 @@ bool evaluate_word_challenge_guess(const char *guess, WordChallenge *wc) {
 char *get_random_word(WordStore *store) {
   int index = rand() % (store->word_count + 1);
   return store->words[index];
+}
+
+bool is_valid_guess(WordStore *store, char *guess) {
+  for (size_t i = 0; i < store->word_count; i++) {
+    if (!strcmp(guess, store->words[i]))
+      return true;
+  }
+  return false;
 }
 
 WordStore *new_word_store(char *filename, size_t word_len) {

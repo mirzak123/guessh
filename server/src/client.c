@@ -1,6 +1,6 @@
 #include "client.h"
 #include "game_types.h"
-#include "json_messages.h"
+#include "protocol.h"
 
 #include <arpa/inet.h>
 #include <assert.h>

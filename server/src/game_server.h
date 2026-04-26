@@ -129,9 +129,16 @@ typedef struct {
   HashTable *rooms;
   TimerList *timer_list;
   struct {
-    WordStore *five_secret;
-    WordStore *six_secret;
-    WordStore *seven_secret;
+    struct {
+      WordStore *five;
+      WordStore *six;
+      WordStore *seven;
+    } secret;
+    struct {
+      WordStore *five;
+      WordStore *six;
+      WordStore *seven;
+    } valid;
   } word_store;
   ServerStats stats;
 } GameServer;
