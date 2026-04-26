@@ -23,7 +23,8 @@ typedef struct {
 static MessageType parse_client_event(char *data, size_t size, cJSON **out);
 static Outcome calculate_match_outcome(Match *match);
 static void calculate_round_points(Round *round);
-static WordStore *get_word_store(GameServer *gs, size_t word_len);
+static WordStore *get_secret_word_store(GameServer *gs, size_t word_len);
+static WordStore *get_valid_word_store(GameServer *gs, size_t word_len);
 static const char **get_round_words(Round *round);
 static bool already_guessed(char *word, char **guesses, size_t len);
 static bool is_round_finished(Round *round);
@@ -767,6 +768,11 @@ void GS_handle_make_guess(GameServer *gs, Client *client, cJSON *json_request) {
     return;
   }
 
+  if (!is_valid_guess(get_valid_word_store(gs, match->word_len), guess)) {
+    send_error(client->fd, E_INVALID_VALUE("guess", "not a valid guess"));
+    return;
+  }
+
   switch (match->mode) {
   case SINGLE:
     player1_on_turn = true;
@@ -1049,7 +1055,7 @@ void GS_start_round(GameServer *gs, Match *match) {
   cJSON *round_started_json = NULL;
   printf("[start_round] Starting new round...\n");
 
-  WordStore *store = get_word_store(gs, match->word_len);
+  WordStore *store = get_secret_word_store(gs, match->word_len);
 
   size_t max_attempts = match->word_len;
   size_t wc_num;
@@ -1151,14 +1157,27 @@ void calculate_round_points(Round *round) {
   }
 }
 
-WordStore *get_word_store(GameServer *gs, size_t word_len) {
+WordStore *get_secret_word_store(GameServer *gs, size_t word_len) {
   switch (word_len) {
   case 5:
-    return gs->word_store.five_secret;
+    return gs->word_store.secret.five;
   case 6:
-    return gs->word_store.six_secret;
+    return gs->word_store.secret.six;
   case 7:
-    return gs->word_store.seven_secret;
+    return gs->word_store.secret.seven;
+  }
+  printf("Tried to get word store for unsupported word length: %lu\n", word_len);
+  exit(EXIT_FAILURE);
+}
+
+WordStore *get_valid_word_store(GameServer *gs, size_t word_len) {
+  switch (word_len) {
+  case 5:
+    return gs->word_store.valid.five;
+  case 6:
+    return gs->word_store.valid.six;
+  case 7:
+    return gs->word_store.valid.seven;
   }
   printf("Tried to get word store for unsupported word length: %lu\n", word_len);
   exit(EXIT_FAILURE);
