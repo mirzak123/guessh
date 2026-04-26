@@ -51,9 +51,13 @@ GameServer *GS_create(void) {
   gs->rooms = HT_create();
   gs->timer_list = calloc(1, sizeof(TimerList));
 
-  gs->word_store.five_secret = new_word_store(FIVE_LETTER_SECRET_WORD_FILE, 5);
-  gs->word_store.six_secret = new_word_store(SIX_LETTER_SECRET_WORD_FILE, 6);
-  gs->word_store.seven_secret = new_word_store(SEVEN_LETTER_SECRET_WORD_FILE, 7);
+  gs->word_store.secret.five = new_word_store(FIVE_LETTER_SECRET_WORD_FILE, 5);
+  gs->word_store.secret.six = new_word_store(SIX_LETTER_SECRET_WORD_FILE, 6);
+  gs->word_store.secret.seven = new_word_store(SEVEN_LETTER_SECRET_WORD_FILE, 7);
+
+  gs->word_store.valid.five = new_word_store(FIVE_LETTER_VALID_WORD_FILE, 5);
+  gs->word_store.valid.six = new_word_store(SIX_LETTER_VALID_WORD_FILE, 6);
+  gs->word_store.valid.seven = new_word_store(SEVEN_LETTER_VALID_WORD_FILE, 7);
 
   return gs;
 }
@@ -64,9 +68,13 @@ void GS_destroy(GameServer *gs) {
   HT_destroy(gs->matches, (ValueDestructor)delete_match);
   free(gs->timer_list);
 
-  delete_word_store(gs->word_store.five_secret);
-  delete_word_store(gs->word_store.six_secret);
-  delete_word_store(gs->word_store.seven_secret);
+  delete_word_store(gs->word_store.secret.five);
+  delete_word_store(gs->word_store.secret.six);
+  delete_word_store(gs->word_store.secret.seven);
+
+  delete_word_store(gs->word_store.valid.five);
+  delete_word_store(gs->word_store.valid.six);
+  delete_word_store(gs->word_store.valid.seven);
 
   free(gs);
 }
