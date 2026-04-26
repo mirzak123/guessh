@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"guessh/internal/client"
 	"guessh/internal/game"
 	"guessh/internal/logger"
@@ -389,7 +388,6 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Cmd {
 			m.matchInfo.OpponentName = matchStartedEvent.OpponentName
 		}
 
-		m.matchInfo.RawTotalRounds = fmt.Sprintf("%d", matchStartedEvent.Rounds)
 		m.matchInfo.RoundPoints = make([]int, matchStartedEvent.Rounds)
 
 		m.game.input.CharLimit = m.matchInfo.WordLen
@@ -409,8 +407,6 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Cmd {
 			logger.Error("[handleEvent] error unmarshaling RoundStartedEvent: %v", err)
 			return nil
 		}
-
-		m.game.roundInfo = game.NewRoundInfo()
 
 		m.matchInfo.CurrentAttempt = 0
 		m.matchInfo.MaxAttempts = roundStartedEvent.MaxAttempts
@@ -462,9 +458,9 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Cmd {
 			return nil
 		}
 
-		m.game.addGuess(guessResultEvent.Guess)
+		m.game.matchInfo.AddGuess(guessResultEvent.Guess)
 		for i, feedback := range guessResultEvent.Feedback {
-			challenge := m.game.challenges[i]
+			challenge := m.game.matchInfo.Challenges[i]
 			if challenge.SolvedBy != protocol.OUTCOME_NONE {
 				continue
 			}
@@ -490,7 +486,6 @@ func (m *mainModel) handleEvent(eventMsg transport.EventMsg) tea.Cmd {
 		}
 
 		m.game.state = game.StateRoundFinished
-		m.game.roundInfo.Points = roundFinishedEvent.Points
 		m.matchInfo.CorrectWords = roundFinishedEvent.Words
 		m.game.input.Blur()
 		m.game.postRoundTimeout = roundFinishedEvent.PostRoundTimeout

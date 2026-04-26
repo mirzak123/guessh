@@ -6,7 +6,6 @@ import (
 	"guessh/internal/logger"
 	"guessh/internal/protocol"
 	"guessh/internal/ui"
-	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -22,9 +21,6 @@ type gameModel struct {
 	matchInfo        *game.MatchInfo
 	input            textinput.Model
 	state            game.GameState
-	roundInfo        *game.RoundInfo
-	guesses          []string
-	challenges       []*protocol.WordChallenge
 	challengesLen    int
 	turnTimer        timer.Model
 	postRoundTimer   timer.Model
@@ -42,7 +38,6 @@ func NewGame(matchInfo *game.MatchInfo) *gameModel {
 		matchInfo: matchInfo,
 		input:     ti,
 		state:     game.StateInit,
-		roundInfo: game.NewRoundInfo(),
 	}
 }
 
@@ -52,8 +47,7 @@ func (m *gameModel) Init() tea.Cmd {
 
 	if !m.matchInfo.JoinExisting {
 		if m.matchInfo.TotalRounds, err = strconv.Atoi(m.matchInfo.RawTotalRounds); err != nil {
-			logger.Error("[Client.CreateMatch] Failed to convert matchInfo.RawTotalRounds after it passed validation: %v", err)
-			os.Exit(1)
+			panic(fmt.Sprintf("[Client.CreateMatch] invariant violated: failed to convert matchInfo.RawTotalRounds after it passed validation: %v", err))
 		}
 	}
 
@@ -111,7 +105,7 @@ func (m *gameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyEnter:
 			logger.Debug("Game state: [%s]", m.state)
 			if m.state == game.StateRoundFinished {
-				if !m.isLastRound() {
+				if !m.matchInfo.IsLastRound() {
 					return m, emit(game.ReadyNextRoundIntent{})
 				} else {
 					return m, emit(game.ContinueIntent{})
@@ -169,8 +163,8 @@ func (m *gameModel) View() string {
 	var guessGrids []string
 	for i := range m.challengesLen {
 		grid := ui.ViewGuessGrid(
-			m.guesses,
-			m.challenges[i],
+			m.matchInfo.Guesses,
+			m.matchInfo.Challenges[i],
 			m.input.Value(),
 			m.matchInfo.CurrentAttempt,
 			m.matchInfo.MaxAttempts,
@@ -300,7 +294,7 @@ func (m *gameModel) statusBar() string {
 
 		words := []string{}
 
-		for i, challenge := range m.challenges {
+		for i, challenge := range m.matchInfo.Challenges {
 			word := m.matchInfo.CorrectWords[i]
 			switch challenge.SolvedBy {
 			case protocol.OUTCOME_NONE:
@@ -386,7 +380,7 @@ func (m *gameModel) validateGuess(guess string) (bool, error) {
 	repeatedGuessErr := fmt.Errorf("'%s' was already guessed", guess)
 	invalidGuessErr := fmt.Errorf("'%s' is not a valid guess", guess)
 
-	if m.alreadyGuessed(guess) {
+	if m.matchInfo.AlreadyGuessed(guess) {
 		return false, repeatedGuessErr
 	}
 
@@ -409,18 +403,6 @@ func emit(msg tea.Msg) tea.Cmd {
 	}
 }
 
-func (m *gameModel) alreadyGuessed(guess string) bool {
-	return slices.Contains(m.guesses, guess)
-}
-
-func (m *gameModel) addGuess(word string) {
-	m.guesses[m.matchInfo.CurrentAttempt] = word
-}
-
-func (m *gameModel) isLastRound() bool {
-	return m.matchInfo.CurrentRound >= m.matchInfo.TotalRounds
-}
-
 func (m *gameModel) initChallenges() {
 	logger.Debug("initChallenges()")
 	var challengesLen int
@@ -432,11 +414,11 @@ func (m *gameModel) initChallenges() {
 	}
 
 	m.challengesLen = challengesLen
-	m.guesses = make([]string, m.matchInfo.MaxAttempts)
-	m.challenges = make([]*protocol.WordChallenge, challengesLen)
+	m.matchInfo.Guesses = make([]string, m.matchInfo.MaxAttempts)
+	m.matchInfo.Challenges = make([]*protocol.WordChallenge, challengesLen)
 
 	for i := range challengesLen {
-		m.challenges[i] = protocol.NewWordChallenge(m.matchInfo.MaxAttempts)
+		m.matchInfo.Challenges[i] = protocol.NewWordChallenge(m.matchInfo.MaxAttempts)
 	}
 }
 
@@ -449,7 +431,7 @@ func (m *gameModel) setTurnTimer() tea.Cmd {
 }
 
 func (m *gameModel) setPostRoundTimer() tea.Cmd {
-	if m.postRoundTimeout > 0 && !m.isLastRound() {
+	if m.postRoundTimeout > 0 && !m.matchInfo.IsLastRound() {
 		m.postRoundTimer = timer.New(time.Second * time.Duration(m.postRoundTimeout))
 		return m.postRoundTimer.Init()
 	}

@@ -2,6 +2,7 @@ package game
 
 import (
 	"guessh/internal/protocol"
+	"slices"
 )
 
 type GameState int
@@ -16,41 +17,6 @@ const (
 	StateRoundFinished
 	StateMatchFinished
 )
-
-type MatchInfo struct {
-	Mode                protocol.GameMode
-	Format              protocol.GameFormat
-	WordLen             int
-	CurrentRound        int
-	RawTotalRounds      string
-	TotalRounds         int
-	TurnTimeout         int
-	RoundsPlayed        int
-	MaxAttempts         int
-	CurrentAttempt      int
-	CorrectWords        []string
-	RoundPoints         []int
-	PlayerName          string
-	OpponentName        string
-	PlayerOnTurn        bool
-	RoomID              string
-	JoinExisting        bool
-	RoomValidationError error
-	DeniedRematch       bool
-}
-
-func NewMatchInfo() *MatchInfo {
-	return &MatchInfo{}
-}
-
-type RoundInfo struct { // TODO: Remove this (unused)
-	Word   string
-	Points int
-}
-
-func NewRoundInfo() *RoundInfo {
-	return &RoundInfo{}
-}
 
 func (s GameState) String() string {
 	var str string
@@ -73,4 +39,44 @@ func (s GameState) String() string {
 		str = "StateWaitOpponentReady"
 	}
 	return str
+}
+
+type MatchInfo struct {
+	Mode                protocol.GameMode
+	Format              protocol.GameFormat
+	WordLen             int
+	CurrentRound        int
+	RawTotalRounds      string
+	TotalRounds         int
+	TurnTimeout         int
+	RoundsPlayed        int
+	MaxAttempts         int
+	CurrentAttempt      int
+	CorrectWords        []string
+	RoundPoints         []int
+	PlayerName          string
+	OpponentName        string
+	PlayerOnTurn        bool
+	RoomID              string
+	JoinExisting        bool
+	RoomValidationError error
+	DeniedRematch       bool
+	Guesses             []string
+	Challenges          []*protocol.WordChallenge
+}
+
+func NewMatchInfo() *MatchInfo {
+	return &MatchInfo{}
+}
+
+func (m *MatchInfo) AlreadyGuessed(guess string) bool {
+	return slices.Contains(m.Guesses, guess)
+}
+
+func (m *MatchInfo) AddGuess(word string) {
+	m.Guesses[m.CurrentAttempt] = word
+}
+
+func (m *MatchInfo) IsLastRound() bool {
+	return m.CurrentRound >= m.TotalRounds
 }

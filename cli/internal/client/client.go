@@ -2,11 +2,11 @@ package client
 
 import (
 	"encoding/json"
+	"fmt"
 	"guessh/internal/logger"
 	"guessh/internal/protocol"
 	"guessh/internal/transport"
 	"net"
-	"os"
 )
 
 type Client struct {
@@ -19,138 +19,59 @@ func NewClient(conn net.Conn) *Client {
 	}
 }
 
-// TODO: Wrap marshaling and sending logic into a generic called marshalAndSend
-
 func (c *Client) CreateMatch(mode protocol.GameMode, format protocol.GameFormat, wordLen, rounds, turnTimeout int, playerName string) {
-	var (
-		msg []byte
-		err error
-	)
-
 	createMatchEvent := protocol.NewCreateMatchEvent(mode, format, wordLen, rounds, turnTimeout, playerName)
-	if msg, err = json.Marshal(createMatchEvent); err != nil {
-		logger.Error("[client] Failed to marshal CreateMatchEvent: %v", err)
-		os.Exit(1)
-	}
-
-	c.Send(msg)
+	c.marshalAndSend(createMatchEvent)
 }
 
 func (c *Client) MakeGuess(guess string) {
-	var (
-		msg []byte
-		err error
-	)
-
 	makeGuessEvent := protocol.NewMakeGuessEvent(guess)
-	if msg, err = json.Marshal(makeGuessEvent); err != nil {
-		logger.Error("[client] Failed to marshal MakeGuessEvent: %v", err)
-		os.Exit(1)
-	}
-
-	c.Send(msg)
+	c.marshalAndSend(makeGuessEvent)
 }
 
 func (c *Client) JoinRoom(roomID string, playerName string) {
-	var (
-		msg []byte
-		err error
-	)
-
 	joinRoomEvent := protocol.NewJoinRoomEvent(roomID, playerName)
-	if msg, err = json.Marshal(joinRoomEvent); err != nil {
-		logger.Error("[client] Failed to marshal JoinRoomEvent: %v", err)
-		os.Exit(1)
-	}
-
-	c.Send(msg)
+	c.marshalAndSend(joinRoomEvent)
 }
 
 func (c *Client) Typing(value string) {
-	var (
-		msg []byte
-		err error
-	)
-
 	typingEvent := protocol.NewTypingEvent(value)
-	if msg, err = json.Marshal(typingEvent); err != nil {
-		logger.Error("[client] Failed to marshal TypingEvent: %v", err)
-		os.Exit(1)
-	}
-
-	c.Send(msg)
+	c.marshalAndSend(typingEvent)
 }
 
 func (c *Client) LeaveMatch() {
-	var (
-		msg []byte
-		err error
-	)
-
 	leaveMatchEvent := protocol.NewLeaveMatchEvent()
-	if msg, err = json.Marshal(leaveMatchEvent); err != nil {
-		logger.Error("[client] Failed to marshal LeaveMatchEvent: %v", err)
-		os.Exit(1)
-	}
-
-	c.Send(msg)
+	c.marshalAndSend(leaveMatchEvent)
 }
 
 func (c *Client) RequestRematch() {
-	var (
-		msg []byte
-		err error
-	)
-
 	requestRematchEvent := protocol.NewRequestRematchEvent()
-	if msg, err = json.Marshal(requestRematchEvent); err != nil {
-		logger.Error("[client] Failed to marshal RequestRematchEvent: %v", err)
-		os.Exit(1)
-	}
-
-	c.Send(msg)
+	c.marshalAndSend(requestRematchEvent)
 }
 
 func (c *Client) DenyRematch() {
-	var (
-		msg []byte
-		err error
-	)
-
 	denyRematchEvent := protocol.NewDenyRematchEvent()
-	if msg, err = json.Marshal(denyRematchEvent); err != nil {
-		logger.Error("[client] Failed to marshal DenyRematchEvent: %v", err)
-		os.Exit(1)
-	}
-
-	c.Send(msg)
+	c.marshalAndSend(denyRematchEvent)
 }
 
 func (c *Client) ReadyNextRound() {
-	var (
-		msg []byte
-		err error
-	)
-
 	readyNextRoundEvent := protocol.NewReadyNextRoundEvent()
-	if msg, err = json.Marshal(readyNextRoundEvent); err != nil {
-		logger.Error("[client] Failed to marshal readyNextRoundEvent: %v", err)
-		os.Exit(1)
-	}
-
-	c.Send(msg)
+	c.marshalAndSend(readyNextRoundEvent)
 }
 
 func (c *Client) ShowStats() {
+	showStatsEvent := protocol.NewShowStatsEvent()
+	c.marshalAndSend(showStatsEvent)
+}
+
+func (c *Client) marshalAndSend(event any) {
 	var (
 		msg []byte
 		err error
 	)
 
-	showStatsEvent := protocol.NewShowStatsEvent()
-	if msg, err = json.Marshal(showStatsEvent); err != nil {
-		logger.Error("[client] Failed to marshal showStatsEvent: %v", err)
-		os.Exit(1)
+	if msg, err = json.Marshal(event); err != nil {
+		panic(fmt.Sprintf("[client] invariant violated: failed to marshal %T: %v", event, err))
 	}
 
 	c.Send(msg)
